@@ -12,7 +12,7 @@
    #:defsystem #:register-system-definition
    #:class-for-type #:*default-component-class*
    #:determine-system-directory #:parse-component-form
-   #:non-toplevel-system #:non-system-system
+   #:non-toplevel-system #:non-system-system #:missing-metadata
    #:sysdef-error-component #:check-component-input))
 (in-package :asdf/parse-defsystem)
 
@@ -72,6 +72,15 @@
     (:report (lambda (c s)
                (format s (compatfmt "~@<Error while defining system: component ~S claims to have a system ~S as a child~@:>")
                        (non-toplevel-system-parent c) (non-toplevel-system-name c)))))
+
+  (define-condition missing-metadata (style-warning)
+    ((system-name :initarg :system-name :reader system-name)
+     (missing-metadata :reader missing-metadata :initarg :missing-metadata))
+    (:report (lambda (c s)
+               (format s (compatfmt "Standard metadata item~P missing from definition of system ~a: ~{~A~^, ~}")
+                       (missing-metadata c)
+                       (system-name c)
+                       (missing-metadata c)))))
 
   (defun sysdef-error-component (msg type name value)
     (sysdef-error (strcat msg (compatfmt "~&~@<The value specified for ~(~A~) ~A is ~S~@:>"))
@@ -264,6 +273,11 @@ system names contained using COERCE-NAME. Return the result."
            (coerce-name (component-system component))))
         component)))
 
+  (defparameter *required-metadata*
+    '(author description
+      licence                           ; note UK spelling of slotname
+      version))
+
   (defun register-system-definition
       (name &rest options &key pathname (class 'system) (source-file () sfp)
                             defsystem-depends-on &allow-other-keys)
@@ -302,11 +316,21 @@ system names contained using COERCE-NAME. Return the result."
             (error 'non-system-system :name name :class-name (class-name class)))
           (unless (eq (type-of system) class)
             (change-class system class)))
-        (parse-component-form
-         nil (list*
-              :module name
-              :pathname (determine-system-directory pathname)
-              component-options)))))
+        (let ((component
+                (parse-component-form
+                 nil (list*
+                      :module name
+                      :pathname (determine-system-directory pathname)
+                      component-options))))
+          ;; check for required metadata
+          (loop :for slotname :in *required-metadata*
+                :unless (slot-boundp component slotname)
+                  :collect slotname :into missing
+                :finally (when missing
+                           (signal 'missing-metadata
+                                   :system-name name
+                                   :missing-metadata missing)))
+          component))))
 
   (defmacro defsystem (name &body options)
     `(apply 'register-system-definition ',name ',options)))
