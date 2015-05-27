@@ -322,14 +322,16 @@ system names contained using COERCE-NAME. Return the result."
                       :module name
                       :pathname (determine-system-directory pathname)
                       component-options))))
-          ;; check for required metadata
-          (loop :for slotname :in *required-metadata*
+          ;; check for required metadata on top-level systems
+          ;; "top level" here is meant as "not containing a slash."
+          (unless (find #\/ name)
+            (loop :for slotname :in *required-metadata*
                 :unless (slot-boundp component slotname)
                   :collect slotname :into missing
                 :finally (when missing
                            (signal 'missing-metadata
                                    :system-name name
-                                   :missing-metadata missing)))
+                                   :missing-metadata missing))))
           component))))
 
   (defmacro defsystem (name &body options)
