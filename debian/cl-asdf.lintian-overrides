@@ -1,0 +1,8 @@
+# A file with some helper functions has optional support for the
+# debian package cl-launch which installs /usr/bin/cl, but also
+# works without cl-launch
+unusual-interpreter usr/share/common-lisp/source/cl-asdf/tools/cl-source-registry-cache.lisp #!/usr/bin/cl
+
+# A helper file contains support for the debian package cl-launch
+# but also works without cl-launch
+executable-not-elf-or-script usr/share/common-lisp/source/cl-asdf/tools/install-asdf.lisp
