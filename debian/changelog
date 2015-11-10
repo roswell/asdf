@@ -1,5 +1,8 @@
 cl-asdf (2:3.1.6-1) unstable; urgency=low
-
+  Package changes:
+  * New uploader in control file
+  * lintian-overrides for 2 script files which have a magic comment
+    for invoking cl-launch
   New upstream release:
   * Fix backtrace on SBCL.
   * Fix RUN-PROGRAM of string (shell command) on Windows SBCL (ticket
