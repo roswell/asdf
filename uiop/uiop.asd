@@ -37,6 +37,7 @@ you already have a matching UIOP loaded."
    (:file "common-lisp" :depends-on ("package"))
    (:file "utility" :depends-on ("common-lisp"))
    (:file "version" :depends-on ("utility"))
+   (:file "collection" :depends-on ("utility"))
    (:file "os" :depends-on ("utility"))
    (:file "pathname" :depends-on ("utility" "os"))
    (:file "filesystem" :depends-on ("os" "pathname"))
