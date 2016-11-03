@@ -342,7 +342,7 @@ initialized with SEED."
   (defmethod call-while-visiting-action ((plan plan-traversal) operation component fun)
     (with-accessors ((action-set plan-visiting-action-set)
                      (action-list plan-visiting-action-list)) plan
-      (let ((action (cons operation component)))
+      (let ((action (make-action :operation operation :component component)))
         (when (gethash action action-set)
           (error 'circular-dependency :actions
                  (member action (reverse action-list) :test 'equal)))
@@ -439,7 +439,7 @@ initialized with SEED."
   (defmethod (setf plan-action-status) :after
       (new-status (p sequential-plan) (o operation) (c component))
     (when (action-planned-p new-status)
-      (push (cons o c) (plan-actions-r p)))))
+      (push (make-action :operation o :component c) (plan-actions-r p)))))
 
 
 ;;;; High-level interface: traverse, perform-plan, plan-operates-on-p
@@ -474,7 +474,7 @@ initialized with SEED."
 
   (defmethod perform-plan ((steps list) &key force &allow-other-keys)
     (loop* :for action :in steps
-           :as o = (action-op action)
+           :as o = (action-operation action)
            :as c = (action-component action)
            :when (or force (not (nth-value 1 (compute-action-stamp nil o c))))
            :do (perform-with-restarts o c)))
@@ -520,7 +520,7 @@ initialized with SEED."
     "Given a list of actions, build a plan with these actions as roots."
     (let ((plan (apply 'make-instance (or plan-class 'filtered-sequential-plan) keys)))
       (loop* :for action :in actions
-             :as o = (action-op action)
+             :as o = (action-operation action)
              :as c = (action-component action)
              :do (traverse-action plan o c t))
       plan))
@@ -535,10 +535,10 @@ initialized with SEED."
   (defmethod plan-actions ((plan filtered-sequential-plan))
     (with-slots (keep-operation keep-component) plan
       (loop* :for action :in (call-next-method)
-             :as o = (action-op action)
+             :as o = (action-operation action)
              :as c = (action-component action)
              :when (and (typep o keep-operation) (typep c keep-component))
-             :collect (cons o c))))
+             :collect (make-action :operation o :component c))))
 
   (defun* (required-components) (system &rest keys &key (goal-operation 'load-op) &allow-other-keys)
     "Given a SYSTEM and a GOAL-OPERATION (default LOAD-OP), traverse the dependencies and
