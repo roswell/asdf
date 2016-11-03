@@ -14,6 +14,7 @@
    #:component-depends-on
    #:input-files #:output-files #:output-file #:operation-done-p
    #:action-status #:action-stamp #:action-done-p
+   #:action-op #:action-component
    #:component-operation-time #:mark-operation-done #:compute-action-stamp
    #:perform #:perform-with-restarts #:retry #:accept
    #:action-path #:find-action #:stamp #:done-p
@@ -43,6 +44,13 @@ and a class-name or class designates the canonical instance of the designated cl
     "Reconstitute an action from its action-path"
     (destructuring-bind (o . c) path (cons (make-operation o) (find-component () c)))))
 
+;;; these are pseudo accessors -- let us abstract away the CONS cell representation of plan
+;;; actions.
+(with-upgradability ()
+  (defun action-op (action)
+    (car action))
+  (defun action-component (action)
+    (cdr action)))
 
 ;;;; Convenience methods
 (with-upgradability ()
