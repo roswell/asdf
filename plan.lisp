@@ -342,7 +342,7 @@ initialized with SEED."
   (defmethod call-while-visiting-action ((plan plan-traversal) operation component fun)
     (with-accessors ((action-set plan-visiting-action-set)
                      (action-list plan-visiting-action-list)) plan
-      (let ((action (make-action :operation operation :component component)))
+      (let ((action (make-action operation component)))
         (when (gethash action action-set)
           (error 'circular-dependency :actions
                  (member action (reverse action-list) :test 'equal)))
@@ -439,7 +439,7 @@ initialized with SEED."
   (defmethod (setf plan-action-status) :after
       (new-status (p sequential-plan) (o operation) (c component))
     (when (action-planned-p new-status)
-      (push (make-action :operation o :component c) (plan-actions-r p)))))
+      (push (make-action o c) (plan-actions-r p)))))
 
 
 ;;;; High-level interface: traverse, perform-plan, plan-operates-on-p
@@ -538,7 +538,7 @@ initialized with SEED."
              :as o = (action-operation action)
              :as c = (action-component action)
              :when (and (typep o keep-operation) (typep c keep-component))
-             :collect (make-action :operation o :component c))))
+             :collect (make-action o c))))
 
   (defun* (required-components) (system &rest keys &key (goal-operation 'load-op) &allow-other-keys)
     "Given a SYSTEM and a GOAL-OPERATION (default LOAD-OP), traverse the dependencies and

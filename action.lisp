@@ -37,8 +37,7 @@ and a class-name or class designates the canonical instance of the designated cl
 ;;; these are pseudo accessors -- let us abstract away the CONS cell representation of plan
 ;;; actions.
 (with-upgradability ()
-  (defun make-action (&key operation component)
-    (assert (and operation component))
+  (defun make-action (operation component)
     (cons operation component))
   (defun action-operation (action)
     (car action))
@@ -54,7 +53,7 @@ and a class-name or class designates the canonical instance of the designated cl
       (cons (type-of o) (component-find-path c))))
   (defun find-action (path)
     "Reconstitute an action from its action-path"
-    (destructuring-bind (o . c) path (make-action :operation (make-operation o) :component (find-component () c)))))
+    (destructuring-bind (o . c) path (make-action (make-operation o) (find-component () c)))))
 
 ;;;; Convenience methods
 (with-upgradability ()
@@ -104,7 +103,7 @@ and a class-name or class designates the canonical instance of the designated cl
            (defmethod ,function (,@prefix (,operation operation) ,component ,@suffix ,@more-args)
              (if (typep ,component 'component)
                  (error "No defined method for ~S on ~/asdf-action:format-action/"
-                        ',function (make-action :operation ,operation :component ,component))
+                        ',function (make-action ,operation ,component))
                  (if-let (,found (find-component () ,component))
                     ,(next-method operation found)
                     ,if-no-component))))))))
@@ -427,7 +426,7 @@ in some previous image, or T if it needs to be done.")
                      selfward-operation non-propagating-operation))
       (sysdef-error
        (compatfmt "~@<Required method ~S not implemented for ~/asdf-action:format-action/~@:>")
-       'perform (make-action :operation o :component c))))
+       'perform (make-action o c))))
 
   ;; The restarts of the perform-with-restarts variant matter in an interactive context.
   ;; The retry strategies of p-w-r itself, and/or the background workers of a multiprocess build
