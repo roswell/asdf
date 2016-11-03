@@ -473,7 +473,9 @@ initialized with SEED."
     (apply 'perform-plan (plan-actions plan) keys))
 
   (defmethod perform-plan ((steps list) &key force &allow-other-keys)
-    (loop* :for (o . c) :in steps
+    (loop* :for action :in steps
+           :as o = (action-op action)
+           :as c = (action-component action)
            :when (or force (not (nth-value 1 (compute-action-stamp nil o c))))
            :do (perform-with-restarts o c)))
 
@@ -481,7 +483,7 @@ initialized with SEED."
     (plan-operates-on-p (plan-actions plan) component-path))
 
   (defmethod plan-operates-on-p ((plan list) (component-path list))
-    (find component-path (mapcar 'cdr plan)
+    (find component-path (mapcar 'action-component plan)
           :test 'equal :key 'component-find-path)))
 
 
@@ -517,7 +519,10 @@ initialized with SEED."
   (defun* (traverse-actions) (actions &rest keys &key plan-class &allow-other-keys)
     "Given a list of actions, build a plan with these actions as roots."
     (let ((plan (apply 'make-instance (or plan-class 'filtered-sequential-plan) keys)))
-      (loop* :for (o . c) :in actions :do (traverse-action plan o c t))
+      (loop* :for action :in actions
+             :as o = (action-op action)
+             :as c = (action-component action)
+             :do (traverse-action plan o c t))
       plan))
 
   (defgeneric traverse-sub-actions (operation component &key &allow-other-keys))
@@ -529,7 +534,9 @@ initialized with SEED."
 
   (defmethod plan-actions ((plan filtered-sequential-plan))
     (with-slots (keep-operation keep-component) plan
-      (loop* :for (o . c) :in (call-next-method)
+      (loop* :for action :in (call-next-method)
+             :as o = (action-op action)
+             :as c = (action-component action)
              :when (and (typep o keep-operation) (typep c keep-component))
              :collect (cons o c))))
 
@@ -537,7 +544,7 @@ initialized with SEED."
     "Given a SYSTEM and a GOAL-OPERATION (default LOAD-OP), traverse the dependencies and
 return a list of the components involved in building the desired action."
     (remove-duplicates
-     (mapcar 'cdr (plan-actions
+     (mapcar 'action-component (plan-actions
                    (apply 'traverse-sub-actions goal-operation system
                           (remove-plist-key :goal-operation keys))))
      :from-end t)))
