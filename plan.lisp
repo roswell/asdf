@@ -544,8 +544,9 @@ initialized with SEED."
     "Given a SYSTEM and a GOAL-OPERATION (default LOAD-OP), traverse the dependencies and
 return a list of the components involved in building the desired action."
     (remove-duplicates
-     (mapcar 'action-component (plan-actions
-                   (apply 'traverse-sub-actions goal-operation system
-                          (remove-plist-key :goal-operation keys))))
+     (mapcar 'action-component
+             (plan-actions
+              (apply 'traverse-sub-actions goal-operation system
+                     (remove-plist-key :goal-operation keys))))
      :from-end t)))
 
