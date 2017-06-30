@@ -1,0 +1,31 @@
+;;; -*- Lisp -*-
+;;; ---------------------------------------------------------------------------
+;;; Test to make sure that an update to included files causes a reload
+;;; of the system definition.
+;;; ---------------------------------------------------------------------------
+
+(in-package :asdf-test)
+;; I don't know what this does or when it's necessary
+;; (setf asdf::*asdf-session* (make-instance asdf::*asdf-session-class*))
+(defparameter *tmp-directory* (subpathname *asdf-directory* "build/"))
+(defun under-tmp-directory (designator &optional (defaults *tmp-directory*))
+  (namestring (subpathname defaults designator)))
+(defparameter *version-file*
+  (under-tmp-directory "random-version.lisp-expr"))
+
+;;; write an initial version file
+(with-open-file (str *version-file* :direction :output
+                     :if-exists :supersede)
+  (format str "\"1.0\"~%"))
+(asdf:load-system "test-include")
+(let ((system (asdf:find-system "test-include")))
+  ;; read the initial version information correctly...
+  (assert-equal (asdf:component-version system) "1.0"))
+;;; bump the version
+(with-open-file (str *version-file* :direction :output
+                     :if-exists :supersede)
+  (format str "\"2.0\"~%"))
+(asdf:load-system "test-include")
+(let ((system (asdf:find-system "test-include")))
+  ;; read the initial version information correctly...
+  (assert-equal (asdf:component-version system) "2.0"))
