@@ -13,19 +13,39 @@
 (defparameter *version-file*
   (under-tmp-directory "random-version.lisp-expr"))
 
+;; (trace asdf/component:additional-input-files asdf/parse-defsystem::record-additional-system-input-file)
+
 ;;; write an initial version file
-(with-open-file (str *version-file* :direction :output
-                     :if-exists :supersede)
-  (format str "\"1.0\"~%"))
-(asdf:load-system "test-include")
-(let ((system (asdf:find-system "test-include")))
-  ;; read the initial version information correctly...
-  (assert-equal (asdf:component-version system) "1.0"))
+(unwind-protect
+     (progn
+       (with-open-file (str *version-file* :direction :output
+                                           :if-exists :supersede)
+         (format str "\"1.0\"~%"))
+       (asdf:load-system "test-include")
+
+       (let ((system (asdf:find-system "test-include")))
+         (DBG "On initial load, the system version is" (component-version system))
+         (DBG "After initial load the input files for the define op are:"
+              (input-files (make-operation 'define-op) system))
+
+         ;; read the initial version information correctly...
+         (assert-equal (asdf:component-version system) "1.0"))
+       (sleep 2)
+       (DBG "*******Reloading*******")
+       ;;(trace asdf/plan::action-up-to-date-p)
+       ;; (trace asdf/action::component-operation-time)
+       ;; #+allegro #+allegro
+       ;; (trace (asdf:input-files :inside asdf/plan::compute-action-stamp)
+       ;;        (asdf/plan::stamp<= :inside asdf/plan::compute-action-stamp)
+       ;;        (asdf/plan::get-file-stamp :inside asdf/plan::compute-action-stamp))
+
 ;;; bump the version
-(with-open-file (str *version-file* :direction :output
-                     :if-exists :supersede)
-  (format str "\"2.0\"~%"))
-(asdf:load-system "test-include")
-(let ((system (asdf:find-system "test-include")))
-  ;; read the initial version information correctly...
-  (assert-equal (asdf:component-version system) "2.0"))
+       (with-open-file (str *version-file* :direction :output
+                                           :if-exists :supersede)
+         (format str "\"2.0\"~%"))
+       (asdf:load-system "test-include")
+       (let ((system (asdf:find-system "test-include")))
+         (DBG "After reload, system version is ~%" (asdf:component-version system))
+         ;; read the initial version information correctly...
+         (assert-equal (asdf:component-version system) "2.0")))
+  (uiop:delete-file-if-exists *version-file*))
