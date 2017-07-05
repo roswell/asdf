@@ -305,8 +305,7 @@ initialized with SEED."
            ;; Has any input changed since we last generated the files?
            ;; Note that we use stamp<= instead of stamp< to play nice with generated files.
            ;; Any race condition is intrinsic to the limited timestamp resolution.
-           (up-to-date-p (and (stamp<= latest-in earliest-out)
-                              (stamp<= latest-in (component-operation-time o c))))
+           (up-to-date-p (stamp<= latest-in earliest-out))
            ;; If everything is up to date, the latest of inputs and outputs is our stamp
            (done-stamp (stamps-latest (cons latest-in out-stamps))))
        ;; Warn if some files are missing:
