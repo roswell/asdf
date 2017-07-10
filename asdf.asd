@@ -63,7 +63,7 @@
    (:file "operate" :depends-on ("plan"))
    (:file "find-system" :depends-on ("system-registry" "operate"))
    (:file "parse-defsystem" :depends-on ("system-registry" "lisp-action" "operate"
-                                                           "operation" "find-system"))
+                                                           "find-system"))
    (:file "bundle" :depends-on ("lisp-action" "parse-defsystem"))
    (:file "concatenate-source" :depends-on ("bundle"))
    (:file "package-inferred-system" :depends-on ("parse-defsystem"))
