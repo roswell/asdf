@@ -8,8 +8,12 @@
 ;; I don't know what this does or when it's necessary
 ;; (setf asdf::*asdf-session* (make-instance asdf::*asdf-session-class*))
 (defparameter *tmp-directory* (subpathname *asdf-directory* "build/"))
+(defparameter *test-directory* (subpathname *asdf-directory* "test/"))
 (defun under-tmp-directory (designator &optional (defaults *tmp-directory*))
   (namestring (subpathname defaults designator)))
+(defun under-test-directory (designator &optional (defaults *test-directory*))
+  (namestring (subpathname defaults designator)))
+
 (defparameter *version-file*
   (under-tmp-directory "random-version.lisp-expr"))
 
@@ -30,6 +34,7 @@
 
          ;; read the initial version information correctly...
          (assert-equal (asdf:component-version system) "1.0"))
+       (DBG "*******Initial load successful*******")
        (sleep 2)
        (DBG "*******Reloading*******")
        ;;(trace asdf/plan::action-up-to-date-p)
@@ -48,4 +53,33 @@
          (DBG "After reload, system version is ~%" (asdf:component-version system))
          ;; read the initial version information correctly...
          (assert-equal (asdf:component-version system) "2.0")))
+  (sleep 2)
+  (DBG "*******Using new input file*******")
+  (let ((version-file
+          (under-tmp-directory "random-version2.lisp-expr")))
+    (unwind-protect
+         ;; swap system definitions with different read file versions
+         (progn
+           (uiop:rename-file-overwriting-target
+            (under-test-directory "test-include.asd")
+            (under-test-directory "test-include.asd.orig"))
+           (uiop:copy-file
+            (under-test-directory "test-include2.asd")
+            (under-test-directory "test-include.asd"))
+           (with-open-file (str version-file :direction :output
+                                             :if-exists :supersede)
+             (format str "\"3.0\"~%"))
+           (asdf:load-system "test-include")
+           (let ((system (find-system "test-include")))
+             (assert-equal (asdf:component-version system) "3.0")
+             (assert-pathnames-equal (asdf:input-files
+                            (asdf:make-operation 'asdf:define-op)
+                            system)
+                           (mapcar 'parse-namestring
+                                   (list (under-test-directory "test-include.asd")
+                                         (under-tmp-directory "random-version2.lisp-expr"))))))
+      (uiop:rename-file-overwriting-target
+       (under-test-directory "test-include.asd.orig")
+       (under-test-directory "test-include.asd"))
+      (uiop:delete-file-if-exists version-file)))
   (uiop:delete-file-if-exists *version-file*))
