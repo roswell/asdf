@@ -109,7 +109,8 @@
        (asdf-message (compatfmt "~&~@<; ~@;Loading system definition~@[ for ~A~] from ~A~@:>~%")
                      (coerce-name s) pathname)
        ;; dependencies will depend on what's loaded via definition-dependency-list
-       (unset-asdf-cache-entry `(component-depends-on ,o ,s)))
+       (unset-asdf-cache-entry `(component-depends-on ,o ,s))
+       (unset-asdf-cache-entry `(input-files ,o ,s)))
      (load* pathname :external-format (encoding-external-format (detect-encoding pathname)))))
 
   (defun load-asd (pathname &key name)
