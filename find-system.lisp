@@ -296,10 +296,6 @@ PREVIOUS-TIME when not null is the time at which the PREVIOUS system was loaded.
 
 ;;; additional methods for additional-input-files that are responsible for looking up systems.
 (with-upgradability ()
-  (defmethod additional-input-files ((comp symbol) op)
-    (additional-input-files (find-system comp) op))
-  (defmethod additional-input-files ((comp string) op)
-    (additional-input-files (find-system comp) op))
   (defmethod %additional-input-files ((comp symbol))
     (%additional-input-files (find-system comp)))
   (defmethod %additional-input-files ((comp string))

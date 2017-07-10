@@ -83,27 +83,36 @@ and a class-name or class designates the canonical instance of the designated cl
            (component 'component)
            (opix (position operation formals))
            (coix (position component formals))
-           (prefix (subseq formals 0 opix))
-           (suffix (subseq formals (1+ coix) len))
+           (first-arg (if (< opix coix) operation component))
+           (prefix (subseq formals 0 (min opix coix)))
+           (suffix (subseq formals (1+ (max opix coix)) len))
            (more-args (when keyp `(&rest ,rest &key &allow-other-keys))))
-      (assert (and (integerp opix) (integerp coix) (= coix (1+ opix))))
+      (assert (and (integerp opix) (integerp coix)
+                   (or (= coix (1+ opix)) (= opix (1+ coix)))))
       (flet ((next-method (o c)
                (if keyp
-                   `(apply ',function ,@prefix ,o ,c ,@suffix ,rest)
-                   `(,function ,@prefix ,o ,c ,@suffix))))
+                   `(apply ',function ,@prefix ,(if (eq first-arg operation) o c)
+                           ,(if (eq first-arg operation) c o)
+                           ,@suffix ,rest)
+                   `(,function ,@prefix
+                               ,(if (eq first-arg operation) o c)
+                               ,(if (eq first-arg operation) c o) ,@suffix))))
         `(progn
-           (defmethod ,function (,@prefix (,operation string) ,component ,@suffix ,@more-args)
+           (defmethod ,function (,@prefix ,(if (eq first-arg operation) `(,operation string) component)
+                                 ,(if (eq first-arg operation) component `(,operation string)) ,@suffix ,@more-args)
              (declare (notinline ,function))
              (let ((,component (find-component () ,component))) ;; do it first, for defsystem-depends-on
                ,(next-method `(safe-read-from-string ,operation :package :asdf/interface) component)))
-           (defmethod ,function (,@prefix (,operation symbol) ,component ,@suffix ,@more-args)
+           (defmethod ,function (,@prefix ,(if (eq first-arg operation) `(,operation symbol) component)
+                                 ,(if (eq first-arg operation) component `(,operation symbol)) ,@suffix ,@more-args)
              (declare (notinline ,function))
              (if ,operation
                  ,(next-method
                    `(make-operation ,operation)
                    `(or (find-component () ,component) ,if-no-component))
                  ,if-no-operation))
-           (defmethod ,function (,@prefix (,operation operation) ,component ,@suffix ,@more-args)
+           (defmethod ,function (,@prefix ,(if (eq first-arg operation) `(,operation operation) component)
+                                 ,(if (eq first-arg operation) component `(,operation operation)) ,@suffix ,@more-args)
              (declare (notinline ,function))
              (if (typep ,component 'component)
                  (error "No defined method for ~S on ~/asdf-action:format-action/"
@@ -381,14 +390,13 @@ They may rely on the order of the files to discriminate between inputs.
       (assert (length=n-p files 1))
       (first files)))
 
-  (defgeneric additional-input-files (component op)
+  (defgeneric additional-input-files (operation component)
     (:documentation "Additional input files for the operation on this
     component.  These are files that are inferred, rather than
-    explicitly specified.")
-    (:method (comp (op symbol))
-      (additional-input-files comp (make-operation op)))
-    (:method ((comp component) (op operation))
-      (cdr (assoc op (%additional-input-files comp)))))
+    explicitly specified."))
+  (define-convenience-action-methods additional-input-files (operation component))
+  (defmethod additional-input-files ((op operation) (comp component))
+      (cdr (assoc op (%additional-input-files comp))))
 
   ;; Memoize input files.
   (defmethod input-files :around (operation component)
@@ -397,7 +405,7 @@ They may rely on the order of the files to discriminate between inputs.
       (append (call-next-method)
               ;; must come after the first, for other code that
               ;; assumes the first will be the "key" file
-              (additional-input-files component operation))))
+              (additional-input-files operation component))))
 
   ;; By default an action has no input-files.
   (defmethod input-files ((o operation) (c component))
