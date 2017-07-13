@@ -109,12 +109,12 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
 
   (defun record-additional-system-input-file (pathname component parent)
     (let* ((record-on (if parent
-                         (loop :for par = parent :then (component-parent par)
-                               :with retval
-                               :while par
-                               :do (setf retval par)
-                               :finally (return retval))
-                         component))
+                          (loop :with retval
+                                :for par = parent :then (component-parent par)
+                                :while par
+                                :do (setf retval par)
+                                :finally (return retval))
+                          component))
            (op (make-operation 'define-op))
            (cell (or (assoc op (%additional-input-files record-on))
                        (let ((new-cell (list op)))
