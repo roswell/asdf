@@ -31,7 +31,8 @@
    #:prepare-source-op #:load-source-op #:test-op #:define-op
    #:feature #:version #:version-satisfies #:upgrade-asdf
    #:implementation-identifier #:implementation-type #:hostname
-   #:input-files #:output-files #:output-file #:perform #:perform-with-restarts
+   #:input-files #:additional-input-files
+   #:output-files #:output-file #:perform #:perform-with-restarts
    #:operation-done-p #:explain #:action-description #:component-sideway-dependencies
    #:needed-in-image-p
    #:component-load-dependencies #:run-shell-command ; deprecated, do not use

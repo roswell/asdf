@@ -28,7 +28,6 @@
    #:module-default-component-class
    #:module-components ;; backward-compatibility. DO NOT USE.
    #:sub-components
-   #:additional-input-files
 
    ;; conditions
    #:duplicate-names
