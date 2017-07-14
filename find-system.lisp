@@ -294,7 +294,8 @@ PREVIOUS-TIME when not null is the time at which the PREVIOUS system was loaded.
                        prepare-op compile-op load-op))
           (setf (gethash (make-operation o) cot) 0))))))
 
-;;; additional methods for additional-input-files that are responsible for looking up systems.
+;;; additional methods for %additional-input-files that are
+;;; responsible for looking up systems.
 (with-upgradability ()
   (defmethod %additional-input-files ((comp symbol))
     (%additional-input-files (find-system comp)))
