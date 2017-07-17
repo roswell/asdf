@@ -115,10 +115,14 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
                                 :do (setf retval par)
                                 :finally (return retval))
                           component))
+           (comp (if (typep record-on 'component)
+                     record-on
+                     ;; at this point there will be no parent for RECORD-ON
+                     (find-component record-on nil)))
            (op (make-operation 'define-op))
-           (cell (or (assoc op (%additional-input-files record-on))
+           (cell (or (assoc op (%additional-input-files comp))
                        (let ((new-cell (list op)))
-                         (push new-cell (%additional-input-files record-on))
+                         (push new-cell (%additional-input-files comp))
                          new-cell))))
       (pushnew pathname (cdr cell) :test 'pathname-equal)
       (values)))

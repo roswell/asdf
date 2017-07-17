@@ -384,7 +384,9 @@ They may rely on the order of the files to discriminate between inputs.
   (defgeneric additional-input-files (operation component)
     (:documentation "Additional input files for the operation on this
     component.  These are files that are inferred, rather than
-    explicitly specified."))
+    explicitly specified, and these are typically NOT files that
+    undergo operations directly.  Instead, they are files that it is
+    important for ASDF to know about in order to compute operation times,etc."))
   (define-convenience-action-methods additional-input-files (operation component))
   (defmethod additional-input-files ((op operation) (comp component))
       (cdr (assoc op (%additional-input-files comp))))

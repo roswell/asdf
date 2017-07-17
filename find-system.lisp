@@ -293,15 +293,3 @@ PREVIOUS-TIME when not null is the time at which the PREVIOUS system was loaded.
         (dolist (o `(,@(when (primary-system-p component) '(define-op))
                        prepare-op compile-op load-op))
           (setf (gethash (make-operation o) cot) 0))))))
-
-;;; additional methods for %additional-input-files that are
-;;; responsible for looking up systems.
-(with-upgradability ()
-  (defmethod %additional-input-files ((comp symbol))
-    (%additional-input-files (find-system comp)))
-  (defmethod %additional-input-files ((comp string))
-    (%additional-input-files (find-system comp)))
-  (defmethod (setf %additional-input-files) (val (comp symbol))
-    (setf (%additional-input-files (find-system comp)) val))
-  (defmethod (setf %additional-input-files) (val (comp string))
-    (setf (%additional-input-files (find-system comp)) val)))

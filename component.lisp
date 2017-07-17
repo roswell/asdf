@@ -139,9 +139,7 @@ or NIL for top-level components (a.k.a. systems)"))
      (parent :initarg :parent :initform nil :reader component-parent)
      (build-operation
       :initarg :build-operation :initform nil :reader component-build-operation)
-     ;; input files that are inferred instead of being specified.
-     ;; Currently this is used only to track files from READ-FILE-FORM
-     ;; and READ-FILE-LINE.
+     ;; Cache for ADDITIONAL-INPUT-FILES function.
      (additional-input-files :accessor %additional-input-files :initform nil))
     (:documentation "Base class for all components of a build"))
 
