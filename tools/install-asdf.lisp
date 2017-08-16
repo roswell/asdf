@@ -17,20 +17,26 @@ This file requires cl-launch 4 and works on most implementations.
 It notably doesn't work on:
 * ABCL, that keeps ASDF in its jar, but that's OK because
  ABCL has a recent enough ASDF3 that is capable of upgrading itself.
-* On MKCL and ECL, more work is needed to take into account
- the linkable variant of ASDF, that may be a .o or a .lib.
+* On MKCL and ECL, more work is needed to take into account that depending on
+ the operating system and the implementation version, the linkable variant
+ of ASDF may be a .o, .obj, .a or .lib.
  Also, MKCL now delivers UIOP separately from ASDF, which is great,
  but requires support. Happily, both ECL and MKCL tend to sport
- a recent ASDF 3, too.
-* SBCL since 1.2.3 now like MKCL delivers UIOP separately from ASDF.
+ a recent ASDF 3, too --- though maybe ECL no more as of 2017.
 * mocl, that doesn't support ASDF 3 yet.
 * Corman Lisp, RMCL, Genera, that are obsolete anyway.
 
-Note that if you're using it with LispWorks, you first have to create
-a command-line executable for LispWorks this way:
+Note that SBCL since 1.2.3 now like MKCL delivers UIOP separately from ASDF,
+which this script supports.
 
-       echo '(hcl:save-image "lispworks-console" :environment nil)' > si.lisp
-       lispworks-7-0-0-x86-linux -siteinit - -init - -build si.lisp
+Note that if you're using this script or the ASDF test system with LispWorks,
+you first have to create a command-line executable for LispWorks this way:
+
+    # Replace this by your path, or set the variable:
+    cd ${LISPWORKS_DIRECTORY}
+    LISPWORKS_EXE=( ./lispworks-7-0-0-* )
+    echo '(hcl:save-image "lispworks-console" :environment nil :console t)' > si.lisp
+    ${LISPWORKS_EXE} -siteinit - -init - -build si.lisp
 |#
 
 #+gcl
@@ -82,7 +88,9 @@ a command-line executable for LispWorks this way:
     (first (sort (directory (merge-pathnames* (strcat name ".*") (module-directory)))
                  #'> :key #'pathname-key)))
   #+(or clasp clisp clozure cmucl ecl gcl lispworks mkcl sbcl scl xcl)
-  (compile-file-pathname (subpathname (truename (module-directory)) name :type "lisp"))
+  (nest
+   #+mkcl ((lambda (x) (make-pathname :type "fasb" :defaults x)))
+   (compile-file-pathname (subpathname (truename (module-directory)) name :type "lisp")))
   #-(or allegro clasp clisp clozure cmucl ecl gcl lispworks mkcl sbcl scl xcl)
   (error "Not implemented on ~A" (implementation-type)))
 
@@ -113,7 +121,7 @@ a command-line executable for LispWorks this way:
           #+(or clasp ecl mkcl) (asdf.o (object-file asdf.fasl :object))
           #+(or clasp ecl mkcl) (asdf.a (object-file asdf.fasl :lib))))
    (with-file-replacement (asdf.fasl))
-   #+(or clasp ecl mkcl) (with-file-replacement (asdf.o))
+   ;; #+(or clasp ecl mkcl) (with-file-replacement (asdf.o)) ;; recent ECL and MKCL use .a, not .o
    #+(or clasp ecl mkcl) (with-file-replacement (asdf.a))
    (progn
      (compile-file* asdf.lisp :output-file asdf.fasl
@@ -139,7 +147,7 @@ a command-line executable for LispWorks this way:
           #+(or clasp ecl mkcl) (asdf.a (object-file asdf.fasl :lib))))
    (with-file-replacement (asdf.lisp))
    (with-file-replacement (asdf.fasl))
-   #+(or clasp ecl mkcl) (with-file-replacement (asdf.o))
+   ;; #+(or clasp ecl mkcl) (with-file-replacement (asdf.o)) ;; ECL and MKCL use asdf.o no more.
    #+(or clasp ecl mkcl) (with-file-replacement (asdf.a))
    (progn
      (with-output-file (o asdf.lisp :if-exists :rename-and-delete :if-does-not-exist :create)
