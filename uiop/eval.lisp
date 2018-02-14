@@ -50,15 +50,12 @@ It must never be modified in any way whatsoever.
 However, only SBCL is known to enforce this prohibition.
 Do not re-bind this variable.")
 
-  (defvar *shared-readtable* *initial-readtable*
+  (defvar *shared-readtable* (copy-readtable nil)
     "The shared readtable used by all Lisp software while building with ASDF.
-This shared readtable is usually the *initial-readtable*, in which case
-conservative readtable extensions are permitted and such extensions only;
-see the documentation of that variable for more details.
-For even stricter enforcement against modifications at all, this readtable may be bound to
-the *standard-readtable* (at least on SBCL); this helps enforce good behavior from all libraries,
-but is not compatible with some older libraries.
-This readtable can also be bound to other readtables to implement various instrumentations
+This shared readtable is a copy of the *STANDARD-READTABLE*: see the documentation
+of that variable for more details.  That allows changes, but should provide uniform behavior
+across implementations.
+This variable can also be bound to other readtables to implement various instrumentations
 by Lisp-to-Lisp compilers when (re)building software, presumably with a different fasl cache.")
   (defvar *shared-print-pprint-dispatch* *initial-print-pprint-dispatch*
     "*print-pprint-dispatch* table shared by all ASDF systems.
