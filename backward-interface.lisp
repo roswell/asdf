@@ -23,7 +23,7 @@
 
 ;; NB: the warning status of these functions may have to be distinguished later,
 ;; as some get removed faster than the others in client code.
-(with-asdf-deprecation (:style-warning "3.2" :warning "3.4")
+(with-asdf-deprecation (:style-warning "3.2" :warning "3.5")
 
   ;; These conditions from ASDF 1 and 2 are used by many packages in Quicklisp;
   ;; but ASDF3 replaced them with somewhat different variants of uiop:compile-condition
@@ -211,7 +211,7 @@ DEPRECATED. Use ASDF:ACTION-DESCRIPTION and/or ASDF::FORMAT-ACTION instead."))
   (defmethod explain ((o operation) (c component))
     (asdf-message (compatfmt "~&~@<; ~@;~A~:>~%") (action-description o c))))
 
-(with-asdf-deprecation (:style-warning "3.3")
+(with-asdf-deprecation (:style-warning "3.3" :warning "3.5")
   (defun system-registered-p (name)
     "DEPRECATED. Return a generalized boolean that is true if a system of given NAME was registered already.
 NAME is a system designator, to be normalized by COERCE-NAME.
