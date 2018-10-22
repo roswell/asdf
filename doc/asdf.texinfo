@@ -2722,7 +2722,7 @@ should include @code{defpackage} and @code{in-package} forms in this file,
 so they will not overwrite each others' extensions.
 Such forms might also help the files behave identically
 if loaded manually with @code{cl:load} for development or debugging,
-though we recommend you use the function @code{asdf::load-asd} instead,
+though we recommend you use the function @code{asdf:load-asd} instead,
 which the @code{slime-asdf} contrib knows about.
 
 The default value of @code{*system-definition-search-functions*}
@@ -2763,7 +2763,7 @@ The first component of a system name,
 separated by the slash character, @code{/},
 is called the primary name of a system.
 The primary name may be
-extracted by function @code{asdf::primary-system-name};
+extracted by function @code{asdf:primary-system-name};
 when ASDF 3 is told to find a system whose name has a slash,
 it will first attempt to load the corresponding primary system,
 and will thus see any such definitions, and/or any
@@ -2789,7 +2789,6 @@ though it is currently supported for backward compatibility.
 
 @defun primary-system-name name
 
-Internal (not exported) function, @code{asdf::primary-system-name}.
 Returns the primary system name (the portion before
 the slash, @code{/}, in a secondary system name) from @var{name}.
 
@@ -3563,7 +3562,7 @@ EXCLUSION-PATTERN := a string without wildcards, that will be matched
 
 Pathnames are designated using another DSL,
 shared with the output-translations configuration DSL below.
-The DSL is resolved by the function @code{asdf::resolve-location},
+The DSL is resolved by the function @code{asdf:resolve-location},
 to be documented and exported at some point in the future.
 
 @example
@@ -3578,7 +3577,7 @@ ABSOLUTE-COMPONENT-DESIGNATOR :=
     ;; doesn't use this DSL: they are processed as normal namestrings.
     ;; however, you can compute what you put in the *central-registry*
     ;; based on the results of say
-    ;; (asdf::resolve-location "/Users/fare/cl/cl-foo/")
+    ;; (asdf:resolve-location "/Users/fare/cl/cl-foo/")
     PATHNAME |
     ;; pathname (better be an absolute path, or bust)
     ;; In output-translations, unless followed by relative components,
@@ -4310,14 +4309,14 @@ An @code{:inherit-configuration} statement causes the search to recurse with the
 specifications from the next configuration in the bulleted list.
 @xref{Controlling where ASDF saves compiled files,,Configurations}, above.
 
-@vindex asdf::*user-cache*
+@vindex asdf:*user-cache*
 @itemize
 @item
 @code{:enable-user-cache} is the same as @code{(t :user-cache)}.
 @item
 @code{:disable-cache} is the same as @code{(t t)}.
 @item
-@code{:user-cache} uses the contents of variable @code{asdf::*user-cache*}
+@code{:user-cache} uses the contents of variable @code{asdf:*user-cache*}
 which by default is the same as using
 @code{(:home ".cache" "common-lisp" :implementation)}.
 @end itemize
