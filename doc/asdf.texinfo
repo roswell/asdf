@@ -2888,15 +2888,14 @@ This function should typically @emph{not} be invoked directly.  It is
 exported as part of the API only for programmers who wish to provide
 their own @code{*system-definition-search-functions*}.
 
-Given a system @var{name} designator,
-try to locate where to load the system definition from.
-@c (This does not include the loading of the system definition,
-@c which is done by @code{find-system},
-@c or the loading of the system itself, which is done by @code{load-system};
-@c however, for systems the definition of which has already been loaded,
+Given a system @var{name} designator, this function tries to
+locate where to load the system definition from. This
+@emph{may or may not} involve loading the system definition,
+which is done by @code{find-system}.
+@c However, for systems the definition of which has already been loaded,
 @c @code{locate-system} may return an object of class @code{system}.)
-Returns five values: @var{foundp}, @var{found-system}, @var{pathname},
-@var{previous}, and @var{previous-time}.
+This function returns six values: @var{foundp}, @var{found-system},
+@var{pathname}, @var{previous}, @var{previous-time}, and @code{previous-primary}.
 @var{foundp} is true when a system was found,
 either a new as yet unregistered one, or a previously registered one.
 The @var{found-system} return value
@@ -2908,8 +2907,6 @@ source registry.
 @c themselves, the system objects are not registered until after they are
 @c initially located by sysdef-preloaded-system-search as a fallback when
 @c no source code was found.
-The system definition will @emph{not} be
-loaded if it hasn't been loaded already.
 @var{pathname} when not null is a path from which to load the system,
 either associated with @var{found-system}, or with the @var{previous} system.
 If @var{previous} is not null, it will be a @emph{previously loaded}
@@ -2918,6 +2915,8 @@ If @var{previous} is not null, it will be a @emph{previously loaded}
 @var{previous-time} when not null is
 the timestamp of the previous system definition file, at the
 time when the @var{previous} system definition was loaded.
+@var{previous-primary} when not null is the primary system for
+the @var{previous} system.
 
 For example, if your current registry has @file{foo.asd} in
 @file{/current/path/to/foo.asd},
@@ -2933,10 +2932,12 @@ then @var{locate-system} will return the following values:
 @item
 @var{previous} will be an object of type @code{SYSTEM} with
 @code{system-source-file} slot value of
-@code{#p"/previous/path/to/foo.asd"}
+@code{#p"/previous/path/to/foo.asd"},
 @item
 @var{previous-time} will be the timestamp of
-@code{#p"/previous/path/to/foo.asd"} at the time it was loaded.
+@code{#p"/previous/path/to/foo.asd"} at the time it was loaded,
+@item
+@var{previous-primary} will be the same object as @var{previous}.
 @end enumerate
 @end defun
 
