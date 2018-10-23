@@ -2722,8 +2722,9 @@ should include @code{defpackage} and @code{in-package} forms in this file,
 so they will not overwrite each others' extensions.
 Such forms might also help the files behave identically
 if loaded manually with @code{cl:load} for development or debugging,
-though we recommend you use the function @code{asdf:load-asd} instead,
-which the @code{slime-asdf} contrib knows about.
+though we do not guarantee correct results this way; you should always
+use @code{asdf:load-asd} to load @code{.asd} files, which the
+@code{slime-contrib} also knows about.
 
 The default value of @code{*system-definition-search-functions*}
 is a list of three functions.
@@ -3563,7 +3564,7 @@ EXCLUSION-PATTERN := a string without wildcards, that will be matched
 Pathnames are designated using another DSL,
 shared with the output-translations configuration DSL below.
 The DSL is resolved by the function @code{asdf:resolve-location},
-to be documented and exported at some point in the future.
+to be documented in the future.
 
 @example
 ABSOLUTE-COMPONENT-DESIGNATOR :=
