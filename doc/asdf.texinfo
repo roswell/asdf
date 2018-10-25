@@ -1350,13 +1350,17 @@ but it is actually redundant, not necessary and not recommended.
 But yet more complex cases (also not recommended) may usefully use an @code{in-package} form.
 
 @item
+@cindex loading .asd files
+@anchor{loading-asd-files}
 Indeed, ASDF does not load @file{.asd} files simply with @code{cl:load},
 and neither should you.
 You should let ASDF find and load them when you operate on systems.
 If you somehow @emph{must} load a @file{.asd} file,
 use the same function @code{asdf:load-asd} that ASDF uses.
 Among other things, it already binds the @code{*package*} to @code{asdf-user}.
-Recent versions of SLIME (2013-02 and later) know to do that when you @kbd{C-c C-k}
+Recent versions of SLIME (2013-02 and later) know to use @code{load-asd}
+instead of @code{load} when you
+use @code{slime-compile-and-load-file}  (@kbd{C-c C-k}),
 when you use the @code{slime-asdf} contrib.
 
 @item
@@ -2807,11 +2811,14 @@ Programmers who do anything non-trivial in a @file{.asd} file,
 such as defining new variables, functions or classes,
 should include @code{defpackage} and @code{in-package} forms in this file,
 so they will not overwrite each others' extensions.
-Such forms might also help the files behave identically
+Such forms will also help the files behave identically
 if loaded manually with @code{cl:load} for development or debugging,
-though we do not guarantee correct results this way; you should always
-use @code{asdf:load-asd} to load @code{.asd} files, which the
-@code{slime-contrib} also knows about.
+instead of @code{asdf:load-asd}.
+Note that we do not guarantee correct results when @code{.asd} files are
+loaded this way: you should @strong{always}
+use @code{asdf:load-asd} to load @code{.asd} files.
+@cindex loading .asd files
+@xref{loading-asd-files}.
 
 The default value of @code{*system-definition-search-functions*}
 is a list of three functions.
