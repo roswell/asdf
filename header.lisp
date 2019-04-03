@@ -1,5 +1,5 @@
 ;;; -*- mode: Lisp; Base: 10 ; Syntax: ANSI-Common-Lisp ; buffer-read-only: t; -*-
-;;; This is ASDF 3.3.2: Another System Definition Facility.
+;;; This is ASDF 3.3.3: Another System Definition Facility.
 ;;;
 ;;; Feedback, bug reports, and patches are all welcome:
 ;;; please mail to <asdf-devel@common-lisp.net>.
@@ -19,7 +19,7 @@
 ;;;  http://www.opensource.org/licenses/mit-license.html on or about
 ;;;  Monday; July 13, 2009)
 ;;;
-;;; Copyright (c) 2001-2016 Daniel Barlow and contributors
+;;; Copyright (c) 2001-2019 Daniel Barlow and contributors
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining
 ;;; a copy of this software and associated documentation files (the
@@ -45,3 +45,14 @@
 ;;; The problem with writing a defsystem replacement is bootstrapping:
 ;;; we can't use defsystem to compile it.  Hence, all in one file.
 
+#+genera
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (multiple-value-bind (system-major system-minor)
+      (sct:get-system-version)
+    (multiple-value-bind (is-major is-minor)
+	(sct:get-system-version "Intel-Support")
+      (unless (or (> system-major 452)
+		  (and is-major
+		       (or (> is-major 3)
+			   (and (= is-major 3) (> is-minor 86)))))
+	(error "ASDF requires either System 453 or later or Intel Support 3.87 or later")))))

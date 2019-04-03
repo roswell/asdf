@@ -106,24 +106,30 @@ Each file starts with a package definition form that lists the exported symbols.
 All the exported functions, macros and variables ought to have proper docstrings.
 If not, then it's a legitimate bug that we invite you to report.
 
-Maybe some automated tool will extract all that information and
+You can extract a manual from the docstrings
+by running `make` in the directory `uiop/doc`.
+
+Other automated tools may hopefully extract all that information and
 make a webpage from it, at which point it would be nice to insert a link here.
+But many tools fail to extract useful data.
 
-One tool with which you can extract all the documentation is HEΛP.
-At this time, the interface is not great: it isn't obvious at all that you can indeed
-use a scrollbar on the right of the top left side panel to navigate the many packages;
-once you click on the package you're interested in, you can see its defined symbols:
+Tools with which you can extract all the documentation include
+[Declt](https://www.lrde.epita.fr/~didier/software/lisp/misc.php#declt)
+and [HEΛP](http://helambdap.sourceforge.net/).
+See the Quickref UIOP reference manual <https://quickref.common-lisp.net/uiop.html>
+as extracted by Declt.
 
-* <http://bimib.disco.unimib.it/people/Marco.Antoniotti/Projects/CL/HELAMBDAP/tests/asdf-uiop/docs/html/dictionary/dictionary.html>
+There is also a pre-extracted HEΛP documentation page
+<http://bimib.disco.unimib.it/people/Marco.Antoniotti/Projects/CL/HELAMBDAP/tests/asdf-uiop/docs/html/dictionary/dictionary.html>.
+Note however that the HEΛP interface is not very usable at this time:
+it isn't obvious at all that you can indeed use a scrollbar
+on the right of the top left side panel to navigate the many packages;
+once you click on the package you're interested in, you can see its defined symbols.
 
 Another automated documentation tool is quickdocs, but unhappily, at the time of this writing,
 it only extracts information from the first package
 (see [bug #24](https://github.com/fukamachi/quickdocs/issues/24)):
-
-* <http://quickdocs.org/uiop/api>
-
-
-Help wanted extracting working documentation from UIOP's docstrings.
+<http://quickdocs.org/uiop/api>
 
 
 Using UIOP

@@ -17,6 +17,8 @@
    #:class-for-type #:*default-component-class*
    #:determine-system-directory #:parse-component-form
    #:non-toplevel-system #:non-system-system #:bad-system-name
+   #:*known-systems-with-bad-secondary-system-names*
+   #:known-system-with-bad-secondary-system-names-p
    #:sysdef-error-component #:check-component-input
    #:explain))
 (in-package :asdf/parse-defsystem)
@@ -169,7 +171,7 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
 ;;; "inline methods"
 (with-upgradability ()
   (defparameter* +asdf-methods+
-    '(perform-with-restarts perform explain output-files operation-done-p))
+      '(perform-with-restarts perform explain output-files operation-done-p))
 
   (defun %remove-component-inline-methods (component)
     (dolist (name +asdf-methods+)
@@ -182,19 +184,55 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
            (component-inline-methods component)))
     (component-inline-methods component) nil)
 
+  (defparameter *standard-method-combination-qualifiers*
+    '(:around :before :after))
+
+;;; Find inline method definitions of the form
+;;;
+;;;   :perform (test-op :before (operation component) ...)
+;;;
+;;; in REST (which is the plist of all DEFSYSTEM initargs) and define the specified methods.
   (defun %define-component-inline-methods (ret rest)
+    ;; find key-value pairs that look like inline method definitions in REST. For each identified
+    ;; definition, parse it and, if it is well-formed, define the method.
     (loop* :for (key value) :on rest :by #'cddr
            :for name = (and (keywordp key) (find key +asdf-methods+ :test 'string=))
            :when name :do
-           (destructuring-bind (op &rest body) value
-             (loop :for arg = (pop body)
-                   :while (atom arg)
-                   :collect arg :into qualifiers
-                   :finally
-                      (destructuring-bind (o c) arg
-                        (pushnew
-                         (eval `(defmethod ,name ,@qualifiers ((,o ,op) (,c (eql ,ret))) ,@body))
-                         (component-inline-methods ret)))))))
+           ;; parse VALUE as an inline method definition of the form
+           ;;
+           ;;   (OPERATION-NAME [QUALIFIER] (OPERATION-PARAMETER COMPONENT-PARAMETER) &rest BODY)
+           (destructuring-bind (operation-name &rest rest) value
+             (let ((qualifiers '()))
+               ;; ensure that OPERATION-NAME is a symbol.
+               (unless (and (symbolp operation-name) (not (null operation-name)))
+                 (sysdef-error "Ill-formed inline method: ~S. The first element is not a symbol ~
+                              designating an operation but ~S."
+                               value operation-name))
+               ;; ensure that REST starts with either a cons (potential lambda list, further checked
+               ;; below) or a qualifier accepted by the standard method combination. Everything else
+               ;; is ill-formed. In case of a valid qualifier, pop it from REST so REST now definitely
+               ;; has to start with the lambda list.
+               (cond
+                 ((consp (car rest)))
+                 ((not (member (car rest)
+                               *standard-method-combination-qualifiers*))
+                  (sysdef-error "Ill-formed inline method: ~S. Only a single of the standard ~
+                               qualifiers ~{~S~^ ~} is allowed, not ~S."
+                                value *standard-method-combination-qualifiers* (car rest)))
+                 (t
+                  (setf qualifiers (list (pop rest)))))
+               ;; REST must start with a two-element lambda list.
+               (unless (and (listp (car rest))
+                            (length=n-p (car rest) 2)
+                            (null (cddar rest)))
+                 (sysdef-error "Ill-formed inline method: ~S. The operation name ~S is not followed by ~
+                              a lambda-list of the form (OPERATION COMPONENT) and a method body."
+                               value operation-name))
+               ;; define the method.
+               (destructuring-bind ((o c) &rest body) rest
+                 (pushnew
+                  (eval `(defmethod ,name ,@qualifiers ((,o ,operation-name) (,c (eql ,ret))) ,@body))
+                  (component-inline-methods ret)))))))
 
   (defun %refresh-component-inline-methods (component rest)
     ;; clear methods, then add the new ones
@@ -308,6 +346,13 @@ system names contained using COERCE-NAME. Return the result."
            (coerce-name (component-system component))))
         component)))
 
+  (defparameter* *known-systems-with-bad-secondary-system-names*
+    (list-to-hash-set '("cl-ppcre")))
+  (defun known-system-with-bad-secondary-system-names-p (asd-name)
+    ;; Does .asd file with name ASD-NAME contain known exceptions
+    ;; that should be screened out of checking for BAD-SYSTEM-NAME?
+    (gethash asd-name *known-systems-with-bad-secondary-system-names*))
+
   (defun register-system-definition
       (name &rest options &key pathname (class 'system) (source-file () sfp)
                             defsystem-depends-on &allow-other-keys)
@@ -325,8 +370,11 @@ system names contained using COERCE-NAME. Return the result."
      (let* ((asd-name (and source-file
                            (equal "asd" (fix-case (pathname-type source-file)))
                            (fix-case (pathname-name source-file))))
+            ;; note that PRIMARY-NAME is a *syntactically* primary name
             (primary-name (primary-system-name name)))
-       (when (and asd-name (not (equal asd-name primary-name)))
+       (when (and asd-name
+                  (not (equal asd-name primary-name))
+                  (not (known-system-with-bad-secondary-system-names-p asd-name)))
          (warn (make-condition 'bad-system-name :source-file source-file :name name))))
      (let* (;; NB: handle defsystem-depends-on BEFORE to create the system object,
             ;; so that in case it fails, there is no incomplete object polluting the build.

@@ -35,7 +35,9 @@
    #:simple-style-warning #:style-warn ;; simple style warnings
    #:match-condition-p #:match-any-condition-p ;; conditions
    #:call-with-muffled-conditions #:with-muffled-conditions
-   #:not-implemented-error #:parameter-error))
+   #:not-implemented-error #:parameter-error
+   #:symbol-test-to-feature-expression
+   #:boolean-to-feature-expression))
 (in-package :uiop/utility)
 
 ;;;; Defining functions in a way compatible with hot-upgrade:
@@ -81,17 +83,17 @@ to supersede any previous definition."
 ;;; Magic debugging help. See contrib/debug.lisp
 (with-upgradability ()
   (defvar *uiop-debug-utility*
-    '(or (ignore-errors
-           (probe-file (symbol-call :asdf :system-relative-pathname :uiop "contrib/debug.lisp")))
-      (probe-file (symbol-call :uiop/pathname :subpathname
-                   (user-homedir-pathname) "common-lisp/asdf/uiop/contrib/debug.lisp")))
+    '(symbol-call :uiop :subpathname (symbol-call :uiop :uiop-directory) "contrib/debug.lisp")
     "form that evaluates to the pathname to your favorite debugging utilities")
 
   (defmacro uiop-debug (&rest keys)
+    "Load the UIOP debug utility at compile-time as well as runtime"
     `(eval-when (:compile-toplevel :load-toplevel :execute)
        (load-uiop-debug-utility ,@keys)))
 
   (defun load-uiop-debug-utility (&key package utility-file)
+    "Load the UIOP debug utility in given PACKAGE (default *PACKAGE*).
+Beware: The utility is located by EVAL'uating the UTILITY-FILE form (default *UIOP-DEBUG-UTILITY*)."
     (let* ((*package* (if package (find-package package) *package*))
            (keyword (read-from-string
                      (format nil ":DBG-~:@(~A~)" (package-name *package*)))))
@@ -645,3 +647,15 @@ message, that takes the functionality as its first argument (that can be skipped
            :format-control format-control
            :format-arguments format-arguments)))
 
+(with-upgradability ()
+  (defun boolean-to-feature-expression (value)
+    "Converts a boolean VALUE to a form suitable for testing with #+."
+    (if value
+        '(:and)
+        '(:or)))
+
+  (defun symbol-test-to-feature-expression (name package)
+    "Check if a symbol with a given NAME exists in PACKAGE and returns a
+form suitable for testing with #+."
+    (boolean-to-feature-expression
+     (find-symbol* name package nil))))

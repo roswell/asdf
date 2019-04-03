@@ -94,7 +94,7 @@ previously-loaded version of ASDF."
          ;; "3.4.5.67" would be a development version in the official branch, on top of 3.4.5.
          ;; "3.4.5.0.8" would be your eighth local modification of official release 3.4.5
          ;; "3.4.5.67.8" would be your eighth local modification of development version 3.4.5.67
-         (asdf-version "3.3.2")
+         (asdf-version "3.3.3")
          (existing-version (asdf-version)))
     (setf *asdf-version* asdf-version)
     (when (and existing-version (not (equal asdf-version existing-version)))
@@ -107,7 +107,7 @@ previously-loaded version of ASDF."
 ;;; Upon upgrade, specially frob some functions and classes that are being incompatibly redefined
 (when-upgrading ()
   (let* ((previous-version (first *previous-asdf-versions*))
-         (redefined-functions ;; List of functions that changes incompatibly since 2.27:
+         (redefined-functions ;; List of functions that changed incompatibly since 2.27:
           ;; gf signature changed (should NOT happen), defun that became a generic function,
           ;; method removed that will mess up with new ones (especially :around :before :after,
           ;; more specific or call-next-method'ed method) and/or semantics otherwise modified. Oops.
@@ -118,8 +118,8 @@ previously-loaded version of ASDF."
           ;; Also note that we don't include the defgeneric=>defun, because they are
           ;; done directly with defun* and need not trigger a punt on data.
           ;; See discussion at https://gitlab.common-lisp.net/asdf/asdf/merge_requests/36
-          `(,@(when (version<= previous-version "3.1.2") '(#:component-depends-on #:input-files)) ;; crucial methods *removed* before 3.1.2
-            ,@(when (version<= previous-version "3.1.7.20") '(#:find-component))))
+          `(,@(when (version< previous-version "3.1.2") '(#:component-depends-on #:input-files)) ;; crucial methods *removed* before 3.1.2
+            ,@(when (version< previous-version "3.1.7.20") '(#:find-component))))
          (redefined-classes
           ;; redefining the classes causes interim circularities
           ;; with the old ASDF during upgrade, and many implementations bork
