@@ -75,7 +75,7 @@ the DEFPACKAGE-FORM uses it or imports a symbol from it."
                  (dolist (p arguments) (dep (string p))))
                 ((:import-from :shadowing-import-from)
                  (dep (string (first arguments))))
-                #+(or abcl ccl clasp ecl sbcl)
+                #+package-local-nicknames
                 ((:local-nicknames)
                  (loop* :for (local-nickname actual-package-name) :in arguments :do
                       (dep (string actual-package-name))))

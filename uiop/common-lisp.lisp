@@ -140,6 +140,14 @@
       (unless (member :lispworks6 *features*)
         (pushnew :lispworks7+ *features*)))))
 
+;;; package local nicknames feature
+ ;;; ABCL and CCL already define this feature appropriately.
+ ;;; Seems to be unconditionally present for SBCL, ACL, and clasp
+ ;;; Don't know about ecl, or others
+ (eval-when (:load-toplevel :compile-toplevel :execute)
+    #+(or sbcl clasp allegro)
+    (pushnew :package-local-nicknames *features*))
+
 #.(or #+mcl ;; the #$ doesn't work on other lisps, even protected by #+mcl, so we use this trick
       (read-from-string
        "(eval-when (:load-toplevel :compile-toplevel :execute)
