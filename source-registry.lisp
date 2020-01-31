@@ -322,32 +322,33 @@ after having found a .asd file? True by default.")
     (dolist (entry (flatten-source-registry parameter))
       (destructuring-bind (directory &key recurse exclude) entry
         (let* ((h (make-hash-table :test 'equal))) ; table to detect duplicates
-          (register-asd-directory
-           directory :recurse recurse :exclude exclude :collect
-           #'(lambda (asd)
-               (let* ((name (pathname-name asd))
-                      (name (if (typep asd 'logical-pathname)
-                                ;; logical pathnames are upper-case,
-                                ;; at least in the CLHS and on SBCL,
-                                ;; yet (coerce-name :foo) is lower-case.
-                                ;; won't work well with (load-system "Foo")
-                                ;; instead of (load-system 'foo)
-                                (string-downcase name)
-                                name)))
-                 (unless (gethash name registry) ; already shadowed by something else
-                   (if-let (old (gethash name h))
-                     ;; If the name appears multiple times,
-                     ;; prefer the one with the shallowest directory,
-                     ;; or if they have same depth, compare unix-namestring with string<
-                     (multiple-value-bind (better worse)
-                         (if (preferred-source-path-p asd old)
-                             (progn (setf (gethash name h) asd) (values asd old))
-                             (values old asd))
-                       (when *verbose-out*
-                         (warn (compatfmt "~@<In source-registry entry ~A~@[/~*~] ~
+          (flet ((directory-registrar (asd)
+                   (let* ((name (pathname-name asd))
+                          (name (if (typep asd 'logical-pathname)
+                                    ;; logical pathnames are upper-case,
+                                    ;; at least in the CLHS and on SBCL,
+                                    ;; yet (coerce-name :foo) is lower-case.
+                                    ;; won't work well with (load-system "Foo")
+                                    ;; instead of (load-system 'foo)
+                                    (string-downcase name)
+                                    name)))
+                     (unless (gethash name registry) ; already shadowed by something else
+                       (if-let (old (gethash name h))
+                         ;; If the name appears multiple times,
+                         ;; prefer the one with the shallowest directory,
+                         ;; or if they have same depth, compare unix-namestring with string<
+                         (multiple-value-bind (better worse)
+                             (if (preferred-source-path-p asd old)
+                                 (progn (setf (gethash name h) asd) (values asd old))
+                                 (values old asd))
+                           (when *verbose-out*
+                             (warn (compatfmt "~@<In source-registry entry ~A~@[/~*~] ~
                                               found several entries for ~A - picking ~S over ~S~:>")
-                               directory recurse name better worse)))
-                     (setf (gethash name h) asd))))))
+                                   directory recurse name better worse)))
+                         (setf (gethash name h) asd))))))
+            (register-asd-directory
+             directory :recurse recurse :exclude exclude :collect
+             #'(lambda (asd) (directory-registrar asd))))
           (maphash #'(lambda (k v) (setf (gethash k registry) v)) h))))
     (values))
 
