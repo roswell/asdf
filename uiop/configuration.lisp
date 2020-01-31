@@ -202,9 +202,10 @@ directive.")
           (let ((p (make-pathname :directory '(:relative))))
             (if wilden (wilden p) p))))
        ((eql :home) (user-homedir-pathname))
-       ((eql :here) (resolve-absolute-location
-                     (or *here-directory* (pathname-directory-pathname (load-pathname)))
-                     :ensure-directory t :wilden nil))
+       ((eql :here) (or (resolve-absolute-location
+                          (or *here-directory* (pathname-directory-pathname (load-pathname)))
+                          :ensure-directory t :wilden nil)
+                        (error "Unable to resolve :HERE configuration directory designator.")))
        ((eql :user-cache) (resolve-absolute-location
                            *user-cache* :ensure-directory t :wilden nil)))
      :wilden (and wilden (not (pathnamep x)))
