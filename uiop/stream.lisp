@@ -284,7 +284,7 @@ and always returns EOF when read from"
       ((os-unix-p) #p"/dev/null")
       ((os-windows-p) #p"NUL") ;; Q: how many Lisps accept the #p"NUL:" syntax?
       (t (error "No /dev/null on your OS"))))
-  (defun call-with-null-input (fun &rest keys &key element-type external-format if-does-not-exist)
+  (defun call-with-null-input (fun &key element-type external-format if-does-not-exist)
     "Call FUN with an input stream that always returns end of file.
 The keyword arguments are allowed for backward compatibility, but are ignored."
     (declare (ignore element-type external-format if-does-not-exist))
@@ -305,8 +305,8 @@ The keyword arguments are allowed for backward compatibility, but are ignored."
     (declare (ignore element-type external-format if-exists if-does-not-exist))
     "Call FUN with an output stream that discards all output.
 The keyword arguments are allowed for backward compatibility, but are ignored."
-    (with-open-stream (input (make-broadcast-stream))
-      (funcall fun input)))
+    (with-open-stream (output (make-broadcast-stream))
+      (funcall fun output)))
   (defmacro with-null-output ((var &rest keys
                               &key element-type external-format if-does-not-exist if-exists)
                               &body body)
