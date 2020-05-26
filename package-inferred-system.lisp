@@ -132,7 +132,12 @@ otherwise return a default system name computed from PACKAGE-NAME."
           (when (typep top 'package-inferred-system)
             (if-let (dir (component-pathname top))
               (let* ((sub (subseq system (1+ (length primary))))
-                     (f (probe-file* (subpathname dir sub :type "lisp")
+                     (component-type (if (asdf/component:module-default-component-class top)
+                                       (class-name (asdf/parse-defsystem:class-for-type
+                                                    nil (asdf/component:module-default-component-class top)))
+                                       *default-component-class*))
+                     (file-type (asdf/component:file-type (make-instance component-type)))
+                     (f (probe-file* (subpathname dir sub :type file-type)
                                      :truename *resolve-symlinks*)))
                 (when (file-pathname-p f)
                   (let ((dependencies (package-inferred-system-file-dependencies f system))
@@ -142,11 +147,12 @@ otherwise return a default system name computed from PACKAGE-NAME."
                         previous
                         (eval `(defsystem ,system
                                  :class package-inferred-system
+                                 :default-component-class ,component-type
                                  :source-file ,(system-source-file top)
                                  :pathname ,dir
                                  :depends-on ,dependencies
                                  :around-compile ,around-compile
-                                 :components ((cl-source-file "lisp" :pathname ,sub)))))))))))))))
+                                 :components ((,component-type file-type :pathname ,sub)))))))))))))))
 
 (with-upgradability ()
   (pushnew 'sysdef-package-inferred-system-search *system-definition-search-functions*)
