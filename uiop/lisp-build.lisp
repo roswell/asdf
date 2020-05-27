@@ -66,7 +66,7 @@ This can help you produce more deterministic output for FASLs."))
         #+clozure '(ccl::*nx-speed* ccl::*nx-space* ccl::*nx-safety*
                     ccl::*nx-debug* ccl::*nx-cspeed*)
         #+(or cmucl scl) '(c::*default-cookie*)
-        #+clasp '()
+        #+clasp nil
         #+ecl (unless (use-ecl-byte-compiler-p) '(c::*speed* c::*space* c::*safety* c::*debug*))
         #+gcl '(compiler::*speed* compiler::*space* compiler::*compiler-new-safety* compiler::*debug*)
         #+lispworks '(compiler::*optimization-level*)
@@ -77,7 +77,8 @@ This can help you produce more deterministic output for FASLs."))
     #-(or abcl allegro clasp clisp clozure cmucl ecl lispworks mkcl sbcl scl xcl)
     (warn "~S does not support ~S. Please help me fix that."
           'get-optimization-settings (implementation-type))
-    #+(or abcl allegro clasp clisp clozure cmucl ecl lispworks mkcl sbcl scl xcl)
+    #+clasp (cleavir-env:optimize (cleavir-env:optimize-info CLASP-CLEAVIR:*CLASP-ENV*))
+    #+(or abcl allegro clisp clozure cmucl ecl lispworks mkcl sbcl scl xcl)
     (let ((settings '(speed space safety debug compilation-speed #+(or cmucl scl) c::brevity)))
       #.`(loop #+(or allegro clozure)
                ,@'(:with info = #+allegro (sys:declaration-information 'optimize)
@@ -86,7 +87,7 @@ This can help you produce more deterministic output for FASLs."))
                ,@(or #+(or abcl clasp ecl gcl mkcl xcl) '(:for v :in +optimization-variables+))
                :for y = (or #+(or allegro clozure) (second (assoc x info)) ; normalize order
                             #+clisp (gethash x system::*optimize* 1)
-                            #+(or abcl clasp ecl mkcl xcl) (symbol-value v)
+                            #+(or abcl ecl mkcl xcl) (symbol-value v)
                             #+(or cmucl scl) (slot-value c::*default-cookie*
                                                        (case x (compilation-speed 'c::cspeed)
                                                              (otherwise x)))
@@ -100,13 +101,15 @@ This can help you produce more deterministic output for FASLs."))
       (unless (equal *previous-optimization-settings* settings)
         (setf *previous-optimization-settings* settings))))
   (defmacro with-optimization-settings ((&optional (settings *optimization-settings*)) &body body)
-    #+(or allegro clisp)
-    (let ((previous-settings (gensym "PREVIOUS-SETTINGS")))
-      `(let ((,previous-settings (get-optimization-settings)))
+    #+(or allegro clasp clisp)
+    (let ((previous-settings (gensym "PREVIOUS-SETTINGS"))
+          (reset-settings (gensym "RESET-SETTINGS")))
+      `(let* ((,previous-settings (get-optimization-settings))
+              (,reset-settings #+clasp (reverse ,previous-settings) #-clasp ,previous-settings))
          ,@(when settings `((proclaim `(optimize ,@,settings))))
          (unwind-protect (progn ,@body)
-           (proclaim `(optimize ,@,previous-settings)))))
-    #-(or allegro clisp)
+           (proclaim `(optimize ,@,reset-settings)))))
+    #-(or allegro clasp clisp)
     `(let ,(loop :for v :in +optimization-variables+ :collect `(,v ,v))
        ,@(when settings `((proclaim `(optimize ,@,settings))))
        ,@body)))
@@ -118,11 +121,12 @@ This can help you produce more deterministic output for FASLs."))
   (progn
     (defun sb-grovel-unknown-constant-condition-p (c)
       "Detect SB-GROVEL unknown-constant conditions on older versions of SBCL"
-      (and (typep c 'sb-int:simple-style-warning)
-           (string-enclosed-p
-            "Couldn't grovel for "
-            (simple-condition-format-control c)
-            " (unknown to the C compiler).")))
+      (ignore-errors
+       (and (typep c 'sb-int:simple-style-warning)
+            (string-enclosed-p
+             "Couldn't grovel for "
+             (simple-condition-format-control c)
+             " (unknown to the C compiler)."))))
     (deftype sb-grovel-unknown-constant-condition ()
       '(and style-warning (satisfies sb-grovel-unknown-constant-condition-p))))
 
@@ -135,7 +139,6 @@ This can help you produce more deterministic output for FASLs."))
      #+sbcl
      '(sb-c::simple-compiler-note
        "&OPTIONAL and &KEY found in the same lambda list: ~S"
-       #+sb-eval sb-kernel:lexical-environment-too-complex
        sb-kernel:undefined-alien-style-warning
        sb-grovel-unknown-constant-condition ; defined above.
        sb-ext:implicit-generic-function-warning ;; Controversial.
@@ -146,6 +149,10 @@ This can help you produce more deterministic output for FASLs."))
        sb-kernel:redefinition-with-defgeneric
        sb-kernel:redefinition-with-defmethod
        sb-kernel::redefinition-with-defmacro) ; not exported by old SBCLs
+     #+sbcl
+     (let ((condition (find-symbol* '#:lexical-environment-too-complex :sb-kernel nil)))
+       (when condition
+         (list condition)))
      '("No generic function ~S present when encountering macroexpansion of defmethod. Assuming it will be an instance of standard-generic-function.")) ;; from closer2mop
     "A suggested value to which to set or bind *uninteresting-conditions*.")
 
@@ -620,7 +627,8 @@ possibly in a different process. Otherwise just call THUNK."
     (or *compile-file-pathname* *load-pathname*))
 
   (defun load-pathname ()
-    "Portably return the LOAD-PATHNAME of the current source file or fasl"
+    "Portably return the LOAD-PATHNAME of the current source file or fasl.
+    May return a relative pathname."
     *load-pathname*) ;; magic no longer needed for GCL.
 
   (defun lispize-pathname (input-file)
@@ -699,6 +707,8 @@ it will filter them appropriately."
              (or object-file
                  (compile-file-pathname output-file :fasl-p nil)))
            (tmp-file (tmpize-pathname physical-output-file))
+           #+clasp
+           (tmp-object-file (compile-file-pathname tmp-file :output-type :object))
            #+sbcl
            (cfasl-file (etypecase emit-cfasl
                          (null nil)
@@ -724,7 +734,7 @@ it will filter them appropriately."
                                     (list* tmp-file keywords)))
                     #+clasp (apply 'compile-file input-file :output-file
                                   (if object-file
-                                      (list* object-file :output-type :object #|:system-p t|# keywords)
+                                      (list* tmp-object-file :output-type :object #|:system-p t|# keywords)
                                       (list* tmp-file keywords)))
                     #+mkcl (apply 'compile-file input-file
                                   :output-file object-file :fasl-p nil keywords)))))
@@ -739,14 +749,13 @@ it will filter them appropriately."
                   (when (and #+(or clasp ecl) object-file)
                     (setf output-truename
                           (compiler::build-fasl tmp-file
-                           #+(or clasp ecl) :lisp-files #+mkcl :lisp-object-files (list object-file))))
+                           #+(or clasp ecl) :lisp-files #+mkcl :lisp-object-files (list #+clasp tmp-object-file #-clasp object-file))))
                   (or (not compile-check)
                       (apply compile-check input-file
                              :output-file output-truename
                              keywords))))
            (delete-file-if-exists physical-output-file)
            (when output-truename
-             #+clasp (when output-truename (rename-file-overwriting-target tmp-file output-truename))
              ;; see CLISP bug 677
              #+clisp
              (progn
@@ -754,6 +763,21 @@ it will filter them appropriately."
                (unless lib-file (setf lib-file (make-pathname :type "lib" :defaults physical-output-file)))
                (rename-file-overwriting-target tmp-lib lib-file))
              #+sbcl (when cfasl-file (rename-file-overwriting-target tmp-cfasl cfasl-file))
+             #+clasp
+             (progn
+               ;;; the following 4 rename-file-overwriting-target better be atomic, but we can't implement this right now
+               #+:target-os-darwin
+               (let ((temp-dwarf (pathname (strcat (namestring output-truename) ".dwarf")))
+                     (target-dwarf (pathname (strcat (namestring physical-output-file) ".dwarf"))))
+                 (when (probe-file temp-dwarf)
+                   (rename-file-overwriting-target temp-dwarf target-dwarf)))
+               ;;; need to rename the bc or ll file as well or test-bundle.script fails
+               ;;; They might not exist with parallel compilation
+               (let ((bitcode-src (compile-file-pathname tmp-file :output-type :bitcode))
+                     (bitcode-target (compile-file-pathname physical-output-file :output-type :bitcode)))
+                 (when (probe-file bitcode-src)
+                   (rename-file-overwriting-target bitcode-src bitcode-target)))
+               (rename-file-overwriting-target tmp-object-file object-file))
              (rename-file-overwriting-target output-truename physical-output-file)
              (setf output-truename (truename physical-output-file)))
            #+clasp (delete-file-if-exists tmp-file)

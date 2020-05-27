@@ -490,7 +490,10 @@ resolving them with respect to GETCWD if the DEFAULTS were relative"
     "call the THUNK in a context where the current directory was changed to DIR, if not NIL.
 Note that this operation is usually NOT thread-safe."
     (if dir
-        (let* ((dir (resolve-symlinks* (get-pathname-defaults (pathname-directory-pathname dir))))
+        (let* ((dir (resolve-symlinks*
+                     (get-pathname-defaults
+                      (ensure-directory-pathname
+                       dir))))
                (cwd (getcwd))
                (*default-pathname-defaults* dir))
           (chdir dir)
@@ -645,11 +648,10 @@ the validation function designated (as per ENSURE-FUNCTION) by the VALIDATE keyw
 which in practice is thus compulsory, and validates by returning a non-NIL result.
 If you're suicidal or extremely confident, just use :VALIDATE T."
     (check-type if-does-not-exist (member :error :ignore))
+    (setf directory-pathname (ensure-pathname directory-pathname
+                                              :want-pathname t :want-non-wild t
+                                              :want-physical t :want-directory t))
     (cond
-      ((not (and (pathnamep directory-pathname) (directory-pathname-p directory-pathname)
-                 (physical-pathname-p directory-pathname) (not (wild-pathname-p directory-pathname))))
-       (parameter-error "~S was asked to delete ~S but it is not a physical non-wildcard directory pathname"
-              'delete-directory-tree directory-pathname))
       ((not validatep)
        (parameter-error "~S was asked to delete ~S but was not provided a validation predicate"
               'delete-directory-tree directory-pathname))

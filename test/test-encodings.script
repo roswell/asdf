@@ -91,7 +91,7 @@
     (def-test-system :test-encoding-implicit-autodetect
       :components ((:file "lambda")))))
 
-#+sbcl
+#+(or sbcl clasp)
 (with-encoding-test (:koi8-r)
   (def-test-system :test-encoding-explicit-koi8-r
     :components ((:file "lambda" :encoding :koi8-r))))
@@ -118,10 +118,11 @@
     :encoding :latin-1
     :components ((:file "lambda"))))
 #-ecl-bytecmp
-(with-encoding-test (:latin-1 :op load-op)
-  (def-test-system :test-system-encoding-l1-load-op
-    :encoding :latin-1
-    :components ((:file "lambda"))))
+(with-expected-failure (#+clasp "Clasp fails here")
+  (with-encoding-test (:latin-1 :op load-op)
+    (def-test-system :test-system-encoding-l1-load-op
+        :encoding :latin-1
+        :components ((:file "lambda")))))
 (with-encoding-test (:utf-8 :path ("foo" "lambda"))
   (def-test-system :test-module-encoding-u8
     :encoding :latin-1

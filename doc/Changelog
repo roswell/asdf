@@ -1,3 +1,29 @@
+cl-asdf (2:3.3.5-1) unstable; urgency=low IN PROGRESS
+
+* Add support for package local nicknames to UIOP:DEFINE-PACKAGE and
+	ASDF's package-inferred systems.  Extend support for package local
+	nicknames to more lisp implementations.
+* A number of fixes for Lispworks compatibility (thanks to Martin
+	Simmons).
+* Fixes for SBCL from Eric Timmons.
+* Add support for source files with different file extensions to
+	package-inferred-systems.  Thanks to Jingtao Xu for identifying
+	the bug and providing a fix.
+
+cl-asdf (2:3.3.4-1) unstable; urgency=low
+Bug fix release:
+* SBCL compatibility: support local nicknames in package-inferred-system,
+	address upgrade issues in SBCL 2.x (thanks to Eric Timmons).
+* Clasp compatibility: fixes from Karsten Poeck.
+* Lispworks compatibility: fixes from Martin Simmons.
+* Documentation: multiple user-contributed fixes: Jan Moringen and
+	Rommel Martinez.
+* Bundle bug fixes: thanks to Guillaume Le Vaillant and François-René Rideau.
+* Miscellaneous bug fixes.
+* Tests: miscellaneous fixes and improvements.
+
+-- Robert P. Goldman <rpgoldman@sift.net> Thu, 13 Feb 2020 17:09:39 -0600
+
 cl-asdf (2:3.3.3-1) unstable; urgency=low
 
   Bug fix release:
