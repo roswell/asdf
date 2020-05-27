@@ -17,7 +17,7 @@ yet may break the build in subtle way when the build is incremental and/or
 when part of a larger build that contains other systems
 with conflicting side-effects.
 (NB: The first variants of this document were written in 2014 while working on
-ASDF 3.1, but its contents remain current as of ASDF 3.3.1 in December 2017.)
+ASDF 3.1, but its contents remain current as of ASDF 3.3.4.5 in May 2020.)
 
 For instance, some CL libraries directly modify the current `*readtable*`
 by calling e.g. `set-dispatch-macro-character` without specifying a readtable.
@@ -91,7 +91,7 @@ other syntax-controlling variables are at stake, too.
 ### Conflict with macro-characters
 
 If two systems define the same macro-character or dispatch-macro-character,
-such as `#"` being defined by both `closure-common` and `string-escape`,
+such as `#"` being defined by `closure-common`, `string-escape` and `common-lisp-jupyter`,
 then these systems, if they are part of the same build,
 may cause non-determinism as to which definition will be active at any time
 during an incremental build.
@@ -99,8 +99,10 @@ Depending on which system was last modified, then only that system may be
 re-built, at which point its modifications to the readtable will happen last.
 No system can use `#"` syntax and trust which of the above last won.
 
-Other conflicts found by grepping Quicklisp (as of October 2017) for
+Other conflicts found by grepping Quicklisp (as of May 2020) for
 `'^(set-dispatch-macro-character '` include:
+`#!` defined by `cl-i18n`, `cl-parallel`, `mcclim`, `racer` and `cl-launch`, or
+`#&` defined by `hemlock` and `racer`, or
 `#T` defined by both `closure-html` and `racer`, or
 `#{` defined by both `cl-quickcheck` and `folio`, or
 `#~` defined by both `metatilities` and `perlre`, or
@@ -109,6 +111,20 @@ Other conflicts found by grepping Quicklisp (as of October 2017) for
 There may or may not be further conflicts not detected through this simple grep
 for direct toplevel modification of the shared `*readtable*`.
 
+Other:
+* `ccl`: `#_`
+* `cl-i18n`: `#§`
+* `cl-m4`, `evol`, `quickutil`, `testbild`: `#>` (probably not a conflict, all cl-heredoc?)
+* `clon`, `declt`, `focus`, `tfm`: `#i` (probably not a conflict, all didierverna)
+* `closure-common`: `#"` `#/`
+* `closure-html`: `#T`
+* `cmu-infix`, `femlisp`: `#I` (possibly not a conflict?)
+* `datum-comment`: `#;`
+* `deferred`: `#^`
+* `folio2`: `#[`
+* `hemlock`: `#k`
+* `paiprolog`: `#d`
+* `puri`: `#u`
 
 ### Building with the wrong `*readtable*`
 
@@ -119,10 +135,10 @@ and/or the state of the underlying data structure that variable is bound to,
 the effects will be seen by all components compiled with ASDF.
 Worse, if some reader macro expands into uses of symbols, functions and other entities,
 these entities will now be used in the fasls for components
-that do not "depends-on" the systems in which those entities are defined.
+that do not `depends-on:` the systems in which those entities are defined.
 All further attempts to load those fasls in a fresh image will then be catastrophic failures,
 with no easy solution beside clearing the fasl cache
-(for instance with `rm -rf ~/.cache/common-lisp/' from a shell outside Lisp).
+(for instance with `rm -rf ~/.cache/common-lisp/` from a shell outside Lisp).
 
 As a case that happened to me, I was using my `fare-quasiquote` syntax so I may portably
 use quasiquotation in match expressions (with `fare-matcher`, `optima` or now `trivia`).
@@ -188,7 +204,6 @@ on characters so far undefined,
 and may never override a previous behavior defined or used
 by either the implementation or any program or extension.
 Indeed, whatever previous behavior that a previous program may have relied upon,
-
 it will rely upon again when their are updated and rebuilt;
 and any conflict means that the build will then fail.
 Therefore:
@@ -221,8 +236,8 @@ yet mostly respected as a practical necessity:
 users who try to make or use some piece of software that fails to respect them
 soon enough discover the hard way that that software fails to interoperate
 nicely with other software, at which point they fix it, or they work around it,
-but in any case they avoid the conflict.
-Yet, as of 2017, no implementation can nor will help enforce monotonicity;
+but in any case they avoid the conflict—or other people will avoid using it.
+Yet, as of 2020, no implementation can nor will help enforce monotonicity;
 users are wholly responsible for manually ensuring this monotonicity.
 
 Thus for instance, no one may ever modify `#u` except `puri`,
@@ -247,7 +262,7 @@ The second discipline that users must follow as they invoke ASDF is
 to *never* call ASDF while the current `*readtable*` is bound
 to any readtable but the initial, shared readtable.
 If they do, either their current readtable may be corrupted,
-or it cause some other part of the build to be corrupted, or both.
+or it may cause some other part of the build to be corrupted, or both.
 
 However, there is currently no good means to access for certain
 this priveleged "shared initial readtable", except by supposing that
@@ -288,7 +303,7 @@ it is also a counter-selection in who will use those features.
 This first proposal is to make some minimal changes that would
 maximally improve the situation given the small size of the changes.
 This proposal is meant be adopted immediately in the next release of ASDF
-(whichever it may be, which would be ASDF 3.3.2 if done in early 2018).
+(whichever it may be, which would be ASDF 3.3.5 or 3.4 if done in mid 2020).
 It independently amends each of the above two requirements:
 The first requirement is amended by making monotonicity an official policy,
 and by requiring that users should in turn explicitly document
@@ -315,7 +330,7 @@ so users of private readtables don't have to worry about it.
   only in monotonic ways that never interfere with previous behavior.
 
 * Private syntax: a syntax intended for use by a system, or a coherent
-  set of systems.  Note that while there is a single (constant, read-only)
+  set of systems. Note that while there is a single (constant, read-only)
   standard syntax, and single (constant identity, modifiable) initial syntax,
   and a single shared syntax (specially bound, within constraints),
   there may be multiple private syntaxes (e.g. using `named-readtables`).
@@ -459,7 +474,7 @@ for a future release of ASDF (e.g. 3.5 or such).
 ### Some hacks still supported under Proposal 1
 
 One way to modify the syntax in a deterministic way
-that works with the current ASDF 3.3.1 and will keep working under Proposal 1
+that works with the current ASDF 3.3.4 and will keep working under Proposal 1
 is to serialize all dependencies through a syntax-modification system:
 a system called e.g. `my-modified-syntax`
 depends on all the software dependencies in the project that must be
@@ -651,8 +666,8 @@ This readtable is notionally read-only as per the standard.
 However, as of December 2017, only SBCL, Allegro, ECL and CMUCL
 actually reject modifications to the standard readtable and
 give you a nice clean error immediately.
-On at least CCL, CLISP, ABCL, Lispworks and MKCL,
-instead will silently let you corrupt the standard readtable,
+By contrast, on at least CCL, CLISP, ABCL, Lispworks and MKCL,
+the implementation will silently let you corrupt the standard readtable,
 which may result in horrible failures later
 when you use `with-standard-io-syntax` and it doesn't do what you expect.
 Happily, those implementations that do enforce read-only behavior
@@ -693,7 +708,7 @@ to never side-effect the current `*readtable*`.
 But I acknowledge that the Common Lisp community
 is not ready for such a change at this point;
 and since I haven't myself been a paid Common Lisp professional for years,
-and have jumped ship to Gerbil Scheme, I don't persaonally have the energy
+and have jumped ship to Gerbil Scheme, I don't personally have the energy
 to push for such a change by getting all libraries fixed.
 But maybe some future maintainer will read this and make it their mission.
 
