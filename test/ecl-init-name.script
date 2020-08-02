@@ -1,0 +1,35 @@
+;;; -*- Lisp -*-
+
+(DBG "Test :init-name in lib-op.")
+
+
+(chdir (subpathname *test-directory* "ecl-init-name/"))
+(DBG ";;; BUILDING A LIBRARY")
+
+(defconstant +standalone-lib+ (compile-file-pathname "hellow" :type :lib))
+(defconstant +standalone-exe+ (compile-file-pathname "hellowexe" :type :program))
+
+(push (make-pathname :name nil :type nil :version nil
+                     :defaults *load-truename*)
+      asdf:*central-registry*)
+
+;; Create libhellow.a using lib-op
+(delete-file-if-exists +standalone-lib+)
+(delete-file-if-exists +standalone-exe+)
+(unwind-protect
+     (progn
+       (asdf:make "hellow")
+       (asdf:make "hellowexe")
+       (DBG ";;; TESTING LIBRARY")
+       (assert-equal
+        (uiop:run-program (format nil "./~A" +standalone-exe+) :output :lines)
+        '("Good morning sunshine!" "Hello world!" "Good bye sunshine.")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; CLEAN UP
+;;;
+
+  (delete-file-if-exists +standalone-lib+)
+  (delete-file-if-exists +standalone-exe+))
