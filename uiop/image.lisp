@@ -465,8 +465,6 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
              (pathname destination)
              #+(or clasp ecl) :lisp-files #+mkcl :lisp-object-files
              (append lisp-object-files #+(or clasp ecl) extra-object-files)
-             #+ecl :init-name
-             #+ecl (getf build-args :init-name)
              (append
               (when prologue-code `(:prologue-code ,prologue-code))
               (when epilogue-code `(:epilogue-code ,epilogue-code))

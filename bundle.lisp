@@ -588,7 +588,9 @@ which is probably not what you want; you probably need to tweak your output tran
                :kind kind
                :prologue-code (when programp (prologue-code c))
                :epilogue-code (when programp (epilogue-code c))
-               :build-args (when programp (extra-build-args c))
+               :build-args (if programp
+                             (extra-build-args c)
+                             (list :init-name (getf (extra-build-args c) :init-name)))
                :extra-object-files (when programp (extra-object-files c))
                :no-uiop (no-uiop c)
                (when programp `(:entry-point ,(component-entry-point c))))))))
