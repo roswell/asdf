@@ -116,8 +116,25 @@ Build asdf-tools:
   rules:
     - if: $ENABLE_ASDF_TOOLS && $RUN_UPGRADE_TESTS
 
+.MacOS regression tests:
+  stage: regression
+  script:
+    - make
+    - make test
+  artifacts:
+    paths:
+      - build/results/$l-test.text
+  needs: []
+  tags:
+    - macos
+  rules:
+    # The asdf/asdf project has a MacOS runner.
+    - if: '$CI_PROJECT_PATH == "asdf/asdf"'
+    # If someone brings their own MacOS runner.
+    - if: $RUN_MACOS_JOBS
+
 ###############################################################################
-# Actual test jobs - Makefile based harness
+# Actual test jobs - Makefile based harness on Linux
 ###############################################################################
 
 ABCL regression tests:
@@ -177,9 +194,32 @@ SBCL upgrade tests:
   variables:
     l: sbcl
 
+###############################################################################
+# Actual test jobs - Makefile based harness on MacOS
+###############################################################################
+
+ABCL MacOS regression tests:
+  extends: .MacOS regression tests
+  variables:
+    l: abcl
+
+CCL MacOS regression tests:
+  extends: .MacOS regression tests
+  variables:
+    l: ccl
+
+ECL MacOS regression tests:
+  extends: .MacOS regression tests
+  variables:
+    l: ecl
+
+SBCL MacOS regression tests:
+  extends: .MacOS regression tests
+  variables:
+    l: sbcl
 
 ###############################################################################
-# Actual test jobs - lisp scripting based harness
+# Actual test jobs - lisp scripting based harness on Linux
 ###############################################################################
 
 ABCL scripting regression tests:
