@@ -228,8 +228,12 @@
   (signals error (run-program nil :output :lines))
 
   (DBG "Test that run-program fails properly when the executable doesn't exist.")
-  (signals error (run-program '("does-not-exist") :output :lines))
-  (signals error (run-program "does-not-exist" :output :lines))
+  #-(and ecl os-macosx)
+  (progn
+    (signals error (run-program '("does-not-exist") :output :lines))
+    (signals error (run-program "does-not-exist" :output :lines)))
+  #+(and ecl os-macosx)
+  (DBG "Test skipped on ECL and MacOSX")
 
   (assert-equal '(nil nil 0) (multiple-value-list (run-program "echo ok" :output nil)))
   (assert-equal '(nil nil 0) (multiple-value-list (run-program '("echo" "ok") :output nil)))
