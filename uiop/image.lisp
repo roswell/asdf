@@ -366,7 +366,7 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
            :quiet t
            :start-package *package*
            :keep-global-handlers nil
-           :executable (if executable 0 t) ;--- requires clisp 2.48 or later, still catches --clisp-x
+           :executable (if executable t nil) ;--- requires clisp 2.48 or later, still catches --clisp-x
            (when executable
              (list
               ;; :parse-options nil ;--- requires a non-standard patch to clisp.
