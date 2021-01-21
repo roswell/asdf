@@ -233,11 +233,13 @@ after having found a .asd file? True by default.")
 
   (defgeneric process-source-registry (spec &key inherit register))
 
-  (defun* (inherit-source-registry) (inherit &key register)
+  (defun* (inherit-source-registry) (inherit &key register source)
     (when inherit
-      (process-source-registry (first inherit) :register register :inherit (rest inherit))))
+      (process-source-registry (first inherit)
+                               :register register :inherit (rest inherit)
+                               :source (when source (cons :inherit source)))))
 
-  (defun* (process-source-registry-directive) (directive &key inherit register)
+  (defun* (process-source-registry-directive) (directive &key inherit register source)
     (destructuring-bind (kw &rest rest) (if (consp directive) directive (list directive))
       (ecase kw
         ((:include)
@@ -246,48 +248,51 @@ after having found a .asd file? True by default.")
         ((:directory)
          (destructuring-bind (pathname) rest
            (when pathname
-             (funcall register (resolve-location pathname :ensure-directory t)))))
+             (funcall register (resolve-location pathname :ensure-directory t) :source source))))
         ((:tree)
          (destructuring-bind (pathname) rest
            (when pathname
              (funcall register (resolve-location pathname :ensure-directory t)
-                      :recurse t :exclude *source-registry-exclusions*))))
+                      :recurse t :exclude *source-registry-exclusions* :source source))))
         ((:exclude)
          (setf *source-registry-exclusions* rest))
         ((:also-exclude)
          (appendf *source-registry-exclusions* rest))
         ((:default-registry)
          (inherit-source-registry
-          '(default-user-source-registry default-system-source-registry) :register register))
+          '(default-user-source-registry default-system-source-registry)
+          :register register :source (cons :default-registry source)))
         ((:inherit-configuration)
-         (inherit-source-registry inherit :register register))
+         (inherit-source-registry inherit :register register :source source))
         ((:ignore-inherited-configuration)
          nil)))
     nil)
 
-  (defmethod process-source-registry ((x symbol) &key inherit register)
-    (process-source-registry (funcall x) :inherit inherit :register register))
-  (defmethod process-source-registry ((pathname pathname) &key inherit register)
+  (defmethod process-source-registry ((x symbol) &key inherit register source)
+    (process-source-registry (funcall x)
+                             :inherit inherit :register register :source (cons x source)))
+  (defmethod process-source-registry ((pathname pathname) &key inherit register source)
     (cond
       ((directory-pathname-p pathname)
        (let ((*here-directory* (resolve-symlinks* pathname)))
          (process-source-registry (validate-source-registry-directory pathname)
-                                  :inherit inherit :register register)))
+                                  :inherit inherit :register register :source (cons pathname source))))
       ((probe-file* pathname :truename *resolve-symlinks*)
        (let ((*here-directory* (pathname-directory-pathname pathname)))
          (process-source-registry (validate-source-registry-file pathname)
-                                  :inherit inherit :register register)))
+                                  :inherit inherit :register register :source (cons pathname source))))
       (t
-       (inherit-source-registry inherit :register register))))
-  (defmethod process-source-registry ((string string) &key inherit register)
+       (inherit-source-registry inherit :register register :source (cons pathname source)))))
+  (defmethod process-source-registry ((string string) &key inherit register source)
     (process-source-registry (parse-source-registry-string string)
-                             :inherit inherit :register register))
-  (defmethod process-source-registry ((x null) &key inherit register)
-    (inherit-source-registry inherit :register register))
-  (defmethod process-source-registry ((form cons) &key inherit register)
+                             :inherit inherit :register register :source source))
+  (defmethod process-source-registry ((x null) &key inherit register source)
+    (inherit-source-registry inherit :register register :source source))
+  (defmethod process-source-registry ((form cons) &key inherit register source)
     (let ((*source-registry-exclusions* *default-source-registry-exclusions*))
       (dolist (directive (cdr (validate-source-registry-form form)))
-        (process-source-registry-directive directive :inherit inherit :register register))))
+        (process-source-registry-directive directive
+                                           :inherit inherit :register register :source (cons nil source)))))
 
 
   ;; Flatten the user-provided configuration into an ordered list of directories and trees
@@ -299,8 +304,8 @@ after having found a .asd file? True by default.")
           `(wrapping-source-registry
             ,parameter
             ,@*default-source-registries*)
-          :register #'(lambda (directory &key recurse exclude)
-                        (collect (list directory :recurse recurse :exclude exclude))))))
+          :register #'(lambda (directory &key recurse exclude source)
+                        (collect (list directory :recurse recurse :exclude exclude :source source))))))
      :test 'equal :from-end t))
 
   ;; MAYBE: move this utility function to uiop/pathname and export it?
@@ -320,7 +325,7 @@ after having found a .asd file? True by default.")
   (defun compute-source-registry (&optional (parameter *source-registry-parameter*)
                                     (registry *source-registry*))
     (dolist (entry (flatten-source-registry parameter))
-      (destructuring-bind (directory &key recurse exclude) entry
+      (destructuring-bind (directory &key recurse exclude &allow-other-keys) entry
         (let* ((h (make-hash-table :test 'equal))) ; table to detect duplicates
           (register-asd-directory
            directory :recurse recurse :exclude exclude :collect
