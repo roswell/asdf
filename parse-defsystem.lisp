@@ -268,7 +268,7 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
 system names contained using COERCE-NAME. Return the result."
     (mapcar 'parse-dependency-def dd-list))
 
-  (defun* (parse-component-form) (parent options &key previous-serial-component)
+  (defun* (parse-component-form) (parent options &key previous-serial-components)
     (destructuring-bind
         (type name &rest rest &key
                                 (builtin-system-p () bspp)
@@ -322,16 +322,16 @@ system names contained using COERCE-NAME. Return the result."
         (when (typep component 'parent-component)
           (setf (component-children component)
                 (loop
-                  :with previous-component = nil
+                  :with previous-components = nil
                   :for c-form :in components
                   :for c = (parse-component-form component c-form
-                                                 :previous-serial-component previous-component)
+                                                 :previous-serial-components previous-components)
                   :for name = (component-name c)
                   :collect c
-                  :when serial :do (setf previous-component name)))
+                  :when serial :do (push name previous-components)))
           (compute-children-by-name component))
-        (when previous-serial-component
-          (push previous-serial-component depends-on))
+        (when previous-serial-components
+          (setf depends-on (union depends-on previous-serial-components)))
         (when weakly-depends-on
           ;; ASDF4: deprecate this feature and remove it.
           (appendf depends-on
