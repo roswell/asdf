@@ -9,7 +9,7 @@
    #:system-source-file #:system-source-directory #:system-relative-pathname
    #:system-description #:system-long-description
    #:system-author #:system-maintainer #:system-licence #:system-license
-   #:system-version
+   #:system-version #:system-aesthetic-version-string
    #:definition-dependency-list #:definition-dependency-set #:system-defsystem-depends-on
    #:system-depends-on #:system-weakly-depends-on
    #:component-build-pathname #:build-pathname
@@ -206,6 +206,14 @@ the primary one."
         (unless (primary-system-p system)
           (component-version (find-system (primary-system-name system)))))))
 
+;;;; Versions
+
+(with-upgradability ()
+  (defgeneric system-aesthetic-version-string (system)
+    (:documentation "Returns a string representation of the SYSTEM version,
+suitable for display or NIL.")
+    (:method (system)
+      (component-version system))))
 
 ;;;; Pathnames
 

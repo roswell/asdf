@@ -80,6 +80,7 @@
    #:system-license
    #:system-licence
    #:system-version
+   #:system-aesthetic-version-string
    #:system-source-file
    #:system-source-directory
    #:system-relative-pathname
