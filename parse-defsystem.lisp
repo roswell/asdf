@@ -141,32 +141,33 @@ given PARENT, normalize the form to an acceptable version.")
                  (unless (if-let (target (find-component parent component)) (builtin-system-p target))
                    (apply 'warn control args)
                    (invalid))))
-        (if-let (v (typecase form
-                     ((or string null) form)
-                     (real
-                      (invalid "Substituting a string")
-                      (format nil "~D" form)) ;; 1.0 becomes "1.0"
-                     (cons
-                      (case (first form)
-                        ((:read-file-form)
-                         (destructuring-bind (subpath &key (at 0)) (rest form)
-                           (let ((path (subpathname pathname subpath)))
-                             (record-additional-system-input-file path component parent)
-                             (safe-read-file-form path
-                                                  :at at :package :asdf-user))))
-                        ((:read-file-line)
-                         (destructuring-bind (subpath &key (at 0)) (rest form)
-                           (let ((path (subpathname pathname subpath)))
-                             (record-additional-system-input-file path component parent)
-                             (safe-read-file-line (subpathname pathname subpath)
-                                                  :at at))))
-                        (otherwise
-                         (invalid))))
-                     (t
-                      (invalid))))
-          (if-let (pv (parse-version v #'invalid-parse))
-            (unparse-version pv)
-            (invalid)))))))
+        (typecase form
+          (null form)
+          (string
+           (if-let (pv (parse-version form #'invalid-parse))
+             (unparse-version pv)
+             (invalid)))
+          (real
+           (invalid "Substituting a string")
+           (format nil "~D" form)) ;; 1.0 becomes "1.0"
+          (cons
+           (case (first form)
+             ((:read-file-form)
+              (destructuring-bind (subpath &key (at 0)) (rest form)
+                (let ((path (subpathname pathname subpath)))
+                  (record-additional-system-input-file path component parent)
+                  (normalize-component-version component
+                                               (safe-read-file-form path :at at :package :asdf-user)
+                                               :parent parent :pathname pathname))))
+             ((:read-file-line)
+              (destructuring-bind (subpath &key (at 0)) (rest form)
+                (let ((path (subpathname pathname subpath)))
+                  (record-additional-system-input-file path component parent)
+                  (normalize-component-version component
+                                               (safe-read-file-line path :at at)
+                                               :parent parent :pathname pathname))))
+             (otherwise
+              (invalid)))))))))
 
 
 ;;; "inline methods"
