@@ -63,7 +63,7 @@ By default, deduced from the COMPONENT-ENCODING."))
 Use asdf-encodings to support more encodings."))
   (defgeneric version-satisfies (component version)
     (:documentation "Check whether a COMPONENT satisfies the constraint of being at least as recent
-as the specified VERSION, which must be a string of dot-separated natural numbers, or NIL."))
+as the specified VERSION."))
   ;; ASDF4: Remove "string of dot-separated natrual numbers" requirement.
   (defgeneric component-version (component)
     (:documentation "Return the version of a COMPONENT, which must be a string of dot-separated
@@ -311,7 +311,7 @@ this compilation, or check its results, etc."))
   (defmethod version-satisfies ((c component) version)
     (unless (and version (slot-boundp c 'version) (component-version c))
       (when version
-        (warn "Requested version ~S but ~S has no version" version c))
+        (warn "Requested version ~S but ~S has no version ASDF understands" version c))
       (return-from version-satisfies nil))
     (version-satisfies (component-version c) version))
 
