@@ -350,7 +350,7 @@ system names contained using COERCE-NAME. Return the result."
           (when (typep component 'parent-component)
             (compute-component-children component components serial))
           (when previous-serial-components
-            (setf depends-on (union depends-on previous-serial-components)))
+            (setf depends-on (union depends-on previous-serial-components :test #'equal)))
           (when weakly-depends-on
             ;; ASDF4: deprecate this feature and remove it.
             (appendf depends-on
