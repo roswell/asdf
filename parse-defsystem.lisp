@@ -276,7 +276,7 @@ system names contained using COERCE-NAME. Return the result."
   ;;; what is the set of possible values for elements of this list.
   (declaim (ftype (function (parent-component list (or t nil)) t)
                    compute-component-children)
-           (ftype (function (parent-component list &key (:previous-serial-components list)))
+           (ftype (function ((or parent-component null) list &key (:previous-serial-components list)))
                   parse-component-form))
 
   (defun* compute-component-children (component components serial-p)
