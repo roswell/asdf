@@ -275,97 +275,99 @@ system names contained using COERCE-NAME. Return the result."
   ;;; Returns the list of child components -- it's not entirely clear to me
   ;;; what is the set of possible values for elements of this list.
   (declaim (ftype (function (parent-component list (or t nil)) t)
-                   compute-component-children))
-  (with-compilation-unit ()
-    (defun* compute-component-children (component components serial-p)
-      (prog1
-       (setf (component-children component)
-             (loop
-               :with previous-components = nil ; list of strings
-               :for c-form :in components
-               :for c = (parse-component-form component c-form
-                                              :previous-serial-components previous-components)
-               :for name :of-type string = (component-name c)
-               :collect c
-               :when serial-p
-                 ;; if this is an if-feature component, we need to make a serial link
-                 ;; from previous components to following components -- otherwise should
-                 ;; the IF-FEATURE component drop out, the chain of serial dependencies will be
-                 ;; broken.
-                 :unless (component-if-feature c)
-                   :do (setf previous-components nil)
-               :end
-               :and :do (push name previous-components)))
-        (compute-children-by-name component)))
+                   compute-component-children)
+           (ftype (function (parent-component list &key (:previous-serial-components list)))
+                  parse-component-form))
 
-    (defun* (parse-component-form) (parent options &key previous-serial-components)
-      (destructuring-bind
-          (type name &rest rest &key
-                                  (builtin-system-p () bspp)
-                                  ;; the following list of keywords is reproduced below in the
-                                  ;; remove-plist-keys form.  important to keep them in sync
-                                  components pathname perform explain output-files operation-done-p
-                                  weakly-depends-on depends-on serial
-                                  do-first if-component-dep-fails version
-                                  ;; list ends
-           &allow-other-keys) options
-        (declare (ignore perform explain output-files operation-done-p builtin-system-p))
-        (check-component-input type name weakly-depends-on depends-on components)
-        (when (and parent
-                   (find-component parent name)
-                   (not ;; ignore the same object when rereading the defsystem
-                    (typep (find-component parent name)
-                           (class-for-type parent type))))
-          (error 'duplicate-names :name name))
-        (when do-first (error "DO-FIRST is not supported anymore as of ASDF 3"))
-        (let* ((name (coerce-name name))
-               (args `(:name ,name
-                       :pathname ,pathname
-                       ,@(when parent `(:parent ,parent))
-                       ,@(remove-plist-keys
-                          '(:components :pathname :if-component-dep-fails :version
-                            :perform :explain :output-files :operation-done-p
-                            :weakly-depends-on :depends-on :serial)
-                          rest)))
-               (component (find-component parent name))
-               (class (class-for-type parent type)))
-          (when (and parent (subtypep class 'system))
-            (error 'non-toplevel-system :parent parent :name name))
-          (if component ; preserve identity
-              (apply 'reinitialize-instance component args)
-              (setf component (apply 'make-instance class args)))
-          (component-pathname component) ; eagerly compute the absolute pathname
-          (when (typep component 'system)
-            ;; cache information for introspection
-            (setf (slot-value component 'depends-on)
-                  (parse-dependency-defs depends-on)
-                  (slot-value component 'weakly-depends-on)
-                  ;; these must be a list of systems, cannot be features or versioned systems
-                  (mapcar 'coerce-name weakly-depends-on)))
-          (let ((sysfile (system-source-file (component-system component)))) ;; requires the previous
-            (when (and (typep component 'system) (not bspp))
-              (setf (builtin-system-p component) (lisp-implementation-pathname-p sysfile)))
-            (setf version (normalize-version version :component name :parent parent :pathname sysfile)))
-          ;; Don't use the accessor: kluge to avoid upgrade issue on CCL 1.8.
-          ;; A better fix is required.
-          (setf (slot-value component 'version) version)
-          (when (typep component 'parent-component)
-            (compute-component-children component components serial))
-          (when previous-serial-components
-            (setf depends-on (union depends-on previous-serial-components :test #'equal)))
-          (when weakly-depends-on
-            ;; ASDF4: deprecate this feature and remove it.
-            (appendf depends-on
-                     (remove-if (complement #'(lambda (x) (find-system x nil))) weakly-depends-on)))
-          ;; Used by POIU. ASDF4: rename to component-depends-on?
-          (setf (component-sideway-dependencies component) depends-on)
-          (%refresh-component-inline-methods component rest)
-          (when if-component-dep-fails
-            (error "The system definition for ~S uses deprecated ~
+  (defun* compute-component-children (component components serial-p)
+    (prog1
+        (setf (component-children component)
+              (loop
+                :with previous-components = nil ; list of strings
+                :for c-form :in components
+                :for c = (parse-component-form component c-form
+                                               :previous-serial-components previous-components)
+                :for name :of-type string = (component-name c)
+                :collect c
+                :when serial-p
+                  ;; if this is an if-feature component, we need to make a serial link
+                  ;; from previous components to following components -- otherwise should
+                  ;; the IF-FEATURE component drop out, the chain of serial dependencies will be
+                  ;; broken.
+                  :unless (component-if-feature c)
+                    :do (setf previous-components nil)
+                :end
+                :and :do (push name previous-components)))
+      (compute-children-by-name component)))
+
+  (defun* (parse-component-form) (parent options &key previous-serial-components)
+    (destructuring-bind
+        (type name &rest rest &key
+                                (builtin-system-p () bspp)
+                                ;; the following list of keywords is reproduced below in the
+                                ;; remove-plist-keys form.  important to keep them in sync
+                                components pathname perform explain output-files operation-done-p
+                                weakly-depends-on depends-on serial
+                                do-first if-component-dep-fails version
+                                ;; list ends
+         &allow-other-keys) options
+      (declare (ignore perform explain output-files operation-done-p builtin-system-p))
+      (check-component-input type name weakly-depends-on depends-on components)
+      (when (and parent
+                 (find-component parent name)
+                 (not ;; ignore the same object when rereading the defsystem
+                  (typep (find-component parent name)
+                         (class-for-type parent type))))
+        (error 'duplicate-names :name name))
+      (when do-first (error "DO-FIRST is not supported anymore as of ASDF 3"))
+      (let* ((name (coerce-name name))
+             (args `(:name ,name
+                     :pathname ,pathname
+                     ,@(when parent `(:parent ,parent))
+                     ,@(remove-plist-keys
+                        '(:components :pathname :if-component-dep-fails :version
+                          :perform :explain :output-files :operation-done-p
+                          :weakly-depends-on :depends-on :serial)
+                        rest)))
+             (component (find-component parent name))
+             (class (class-for-type parent type)))
+        (when (and parent (subtypep class 'system))
+          (error 'non-toplevel-system :parent parent :name name))
+        (if component ; preserve identity
+            (apply 'reinitialize-instance component args)
+            (setf component (apply 'make-instance class args)))
+        (component-pathname component) ; eagerly compute the absolute pathname
+        (when (typep component 'system)
+          ;; cache information for introspection
+          (setf (slot-value component 'depends-on)
+                (parse-dependency-defs depends-on)
+                (slot-value component 'weakly-depends-on)
+                ;; these must be a list of systems, cannot be features or versioned systems
+                (mapcar 'coerce-name weakly-depends-on)))
+        (let ((sysfile (system-source-file (component-system component)))) ;; requires the previous
+          (when (and (typep component 'system) (not bspp))
+            (setf (builtin-system-p component) (lisp-implementation-pathname-p sysfile)))
+          (setf version (normalize-version version :component name :parent parent :pathname sysfile)))
+        ;; Don't use the accessor: kluge to avoid upgrade issue on CCL 1.8.
+        ;; A better fix is required.
+        (setf (slot-value component 'version) version)
+        (when (typep component 'parent-component)
+          (compute-component-children component components serial))
+        (when previous-serial-components
+          (setf depends-on (union depends-on previous-serial-components :test #'equal)))
+        (when weakly-depends-on
+          ;; ASDF4: deprecate this feature and remove it.
+          (appendf depends-on
+                   (remove-if (complement #'(lambda (x) (find-system x nil))) weakly-depends-on)))
+        ;; Used by POIU. ASDF4: rename to component-depends-on?
+        (setf (component-sideway-dependencies component) depends-on)
+        (%refresh-component-inline-methods component rest)
+        (when if-component-dep-fails
+          (error "The system definition for ~S uses deprecated ~
             ASDF option :IF-COMPONENT-DEP-FAILS. ~
             Starting with ASDF 3, please use :IF-FEATURE instead"
-                   (coerce-name (component-system component))))
-          component))))
+                 (coerce-name (component-system component))))
+        component)))
 
   ;; the following are all systems that Stas Boukarev maintains and refuses to fix,
   ;; hoping instead to make my life miserable. Instead, I just make ASDF ignore them.
