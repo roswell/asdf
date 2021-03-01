@@ -300,6 +300,10 @@ system names contained using COERCE-NAME. Return the result."
                 :and :do (push name previous-components)))
       (compute-children-by-name component)))
 
+  (defun* stable-union (s1 s2 &key (test #'eql) (key 'identity))
+   (append s1
+     (remove-if #'(lambda (e2) (member (funcall key e2) (funcall key s1) :test test)) s2)))
+
   (defun* (parse-component-form) (parent options &key previous-serial-components)
     (destructuring-bind
         (type name &rest rest &key
@@ -354,7 +358,7 @@ system names contained using COERCE-NAME. Return the result."
         (when (typep component 'parent-component)
           (compute-component-children component components serial))
         (when previous-serial-components
-          (setf depends-on (union depends-on previous-serial-components :test #'equal)))
+          (setf depends-on (stable-union depends-on previous-serial-components :test #'equal)))
         (when weakly-depends-on
           ;; ASDF4: deprecate this feature and remove it.
           (appendf depends-on
