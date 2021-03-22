@@ -14,6 +14,9 @@ cl-asdf (2:3.3.5-1) unstable; urgency=low IN PROGRESS
 * Miscellaneous bug fixes from Luís Oliveira.
 * Fix for argument handling in LAUNCH-PROGRAM.
 * Fixes for feature handling from Eric Timmons.
+* Fix bug where old package-local nicknames were not cleared by
+	UIOP:DEFINE-PACKAGE.  Thanks to Michał Herda for detection and
+	Phoebe Goldman for fix.
 
 cl-asdf (2:3.3.4-1) unstable; urgency=low
 Bug fix release:
