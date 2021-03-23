@@ -9,7 +9,7 @@
    #:system-source-file #:system-source-directory #:system-relative-pathname
    #:system-description #:system-long-description
    #:system-author #:system-maintainer #:system-licence #:system-license
-   #:system-version
+   #:system-version #:system-aesthetic-version-string
    #:definition-dependency-list #:definition-dependency-set #:system-defsystem-depends-on
    #:system-depends-on #:system-weakly-depends-on
    #:component-build-pathname #:build-pathname
@@ -172,10 +172,10 @@ NB: The onus is unhappily on the user to avoid clashes."
 
 ;;; System virtual slot readers, recursing to the primary system if needed.
 (with-upgradability ()
-  (defvar *system-virtual-slots* '(long-name description long-description
-                                   author maintainer mailto
-                                   homepage source-control
-                                   licence version bug-tracker)
+  (defparameter *system-virtual-slots* '(long-name description long-description
+                                         author maintainer mailto
+                                         homepage source-control
+                                         licence bug-tracker)
     "The list of system virtual slot names.")
   (defun system-virtual-slot-value (system slot-name)
     "Return SYSTEM's virtual SLOT-NAME value.
@@ -196,8 +196,24 @@ the primary one."
                 *system-virtual-slots*)))
   (define-system-virtual-slot-readers)
   (defun system-license (system)
-    (system-virtual-slot-value system 'licence)))
+    (system-virtual-slot-value system 'licence))
 
+  ;; ASDF4: Move this back into *system-virtual-slots*. We can't read the slot
+  ;; directly for version as it's no longer guaranteed to be a string of
+  ;; dot-separated natural numbers.
+  (defun* system-version (system)
+    (or (component-version system)
+        (unless (primary-system-p system)
+          (component-version (find-system (primary-system-name system)))))))
+
+;;;; Versions
+
+(with-upgradability ()
+  (defgeneric system-aesthetic-version-string (system)
+    (:documentation "Returns a string representation of the SYSTEM version,
+suitable for display or NIL.")
+    (:method (system)
+      (component-version system))))
 
 ;;;; Pathnames
 

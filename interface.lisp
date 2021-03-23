@@ -72,6 +72,7 @@
    #:component-system
    #:component-encoding
    #:component-external-format
+   #:normalize-component-version
    #:system-description
    #:system-long-description
    #:system-author
@@ -79,6 +80,7 @@
    #:system-license
    #:system-licence
    #:system-version
+   #:system-aesthetic-version-string
    #:system-source-file
    #:system-source-directory
    #:system-relative-pathname

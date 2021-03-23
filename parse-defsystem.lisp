@@ -20,7 +20,7 @@
    #:*known-systems-with-bad-secondary-system-names*
    #:known-system-with-bad-secondary-system-names-p
    #:sysdef-error-component #:check-component-input
-   #:explain))
+   #:explain #:normalize-component-version))
 (in-package :asdf/parse-defsystem)
 
 ;;; Pathname
@@ -129,43 +129,45 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
       (pushnew pathname (cdr cell) :test 'pathname-equal)
       (values)))
 
-  ;; Given a form used as :version specification, in the context of a system definition
-  ;; in a file at PATHNAME, for given COMPONENT with given PARENT, normalize the form
-  ;; to an acceptable ASDF-format version.
-  (defun* (normalize-version) (form &key pathname component parent)
-    (labels ((invalid (&optional (continuation "using NIL instead"))
-               (warn (compatfmt "~@<Invalid :version specifier ~S~@[ for component ~S~]~@[ in ~S~]~@[ from file ~S~]~@[, ~A~]~@:>")
-                     form component parent pathname continuation))
-             (invalid-parse (control &rest args)
-               (unless (if-let (target (find-component parent component)) (builtin-system-p target))
-                 (apply 'warn control args)
-                 (invalid))))
-      (if-let (v (typecase form
-                   ((or string null) form)
-                   (real
-                    (invalid "Substituting a string")
-                    (format nil "~D" form)) ;; 1.0 becomes "1.0"
-                   (cons
-                    (case (first form)
-                      ((:read-file-form)
-                       (destructuring-bind (subpath &key (at 0)) (rest form)
-                         (let ((path (subpathname pathname subpath)))
-                           (record-additional-system-input-file path component parent)
-                           (safe-read-file-form path
-                                                :at at :package :asdf-user))))
-                      ((:read-file-line)
-                       (destructuring-bind (subpath &key (at 0)) (rest form)
-                         (let ((path (subpathname pathname subpath)))
-                           (record-additional-system-input-file path component parent)
-                           (safe-read-file-line (subpathname pathname subpath)
-                                                :at at))))
-                      (otherwise
-                       (invalid))))
-                   (t
-                    (invalid))))
-        (if-let (pv (parse-version v #'invalid-parse))
-          (unparse-version pv)
-          (invalid))))))
+  (defgeneric* (normalize-component-version) (component form &key pathname parent)
+    (:documentation "Given a form used as :version specification, in the
+context of a system definition in a file at PATHNAME, for given COMPONENT with
+given PARENT, normalize the form to an acceptable version.")
+    (:method (component form &key pathname parent)
+      (labels ((invalid (&optional (continuation "using NIL instead"))
+                 (warn (compatfmt "~@<Invalid :version specifier ~S~@[ for component ~S~]~@[ in ~S~]~@[ from file ~S~]~@[, ~A~]~@:>")
+                       form component parent pathname continuation))
+               (invalid-parse (control &rest args)
+                 (unless (if-let (target (find-component parent component)) (builtin-system-p target))
+                   (apply 'warn control args)
+                   (invalid))))
+        (typecase form
+          (null form)
+          (string
+           (if-let (pv (parse-version form #'invalid-parse))
+             (unparse-version pv)
+             (invalid)))
+          (real
+           (invalid "Substituting a string")
+           (format nil "~D" form)) ;; 1.0 becomes "1.0"
+          (cons
+           (case (first form)
+             ((:read-file-form)
+              (destructuring-bind (subpath &key (at 0)) (rest form)
+                (let ((path (subpathname pathname subpath)))
+                  (record-additional-system-input-file path component parent)
+                  (normalize-component-version component
+                                               (safe-read-file-form path :at at :package :asdf-user)
+                                               :parent parent :pathname pathname))))
+             ((:read-file-line)
+              (destructuring-bind (subpath &key (at 0)) (rest form)
+                (let ((path (subpathname pathname subpath)))
+                  (record-additional-system-input-file path component parent)
+                  (normalize-component-version component
+                                               (safe-read-file-line path :at at)
+                                               :parent parent :pathname pathname))))
+             (otherwise
+              (invalid)))))))))
 
 
 ;;; "inline methods"
@@ -351,7 +353,7 @@ system names contained using COERCE-NAME. Return the result."
         (let ((sysfile (system-source-file (component-system component)))) ;; requires the previous
           (when (and (typep component 'system) (not bspp))
             (setf (builtin-system-p component) (lisp-implementation-pathname-p sysfile)))
-          (setf version (normalize-version version :component name :parent parent :pathname sysfile)))
+          (setf version (normalize-component-version component version :parent parent :pathname sysfile)))
         ;; Don't use the accessor: kluge to avoid upgrade issue on CCL 1.8.
         ;; A better fix is required.
         (setf (slot-value component 'version) version)
