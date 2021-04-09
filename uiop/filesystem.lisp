@@ -167,10 +167,14 @@ or the original (parsed) pathname if it is false (the default)."
   (defun directory* (pathname-spec &rest keys &key &allow-other-keys)
     "Return a list of the entries in a directory by calling DIRECTORY.
 Try to override the defaults to not resolving symlinks, if implementation allows."
-    (apply 'directory pathname-spec
+    (apply #-clisp 'directory
+           #+clisp (lambda (entry &rest keys)
+                     (mapcar (lambda (info) (car info))
+                             (apply 'directory entry keys)))
+           pathname-spec
            (append keys '#.(or #+allegro '(:directories-are-files nil :follow-symbolic-links nil)
                                #+(or clozure digitool) '(:follow-links nil)
-                               #+clisp '(:circle t :if-does-not-exist :ignore)
+                               #+clisp '(:full t :circle t :if-does-not-exist :ignore)
                                #+(or cmucl scl) '(:follow-links nil :truenamep nil)
                                #+lispworks '(:link-transparency nil)
                                #+sbcl (when (find-symbol* :resolve-symlinks '#:sb-impl nil)
