@@ -24,7 +24,11 @@
            (DBG "ls shows:"
                 (uiop:run-program (format nil "cd ~a ; ls -l" scratch-dir-name) :output :string))
            (assert-equal (merge-pathnames "subdir/" scratch-dir)
-                        (car dir-values))))
+                       (let (directories)
+                         (collect-sub*directories
+                          scratch-dir (constantly t) (constantly t)
+                          (lambda (it) (push it directories)))
+                         directories))))))
     ;; clean up
     (DBG "Cleaning up")
     (uiop:delete-directory-tree scratch-dir :validate (lambda (x) (subpathp x *test-directory*)))))
