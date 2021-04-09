@@ -25,13 +25,15 @@
            (DBG
             (uiop:run-program (format nil "cd ~a ; ls -l" scratch-dir-name) :output :string))
            (let (directories)
-             (collect-sub*directories
+             (uiop:collect-sub*directories
               scratch-dir
               ;; collectp
-              #'(lambda (x)
-                  (not (uiop:pathname-equal x scratch-dir)))
+              (constantly t)
+              ;; #'(lambda (x)
+              ;;     (not (uiop:pathname-equal x scratch-dir)))
               (constantly t)
               (lambda (it) (push it directories)))
+             (setf directories (remove-if #'(lambda (x) (uiop:pathname-equal x scratch-dir)) directories))
              (assert-equal 1 (length directories))
              (assert  (uiop:pathname-equal
                        (merge-pathnames "subdir/" scratch-dir)
