@@ -9,6 +9,7 @@
 (when (uiop:os-windows-p)
   (exit-lisp 0))
 
+(trace uiop:pathname-equal)
 (let* ((scratch-dir (make-sub-pathname :directory '(:relative "looping-scratch-2")
                                        :defaults *test-directory*))
        (scratch-dir-name (namestring scratch-dir)))
@@ -21,16 +22,23 @@
          (let ((dir-values (directory* (merge-pathnames "*/" scratch-dir))))
            (DBG "After linking \"subdir\" into its parent directory, directory* returns:\n" dir-values)
            ;; since we are on POSIX, we should be able to do this:
-           (DBG "ls shows:"
-                (uiop:run-program (format nil "cd ~a ; ls -l" scratch-dir-name) :output :string))
-           (assert-equal (merge-pathnames "subdir/" scratch-dir)
-                       (let (directories)
-                         (collect-sub*directories
-                          scratch-dir (constantly t) (constantly t)
-                          (lambda (it) (push it directories)))
-                         directories))))))
+           (DBG
+            (uiop:run-program (format nil "cd ~a ; ls -l" scratch-dir-name) :output :string))
+           (let (directories)
+             (collect-sub*directories
+              scratch-dir
+              ;; collectp
+              #'(lambda (x)
+                  (not (uiop:pathname-equal x scratch-dir)))
+              (constantly t)
+              (lambda (it) (push it directories)))
+             (assert-equal 1 (length directories))
+             (assert  (uiop:pathname-equal
+                       (merge-pathnames "subdir/" scratch-dir)
+                       (first directories))))))
     ;; clean up
     (DBG "Cleaning up")
+    (untrace)
     (uiop:delete-directory-tree scratch-dir :validate (lambda (x) (subpathp x *test-directory*)))))
 
 (DBG "Exiting")
