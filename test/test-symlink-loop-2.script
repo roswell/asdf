@@ -1,0 +1,28 @@
+;;; -*- Lisp -*-
+
+;;;---------------------------------------------------------------------------
+;;; This checks a directory structure that contains a symbolic link back to
+;;; the parent directory.
+;;; ---------------------------------------------------------------------------
+(in-package :asdf-test)
+;; since symlinks only somewhat exist on Windows, we don't test there.
+(when (uiop:os-windows-p)
+  (exit-lisp 0))
+
+(let* ((scratch-dir (make-sub-pathname :directory '(:relative "looping-scratch-2")
+                                       :defaults *test-directory*))
+       (scratch-dir-name (namestring scratch-dir)))
+  (unwind-protect
+       (progn
+         ;; set up directory structure
+         (uiop:run-program (format nil "mkdir ~a" scratch-dir-name))
+         (uiop:run-program (format nil "cd ~a ; ln -s . subdir" scratch-dir-name))
+         (DBG "Testing sub-directory linking to its parent directory.")
+         (assert-equal (merge-pathnames "subdir/" scratch-dir)
+                       (car (directory* (merge-pathnames "*/" scratch-dir)))))
+    ;; clean up
+    (DBG "Cleaning up")
+    (uiop:delete-directory-tree scratch-dir :validate (lambda (x) (subpathp x *test-directory*)))))
+
+(DBG "Exiting")
+(exit-lisp 0)
