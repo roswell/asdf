@@ -18,8 +18,13 @@
          (uiop:run-program (format nil "mkdir ~a" scratch-dir-name))
          (uiop:run-program (format nil "cd ~a ; ln -s . subdir" scratch-dir-name))
          (DBG "Testing sub-directory linking to its parent directory.")
-         (assert-equal (merge-pathnames "subdir/" scratch-dir)
-                       (car (directory* (merge-pathnames "*/" scratch-dir)))))
+         (let ((dir-values (directory* (merge-pathnames "*/" scratch-dir))))
+           (DBG "After linking \"subdir\" into its parent directory, directory* returns:\n" dir-values)
+           ;; since we are on POSIX, we should be able to do this:
+           (DBG "ls shows:"
+                (uiop:run-program (format nil "cd ~a ; ls -l" scratch-dir-name) :output :string))
+           (assert-equal (merge-pathnames "subdir/" scratch-dir)
+                        (car dir-values))))
     ;; clean up
     (DBG "Cleaning up")
     (uiop:delete-directory-tree scratch-dir :validate (lambda (x) (subpathp x *test-directory*)))))
