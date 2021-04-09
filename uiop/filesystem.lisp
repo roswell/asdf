@@ -241,9 +241,10 @@ The behavior in presence of symlinks is not portable. Use IOlib to handle such s
     (let* ((directory (ensure-directory-pathname directory))
            #-(or abcl cormanlisp genera xcl)
            (wild (merge-pathnames*
-                  #-(or abcl allegro cmucl lispworks sbcl scl xcl)
+                  #-(or abcl allegro cmucl lispworks sbcl scl xcl clisp)
                   *wild-directory*
                   #+(or abcl allegro cmucl lispworks sbcl scl xcl) "*.*"
+                  #+clisp "*/"
                   directory))
            (dirs
              #-(or abcl cormanlisp genera xcl)
