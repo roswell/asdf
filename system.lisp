@@ -172,10 +172,10 @@ NB: The onus is unhappily on the user to avoid clashes."
 
 ;;; System virtual slot readers, recursing to the primary system if needed.
 (with-upgradability ()
-  (defvar *system-virtual-slots* '(long-name description long-description
-                                   author maintainer mailto
-                                   homepage source-control
-                                   licence version bug-tracker)
+  (defparameter *system-virtual-slots* '(long-name description long-description
+                                         author maintainer mailto
+                                         homepage source-control
+                                         licence bug-tracker)
     "The list of system virtual slot names.")
   (defun system-virtual-slot-value (system slot-name)
     "Return SYSTEM's virtual SLOT-NAME value.
@@ -197,7 +197,16 @@ the primary one."
                 *system-virtual-slots*)))
   (define-system-virtual-slot-readers)
   (defun system-license (system)
-    (system-virtual-slot-value system 'licence)))
+    (system-virtual-slot-value system 'licence))
+  ;; ASDF4: Move this back into *system-virtual-slots*. We can't return the
+  ;; slot directly as we want to mimic the result of COMPONENT-VERSION which
+  ;; now returns two VALUES.
+  (defun* system-version (system)
+    (let ((direct-version (multiple-value-list (component-version system))))
+      (if (first direct-version)
+          (values-list direct-version)
+          (unless (primary-system-p system)
+            (component-version (find-system (primary-system-name system))))))))
 
 
 ;;;; Pathnames

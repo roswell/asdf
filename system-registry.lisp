@@ -100,7 +100,7 @@ If VERSION is the default T, and a system was already loaded, then its version w
     (let ((name (coerce-name system-name)))
       (when (eql version t)
         (if-let (system (registered-system name))
-          (setf (getf keys :version) (component-version system))))
+          (setf (getf keys :version) (nth-value 1 (component-version system)))))
       (setf (gethash name *preloaded-systems*) keys)
       (ensure-preloaded-system-registered system-name)))
 

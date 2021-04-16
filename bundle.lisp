@@ -444,7 +444,7 @@ or of opaque libraries shipped along the source code."))
            (library (second inputs))
            (asd (output-file o s))
            (name (if (and fasl asd) (pathname-name asd) (return-from perform)))
-           (version (component-version s))
+           (version (nth-value 1 (component-version s)))
            (dependencies
              (if (operation-monolithic-p o)
                  ;; We want only dependencies, and we use basic-load-op rather than load-op so that

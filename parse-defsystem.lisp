@@ -21,6 +21,8 @@
    #:known-system-with-bad-secondary-system-names-p
    #:sysdef-error-component #:check-component-input
    #:explain
+   ;; For extending version strings
+   #:normalize-component-version
    ;; for extending the component types
    #:compute-component-children
    #:class-for-type))
@@ -145,6 +147,30 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
       (pushnew pathname (cdr cell) :test 'pathname-equal)
       (values)))
 
+    (defun* (parse-version-pointer) (form &key pathname)
+    "Given a form used as a :version specification, in the context of a system
+definition in a file at PATHNAME, attempt to read the form as part of ASDF's
+mini-DSL for reading version information from another file. If FORM is not a
+member of the DSL, the FORM is returned as is. A second value is returned
+specifying the pathname that was used to derive the return value, if any."
+    (if (listp form)
+        (case (first form)
+          ((:read-file-form)
+           (destructuring-bind (subpath &key (at 0)) (rest form)
+             (let ((path (subpathname pathname subpath)))
+               (values (safe-read-file-form path
+                                            :at at :package :asdf-user)
+                       path))))
+          ((:read-file-line)
+           (destructuring-bind (subpath &key (at 0)) (rest form)
+             (let ((path (subpathname pathname subpath)))
+               (values (safe-read-file-line (subpathname pathname subpath)
+                                            :at at)
+                       path))))
+          (otherwise
+           form))
+        form))
+
   ;; Given a form used as :version specification, in the context of a system definition
   ;; in a file at PATHNAME, for given COMPONENT with given PARENT, normalize the form
   ;; to an acceptable ASDF-format version.
@@ -163,26 +189,28 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
                     (invalid "Substituting a string")
                     (format nil "~D" form)) ;; 1.0 becomes "1.0"
                    (cons
-                    (case (first form)
-                      ((:read-file-form)
-                       (destructuring-bind (subpath &key (at 0)) (rest form)
-                         (let ((path (subpathname pathname subpath)))
-                           (record-additional-system-input-file path component parent)
-                           (safe-read-file-form path
-                                                :at at :package :asdf-user))))
-                      ((:read-file-line)
-                       (destructuring-bind (subpath &key (at 0)) (rest form)
-                         (let ((path (subpathname pathname subpath)))
-                           (record-additional-system-input-file path component parent)
-                           (safe-read-file-line (subpathname pathname subpath)
-                                                :at at))))
-                      (otherwise
-                       (invalid))))
+                    ;; We shouldn't ever get here now that parsing version
+                    ;; pointers happens before normalizing the version, but
+                    ;; leave for backwards compatibility. Consider removing in
+                    ;; ASDF 4.
+                    (multiple-value-bind (version-form additional-input-file)
+                        (parse-version-pointer form :pathname pathname)
+                      (when additional-input-file
+                        (record-additional-system-input-file additional-input-file component parent))
+                      version-form))
                    (t
                     (invalid))))
         (if-let (pv (parse-version v #'invalid-parse))
           (unparse-version pv)
-          (invalid))))))
+          (invalid)))))
+
+  (defgeneric* (normalize-component-version) (component form &key pathname parent)
+    (:documentation "Given a form used as :version specification, in the
+context of a system definition in a file at PATHNAME, for given COMPONENT with
+given PARENT, normalize the form to an object that can be stored in the
+COMPONENT's VERSION slot.")
+    (:method ((component component) form &key pathname parent)
+      (normalize-version form :pathname pathname :component component :parent parent))))
 
 
 ;;; "inline methods"
@@ -345,7 +373,11 @@ children."))
         (let ((sysfile (system-source-file (component-system component)))) ;; requires the previous
           (when (and (typep component 'system) (not bspp))
             (setf (builtin-system-p component) (lisp-implementation-pathname-p sysfile)))
-          (setf version (normalize-version version :component name :parent parent :pathname sysfile)))
+          (multiple-value-bind (version-form additional-input-file)
+              (parse-version-pointer version :pathname sysfile)
+            (setf version version-form)
+            (when additional-input-file
+              (record-additional-system-input-file additional-input-file component parent))))
         ;; Don't use the accessor: kluge to avoid upgrade issue on CCL 1.8.
         ;; A better fix is required.
         (setf (slot-value component 'version) version)

@@ -65,11 +65,13 @@ Use asdf-encodings to support more encodings."))
     (:documentation "Check whether a COMPONENT satisfies the constraint of being at least as recent
 as the specified VERSION, which must be a string of dot-separated natural numbers, or NIL."))
   (defgeneric component-version (component)
-    (:documentation "Return the version of a COMPONENT, which must be a string of dot-separated
-natural numbers, or NIL."))
+    (:documentation "Return the version of a COMPONENT in two VALUES. The
+first value is a string of dot-separated natural numbers that specifies the
+primary version number, or NIL. The second value is the full version string
+that is suitable for display and may contain pre- or post-release information,
+or NIL.")) ;; ASDF internals never use the second value.
   (defgeneric (setf component-version) (new-version component)
-    (:documentation "Updates the version of a COMPONENT, which must be a string of dot-separated
-natural numbers, or NIL."))
+    (:documentation "Updates the version of a COMPONENT."))
   (defgeneric component-parent (component)
     (:documentation "The parent of a child COMPONENT,
 or NIL for top-level components (a.k.a. systems)"))
@@ -92,10 +94,7 @@ or NIL for top-level components (a.k.a. systems)"))
   (defclass component ()
     ((name :accessor component-name :initarg :name :type string :documentation
            "Component name: designator for a string composed of portable pathname characters")
-     ;; We might want to constrain version with
-     ;; :type (and string (satisfies parse-version))
-     ;; but we cannot until we fix all systems that don't use it correctly!
-     (version :accessor component-version :initarg :version :initform nil)
+     (version :initarg :version :initform nil)
      (description :accessor component-description :initarg :description :initform nil)
      (long-description :accessor component-long-description :initarg :long-description :initform nil)
      (sideway-dependencies :accessor component-sideway-dependencies :initform nil)
@@ -162,7 +161,17 @@ The return value is a list of component NAMES; a list of strings."
   (defmethod component-system ((component component))
     (if-let (system (component-parent component))
       (component-system system)
-      component)))
+      component))
+
+  (defmethod component-version ((component component))
+    "This method assumes that version has been normalized to a string of
+dot-separated natural numbers."
+    (let ((v (slot-value component 'version)))
+      (values v v)))
+
+  (defmethod (setf component-version) (value (component component))
+    (setf (slot-value component 'version) value)
+    (values value value)))
 
 
 ;;;; Component hierarchy within a system
