@@ -166,7 +166,8 @@ The return value is a list of component NAMES; a list of strings."
   (defmethod component-version ((component component))
     "This method assumes that version has been normalized to a string of
 dot-separated natural numbers."
-    (if-let (raw-version (slot-value component 'version))
+    (if-let (raw-version (and (slot-boundp component 'version)
+                              (slot-value component 'version)))
       (typecase raw-version
         (string
          ;; If we're upgrading ASDF and some systems have already been loaded,
@@ -349,7 +350,7 @@ this compilation, or check its results, etc."))
   (defmethod version-satisfies :around ((c t) (version null))
     t)
   (defmethod version-satisfies ((c component) version)
-    (unless (and version (slot-boundp c 'version) (component-version c))
+    (unless (and version (component-version c))
       (when version
         (warn "Requested version ~S but ~S has no version" version c))
       (return-from version-satisfies nil))
