@@ -1195,7 +1195,8 @@ especially if you intend your software to be eventually included in Quicklisp.
 @c move it!
 @item
 Make sure you know how the @code{:version} numbers will be parsed!
-Only period-separated non-negative integers are accepted at present.
+By default, ASDF accepts a semver-like string, but this may be changed
+through the use of a different system class.
 @xref{Version specifiers}.
 
 @item
@@ -1772,14 +1773,57 @@ be forced upon you if you were specifying a string.
 @cindex :version
 @anchor{Version specifiers}
 
-Version specifiers are strings to be parsed as period-separated lists of integers.
-I.e., in the example, @code{"0.2.1"} is to be interpreted,
-roughly speaking, as @code{(0 2 1)}.
-In particular, version @code{"0.2.1"} is interpreted the same as @code{"0.0002.1"},
-though the latter is not canonical and may lead to a warning being issued.
-Also, @code{"1.3"} and @code{"1.4"} are both strictly @code{uiop:version<} to @code{"1.30"},
-quite unlike what would have happened
-had the version strings been interpreted as decimal fractions.
+Version specifiers are strings that are parsed in three segments. The
+first segment is the core version number and must be a period-separated
+list of integers. The second segment is the pre-release segment. It is
+separated from the first segment by a @code{#\-} character and must be a
+period-separated list of identifiers. Each identifier consists of
+alphanumeric characters and the @code{#\-} character. The third segment
+is the build metadata segment. It is separated from the other segments
+by a @code{#\+} character and must be a period separated list of
+identifiers.
+
+For example, the version specifier @code{"0.2.1-rc.1+git.01234567"} is
+to be interpreted as the core version @code{(0 2 1)}, pre-release
+@code{("rc" 1)}, and build @code{("git" "01234567")}. Leading zeros from
+numeric identifiers in the core and pre-release segments are
+stripped. So @code{"0.2.1-rc.1+git.01234567"} is interpreted the same as
+@code{"0.0002.1-rc.01+git.01234567"}, though the latter is not canonical
+and may lead to a warning being issued. Build metadata is not used at
+all for version comparisons, so every identifier is parsed as a string,
+even if it consists entirely of numeric characters.
+
+@code{uiop:version<} is used to order versions. When two versions
+@code{x} and @code{y} are ordered, the following rules are observed:
+
+@enumerate
+
+@item
+If the core segments of @code{x} and @code{y} are not equal, they are
+ordered lexicographically.
+
+@item
+If the core segments of @code{x} and @code{y} are equal and @code{y} has
+no pre-release segment, but @code{x} does, then @code{x} is
+@code{uiop:version<} than @code{y}.
+
+@item
+If the core segments of @code{x} and @code{y} are equal and both have
+pre-release segments, then the pre-release segments are compared
+lexicographically. When comparing two identifiers that are both
+integers, @code{<} is used. When comparing two identifiers that are both
+strings, @code{string<} is used. Otherwise, integers are considered
+@code{<} strings.
+
+@item
+Build metadata is ignored.
+
+@end enumerate
+
+The grammar and ordering rules are adopted from
+@url{https://semver.org/spec/v2.0.0.html,Semver v2.0.0}, with the
+modification that the core version segment is not limited to exactly
+three integers.
 
 Instead of a string representing the version,
 the @code{:version} argument can be an expression that is resolved to
@@ -3365,29 +3409,47 @@ ASDF provides built-in methods for @var{version} being a @code{component} or @co
 @var{version-spec} should be a string.
 If it's a component, its version is extracted as a string before further processing.
 
-A version string satisfies the version-spec if after parsing,
-the former is no older than the latter.
-Therefore @code{"1.9.1"}, @code{"1.9.2"} and @code{"1.10"} all satisfy @code{"1.9.1"},
-but @code{"1.8.4"} or @code{"1.9"} do not.
-For more information about how @code{version-satisfies} parses and interprets
-version strings and specifications,
-@pxref{Version specifiers} and
+A version string satisfies the version-spec if after parsing, the former
+is no older than the latter. Additionally, if @code{version-spec} has no
+pre-release segment, then any pre-release segment of @code{version} is
+ignored as well. Therefore @code{"1.9.1"}, @code{"1.9.1-0"},
+@code{"1.9.2"}, @code{"1.10"}, and @code{"2.0.0"} all satisfy
+@code{"1.9.1"}, but @code{"1.8.4"} or @code{"1.9.0"} do
+not. Additionally, @code{"1.9.1"} and @code{"1.9.1-rc.1"} all satisfy
+@code{"1.9.1-beta"}, but @code{"1.9.1-alpha"} does not. For more
+information about how @code{version-satisfies} parses and interprets
+version strings and specifications, @pxref{Version specifiers} and
 @ref{Common attributes of components}.
 
-Note that in versions of ASDF prior to 3.0.1,
-including the entire ASDF 1 and ASDF 2 series,
-@code{version-satisfies} would also require that the version and the version-spec
-have the same major version number (the first integer in the list);
-if the major version differed, the version would be considered as not matching the spec.
-But that feature was not documented, therefore presumably not relied upon,
-whereas it was a nuisance to several users.
-Starting with ASDF 3.0.1,
-@code{version-satisfies} does not treat the major version number specially,
-and returns T simply if the first argument designates a version that isn't older
-than the one specified as a second argument.
-If needs be, the @code{(:version ...)} syntax for specifying dependencies
-could be in the future extended to specify an exclusive upper bound for compatible versions
-as well as an inclusive lower bound.
+This behavior may be surprising to users of version strings from other
+languages where the default version constraints (such as Node's
+@code{^1.9.1} or Python's @code{~=1.9}) enforce that major versions
+match and pre-release versions do not satisfy the constraints.@footnote{
+We desire to point out here that the Semver specification makes no
+mention of version constraint operators and, at the time of writing,
+formalizing such operators continues to be a
+@url{https://github.com/semver/semver/pull/584,hotly debated topic}
+}
+However, we believe that our choices to eschew these traditions from
+other language's build systems is best for the CL community.
+
+In versions of ASDF prior to 3.0.1, including the entire ASDF 1 and ASDF
+2 series, @code{version-satisfies} would also require that the version
+and the version-spec have the same major version number (the first
+integer in the list); if the major version differed, the version would
+be considered as not matching the spec.  But that feature was not
+documented, therefore presumably not relied upon, whereas it was a
+nuisance to several users. Additionally, the level of compile time
+introspection that Common Lisp provides means that code may easily be
+compatible with multiple major versions of its dependencies.
+
+We allow pre-release versions to satisfy the constraints largely out of
+separation of concerns. ASDF is not responsible for fetching
+dependencies and we feel the decision on whether or not to use
+pre-release versions is best made there. If you choose to make
+pre-releases visible to ASDF, presumably you know that things could
+break horribly as the code could change drastically before it is fully
+released.
 @end defun
 
 @node Parsing system definitions,  , Functions, The object model of ASDF
