@@ -166,12 +166,25 @@ The return value is a list of component NAMES; a list of strings."
   (defmethod component-version ((component component))
     "This method assumes that version has been normalized to a string of
 dot-separated natural numbers."
-    (let ((v (slot-value component 'version)))
-      (values v v)))
+    (if-let (raw-version (slot-value component 'version))
+      (typecase raw-version
+        (string
+         ;; If we're upgrading ASDF and some systems have already been loaded,
+         ;; they likely have the old representation of the version (plain
+         ;; string) stored. We could automatically rewrite the contents of the
+         ;; slot if this happens, but it should be rare since ASDF always tries
+         ;; to upgrade itself first.
+         (if-let (core-segment (parse-version raw-version))
+           (values core-segment raw-version)))
+        (cons
+         (values-list raw-version)))))
 
   (defmethod (setf component-version) (value (component component))
-    (setf (slot-value component 'version) value)
-    (values value value)))
+    (when (typep value 'string)
+      (if-let (core-segment (parse-version value))
+        (progn
+          (setf (slot-value component 'version) (list core-segment value))
+          (values core-segment value))))))
 
 
 ;;;; Component hierarchy within a system

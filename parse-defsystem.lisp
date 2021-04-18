@@ -200,9 +200,15 @@ specifying the pathname that was used to derive the return value, if any."
                       version-form))
                    (t
                     (invalid))))
-        (if-let (pv (parse-version v #'invalid-parse))
-          (unparse-version pv)
-          (invalid)))))
+        (multiple-value-bind (core-segment pre-release-segment build-segment)
+            (parse-version v #'invalid-parse)
+          (if core-segment
+              ;; Store both the core segment (which we use for version
+              ;; comparisons) and the full version. This prevents calls to
+              ;; PARSE-VERSION from within COMPONENT-VERSION.
+              (list core-segment
+                    (unparse-version core-segment pre-release-segment build-segment))
+              (invalid))))))
 
   (defgeneric* (normalize-component-version) (component form &key pathname parent)
     (:documentation "Given a form used as :version specification, in the
