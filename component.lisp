@@ -354,10 +354,16 @@ this compilation, or check its results, etc."))
       (when version
         (warn "Requested version ~S but ~S has no version" version c))
       (return-from version-satisfies nil))
-    (version-satisfies (component-version c) version))
+    (version-satisfies (nth-value 1 (component-version c)) version))
 
   (defmethod version-satisfies ((cver string) version)
-    (version<= version cver)))
+    (if (nth-value 1 (parse-version version))
+        ;; The required VERSION has a pre-release segment, do not ignore
+        ;; pre-release segments in CVER.
+        (version<= version cver)
+        ;; No pre-release segment on VERSION. Ignore any pre-release
+        ;; information in CVER.
+        (version<= version (parse-version cver)))))
 
 
 ;;; all sub-components (of a given type)
