@@ -1,5 +1,20 @@
 ;;; -*- Lisp -*-
 
+(DBG "Check version parsing and precedence operations")
+(assert (version< "1.0.0" "2.0.0"))
+(assert (version< "2.0.0" "2.1.0"))
+(assert (version< "2.1.0" "2.1.1"))
+
+(assert (version< "1.0.0-alpha" "1.0.0"))
+
+(assert (version< "1.0.0-alpha" "1.0.0-alpha.1"))
+(assert (version< "1.0.0-alpha.1" "1.0.0-alpha.beta"))
+(assert (version< "1.0.0-alpha.beta" "1.0.0-beta"))
+(assert (version< "1.0.0-beta" "1.0.0-beta.2"))
+(assert (version< "1.0.0-beta.2" "1.0.0-beta.11"))
+(assert (version< "1.0.0-beta.11" "1.0.0-rc.1"))
+(assert (version< "1.0.0-rc.1" "1.0.0"))
+
 (DBG "Check that there is an ASDF version that correctly parses to a non-empty list")
 (assert (consp (parse-version (asdf-version) 'error)))
 (DBG "Check that ASDF is newer than 1.234")
