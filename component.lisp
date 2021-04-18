@@ -184,7 +184,21 @@ dot-separated natural numbers."
       (if-let (core-segment (parse-version value))
         (progn
           (setf (slot-value component 'version) (list core-segment value))
-          (values core-segment value))))))
+          (values core-segment value)))))
+
+  ;; Adapt any existing implementation of COMPONENT-VERSION to the new
+  ;; interface.
+  (defmethod component-version :around ((component component))
+    (let ((next-values (multiple-value-list (call-next-method))))
+      (if (and (first next-values) (null (second next-values)))
+          (values (first next-values) (first next-values))
+          (values-list next-values))))
+
+  (defmethod (setf component-version) :around (value (component component))
+    (let ((next-values (multiple-value-list (call-next-method))))
+      (if (and (first next-values) (null (second next-values)))
+          (component-version component)
+          (values-list next-values)))))
 
 
 ;;;; Component hierarchy within a system
