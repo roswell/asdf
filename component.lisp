@@ -176,16 +176,16 @@ dot-separated natural numbers."
          ;; slot if this happens, but it should be rare since ASDF always tries
          ;; to upgrade itself first.
          (if-let (core-segment (parse-version raw-version))
-           (values core-segment raw-version)))
+           (values (unparse-version core-segment) raw-version)))
         (cons
          (values-list raw-version)))))
 
   (defmethod (setf component-version) (value (component component))
     (when (typep value 'string)
       (if-let (core-segment (parse-version value))
-        (progn
-          (setf (slot-value component 'version) (list core-segment value))
-          (values core-segment value)))))
+        (let ((core-string (unparse-version core-segment)))
+          (setf (slot-value component 'version) (list core-string value))
+          (values core-string value)))))
 
   ;; Adapt any existing implementation of COMPONENT-VERSION to the new
   ;; interface.

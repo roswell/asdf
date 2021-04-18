@@ -206,7 +206,7 @@ specifying the pathname that was used to derive the return value, if any."
               ;; Store both the core segment (which we use for version
               ;; comparisons) and the full version. This prevents calls to
               ;; PARSE-VERSION from within COMPONENT-VERSION.
-              (list core-segment
+              (list (unparse-version core-segment)
                     (unparse-version core-segment pre-release-segment build-segment))
               (invalid))))))
 
