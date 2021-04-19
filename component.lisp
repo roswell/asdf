@@ -185,7 +185,8 @@ dot-separated natural numbers."
       (if-let (core-segment (parse-version value))
         (let ((core-string (unparse-version core-segment)))
           (setf (slot-value component 'version) (list core-string value))
-          (values core-string value)))))
+          (values core-string value))
+        (component-version component))))
 
   ;; Adapt any existing implementation of COMPONENT-VERSION to the new
   ;; interface.
