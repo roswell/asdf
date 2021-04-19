@@ -117,7 +117,7 @@ but the values are returned anyway."
                  (normalized-version (unparse-version core-segment pre-release-segment build-segment)))
             (unless (equal version-string normalized-version)
               (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
-            (values core-segment pre-release-segment build-segment normalized-version))))))
+            (values core-segment pre-release-segment build-segment))))))
 
   (defun next-version (version)
     "When VERSION is not nil, it is a string, then parse it as a version, compute the next version
