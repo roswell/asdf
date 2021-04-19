@@ -4,6 +4,7 @@
   (:export
    #:*uiop-version*
    #:parse-version #:unparse-version #:version< #:version<= #:version= ;; version support, moved from uiop/utility
+   #:version-core-string
    #:next-version
    #:deprecated-function-condition #:deprecated-function-name ;; deprecation control
    #:deprecated-function-style-warning #:deprecated-function-warning
@@ -118,6 +119,12 @@ but the values are returned anyway."
             (unless (equal version-string normalized-version)
               (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
             (values core-segment pre-release-segment build-segment))))))
+
+  (defun version-core-string (version)
+    "When VERSION is not NIL, it is a string, then parse it as a version,
+return the string corresponding to the core segment of VERSION."
+    (when version
+      (unparse-version (parse-version version))))
 
   (defun next-version (version)
     "When VERSION is not nil, it is a string, then parse it as a version, compute the next version
