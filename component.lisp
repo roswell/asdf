@@ -196,6 +196,7 @@ dot-separated natural numbers."
           (values-list next-values))))
 
   (defmethod (setf component-version) :around (value (component component))
+    (declare (ignore value))
     (let ((next-values (multiple-value-list (call-next-method))))
       (if (and (first next-values) (null (second next-values)))
           (component-version component)
