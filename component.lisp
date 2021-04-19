@@ -363,7 +363,7 @@ this compilation, or check its results, etc."))
         (version<= version cver)
         ;; No pre-release segment on VERSION. Ignore any pre-release
         ;; information in CVER.
-        (version<= version (parse-version cver)))))
+        (version<= version (unparse-version (parse-version cver))))))
 
 
 ;;; all sub-components (of a given type)
