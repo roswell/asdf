@@ -29,10 +29,9 @@
               scratch-dir
               ;; collectp
               (constantly t)
-              ;; #'(lambda (x)
-              ;;     (not (uiop:pathname-equal x scratch-dir)))
               (constantly t)
               (lambda (it) (push it directories)))
+             ;; this check could be moved into the collector argument.
              (setf directories (remove-if #'(lambda (x) (uiop:pathname-equal x scratch-dir)) directories))
              (assert-equal 1 (length directories))
              (assert  (uiop:pathname-equal
