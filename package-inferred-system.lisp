@@ -8,6 +8,7 @@
         :asdf/component :asdf/system :asdf/system-registry :asdf/lisp-action
         :asdf/parse-defsystem)
   (:export
+   #:define-file-package
    #:package-inferred-system #:sysdef-package-inferred-system-search
    #:package-system ;; backward compatibility only. To be removed.
    #:register-system-packages
@@ -15,8 +16,96 @@
 (in-package :asdf/package-inferred-system)
 
 (with-upgradability ()
+  ;; A COMPONENT-PACKAGE-DESIGNATOR is either:
+  ;; - a string-designator which names both an ASDF system and a CL package
+  ;; - a two-element list (SYSTEM PACKAGE), where
+  ;;   - SYSTEM is a string designator which names an ASDF system
+  ;;   - PACKAGE is a string designator which names a package
+  (defun component-package-designator-package (designator)
+    (etypecase designator
+      (cons (second designator))
+      ((or symbol string) designator)))
+  (defun component-package-designator-component (designator)
+    (etypecase designator
+      (cons (first designator))
+      ((or symbol string) designator)))
+  (defgeneric file-package-to-package (head &rest tail))
+  (defmacro define-file-package-to-package (head arglist)
+    "Define a DEFINE-FILE-PACKAGE clause whose component-package-designators must be transformed for \
+UIOP:DEFINE-PACKAGE"
+    `(defmethod file-package-to-package ((head (eql ',head)) &rest tail)
+       (destructuring-bind ,arglist tail
+         (cons head
+               ;; note: there are actually only a very small number of different arglist shapes for a
+               ;; define-file-package clause, so we just hard-code the inputs and their expansions
+               ,(cond ((equal arglist '(&rest package))
+                       '(mapcar #'component-package-designator-package package))
+                      ((equal arglist '(package &rest symbol))
+                       '(cons (component-package-designator-package package) symbol))
+                      (:otherwise (error "unrecognized ASDF:DEFINE-FILE-PACKAGE clause template ~a" arglist)))))))
+  (define-file-package-to-package :use (&rest package))
+  (define-file-package-to-package :shadowing-import-from (package &rest symbol))
+  (define-file-package-to-package :import-from (package &rest symbol))
+  (define-file-package-to-package :recycle (&rest package))
+  (define-file-package-to-package :mix (&rest package))
+  (define-file-package-to-package :reexport (&rest package))
+  (define-file-package-to-package :use-reexport (&rest package))
+  (define-file-package-to-package :mix-reexport (&rest package))
+
+  (defmacro define-file-package-passthrough (head)
+    "Define a DEFINE-FILE-PACKAGE clause which may be passed as-is to UIOP:DEFINE-PACKAGE"
+    `(defmethod file-package-to-package ((head (eql ',head)) &rest tail)
+       (cons head tail)))
+  (define-file-package-passthrough :unintern)
+  (define-file-package-passthrough :shadow)
+  (define-file-package-passthrough :export)
+  (define-file-package-passthrough :intern)
+  (define-file-package-passthrough :documentation)
+  (define-file-package-passthrough :nicknames)
+
+  (defmacro define-file-package-ignore (head)
+    "Define a DEFINE-FILE-PACKAGE clause which should not be passed to UIOP:DEFINE-PACKAGE at all"
+    `(defmethod file-package-to-package ((head (eql ',head)) &rest tail)
+       (declare (ignorable head tail))
+       nil))
+  (define-file-package-ignore :depend-on)
+  
+  (defmethod file-package-to-package ((head (eql :local-nicknames)) &rest pairs)
+    (flet ((process-pair (pair)
+             (destructuring-bind (nickname package) pair
+               (list nickname (component-package-designator-package package)))))
+      `(:local-nicknames ,@(mapcar #'process-pair pairs))))
+  
+  (defmacro define-file-package (name &rest clauses)
+    "Define a package for a PACKAGE-INFERRED-SYSTEM.
+
+Like UIOP:DEFINE-PACKAGE, with extensions to handle systems whose CL package names don't match their \
+ASDF system names:
+
+- Anywhere UIOP:DEFINE-PACKAGE accepts a package name, DEFINE-FILE-PACKAGE also accepts a two-element \
+  list (SYSTEM-NAME PACKAGE-NAME). The ASDF system for this file will depend on SYSTEM-NAME, and \
+  the package will IMPORT-FROM/USE/MIX/etc. PACKAGE-NAME.
+
+- The clause (:DEPEND-ON &rest SYSTEM-NAMES) will depend on each of the SYSTEM-NAMES without affecting \
+  the newly-defined package in any way.
+
+Programmers are strongly encouraged to use string literals as system names, keywords as package names, and \
+uninterned symbols as symbol designators.
+
+E.g.:
+(asdf:define-file-package :test-inferred-system/package
+  (:nicknames :test-inferred-system)
+  (:import-from (\"bad-system\" :not-the-system-name) #:foo)
+  (:depend-on \"bordeaux-threads\")
+  (:use :cl)
+  (:export #:bar))"
+    `(uiop:define-package ,name ,@(remove-if #'null
+                                             (loop :for clause :in clauses
+                                                   :collect (apply #'file-package-to-package clause))))))
+
+(with-upgradability ()
   ;; The names of the recognized defpackage forms.
-  (defparameter *defpackage-forms* '(defpackage define-package))
+  (defparameter *defpackage-forms* '(defpackage define-package define-file-package))
 
   (defun initial-package-inferred-systems-table ()
     ;; Mark all existing packages are preloaded.
@@ -69,17 +158,23 @@ the DEFPACKAGE-FORM uses it or imports a symbol from it."
     (assert (defpackage-form-p defpackage-form))
     (remove-duplicates
      (while-collecting (dep)
-       (loop :for (option . arguments) :in (cddr defpackage-form) :do
-         (ecase option
-           ((:use :mix :reexport :use-reexport :mix-reexport)
-            (dolist (p arguments) (dep (string p))))
-           ((:import-from :shadowing-import-from)
-            (dep (string (first arguments))))
-           #+package-local-nicknames
-           ((:local-nicknames)
-            (loop :for (nil actual-package-name) :in arguments :do
-              (dep (string actual-package-name))))
-           ((:nicknames :documentation :shadow :export :intern :unintern :recycle)))))
+       (flet ((depend-on (package)
+                ;; note: calling COMPONENT-PACKAGE-DESIGNATOR-COMPONENT on package-names provided to
+                ;; CL:DEFPACKAGE and UIOP:DEFINE-PACKAGE will allow malformed invocations of those macros,
+                ;; which will not be caught until we actually try to macroexpand those files.
+                (dep (string (component-package-designator-component package)))))
+         (loop :for (option . arguments) :in (cddr defpackage-form) :do
+           (ecase option
+             ((:use :mix :reexport :use-reexport :mix-reexport :depend-on)
+              (dolist (p arguments)
+                (depend-on p)))
+             ((:import-from :shadowing-import-from)
+              (depend-on (first arguments)))
+             #+package-local-nicknames
+             ((:local-nicknames)
+              (loop :for (nil actual-package-name) :in arguments :do
+                (depend-on actual-package-name)))
+             ((:nicknames :documentation :shadow :export :intern :unintern :recycle))))))
      :from-end t :test 'equal))
 
   (defun package-designator-name (package)
