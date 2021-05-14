@@ -276,17 +276,6 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
 system names contained using COERCE-NAME. Return the result."
     (mapcar 'parse-dependency-def dd-list))
 
-  ;;; Helper function for parse-component-form.  Sets the CHILDREN slot of
-  ;;; COMPONENT, using COMPONENTS list, and adds dependency links if
-  ;;; the COMPONENT is a serial component. Should ONLY be called on a
-  ;;; PARENT-COMPONENT.
-  ;;; Returns the list of child components -- it's not entirely clear to me
-  ;;; what is the set of possible values for elements of this list.
-  (declaim (ftype (function (parent-component list (or t nil)) t)
-                   compute-component-children)
-           (ftype (function ((or parent-component null) list &key (:previous-serial-components list)))
-                  parse-component-form))
-
   (defgeneric compute-component-children (component components serial-p)
     (:documentation
      "Return a list of children for COMPONENT.
@@ -295,24 +284,6 @@ COMPONENTS is a list of the explicitly defined children descriptions.
 
 SERIAL-P is non-NIL if each child in COMPONENTS should depend on the previous
 children."))
-
-  (defmethod compute-component-children ((component parent-component) components serial-p)
-    (loop
-      :with previous-components = nil ; list of strings
-      :for c-form :in components
-      :for c = (parse-component-form component c-form
-                                     :previous-serial-components previous-components)
-      :for name :of-type string = (component-name c)
-      :collect c
-      :when serial-p
-        ;; if this is an if-feature component, we need to make a serial link
-        ;; from previous components to following components -- otherwise should
-        ;; the IF-FEATURE component drop out, the chain of serial dependencies will be
-        ;; broken.
-        :unless (component-if-feature c)
-          :do (setf previous-components nil)
-      :end
-      :and :do (push name previous-components)))
 
   (defun* stable-union (s1 s2 &key (test #'eql) (key 'identity))
    (append s1
@@ -387,6 +358,24 @@ children."))
             Starting with ASDF 3, please use :IF-FEATURE instead"
                  (coerce-name (component-system component))))
         component)))
+
+  (defmethod compute-component-children ((component parent-component) components serial-p)
+    (loop
+      :with previous-components = nil ; list of strings
+      :for c-form :in components
+      :for c = (parse-component-form component c-form
+                                     :previous-serial-components previous-components)
+      :for name :of-type string = (component-name c)
+      :collect c
+      :when serial-p
+        ;; if this is an if-feature component, we need to make a serial link
+        ;; from previous components to following components -- otherwise should
+        ;; the IF-FEATURE component drop out, the chain of serial dependencies will be
+        ;; broken.
+        :unless (component-if-feature c)
+          :do (setf previous-components nil)
+      :end
+      :and :do (push name previous-components)))
 
   ;; the following are all systems that Stas Boukarev maintains and refuses to fix,
   ;; hoping instead to make my life miserable. Instead, I just make ASDF ignore them.
