@@ -287,26 +287,32 @@ system names contained using COERCE-NAME. Return the result."
            (ftype (function ((or parent-component null) list &key (:previous-serial-components list)))
                   parse-component-form))
 
-  (defun* compute-component-children (component components serial-p)
-    (prog1
-        (setf (component-children component)
-              (loop
-                :with previous-components = nil ; list of strings
-                :for c-form :in components
-                :for c = (parse-component-form component c-form
-                                               :previous-serial-components previous-components)
-                :for name :of-type string = (component-name c)
-                :collect c
-                :when serial-p
-                  ;; if this is an if-feature component, we need to make a serial link
-                  ;; from previous components to following components -- otherwise should
-                  ;; the IF-FEATURE component drop out, the chain of serial dependencies will be
-                  ;; broken.
-                  :unless (component-if-feature c)
-                    :do (setf previous-components nil)
-                :end
-                :and :do (push name previous-components)))
-      (compute-children-by-name component)))
+  (defgeneric compute-component-children (component components serial-p)
+    (:documentation
+     "Return a list of children for COMPONENT.
+
+COMPONENTS is a list of the explicitly defined children descriptions.
+
+SERIAL-P is non-NIL if each child in COMPONENTS should depend on the previous
+children."))
+
+  (defmethod compute-component-children ((component parent-component) components serial-p)
+    (loop
+      :with previous-components = nil ; list of strings
+      :for c-form :in components
+      :for c = (parse-component-form component c-form
+                                     :previous-serial-components previous-components)
+      :for name :of-type string = (component-name c)
+      :collect c
+      :when serial-p
+        ;; if this is an if-feature component, we need to make a serial link
+        ;; from previous components to following components -- otherwise should
+        ;; the IF-FEATURE component drop out, the chain of serial dependencies will be
+        ;; broken.
+        :unless (component-if-feature c)
+          :do (setf previous-components nil)
+      :end
+      :and :do (push name previous-components)))
 
   (defun* stable-union (s1 s2 &key (test #'eql) (key 'identity))
    (append s1
@@ -364,7 +370,8 @@ system names contained using COERCE-NAME. Return the result."
         ;; A better fix is required.
         (setf (slot-value component 'version) version)
         (when (typep component 'parent-component)
-          (compute-component-children component components serial))
+          (setf (component-children component) (compute-component-children component components serial))
+          (compute-children-by-name component))
         (when previous-serial-components
           (setf depends-on (stable-union depends-on previous-serial-components :test #'equal)))
         (when weakly-depends-on
