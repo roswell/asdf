@@ -20,7 +20,7 @@
    #:*known-systems-with-bad-secondary-system-names*
    #:known-system-with-bad-secondary-system-names-p
    #:sysdef-error-component #:check-component-input
-   #:explain))
+   #:explain #:compute-component-children))
 (in-package :asdf/parse-defsystem)
 
 ;;; Pathname
@@ -48,20 +48,28 @@
        nil)))))
 
 
+(when-upgrading (:version "3.3.4.17")
+  ;; This turned into a generic function in 3.3.4.17
+  (fmakunbound 'class-for-type))
+
 ;;; Component class
 (with-upgradability ()
   ;; What :file gets interpreted as, unless overridden by a :default-component-class
   (defvar *default-component-class* 'cl-source-file)
 
-  (defun class-for-type (parent type)
-      (or (coerce-class type :package :asdf/interface :super 'component :error nil)
-          (and (eq type :file)
-               (coerce-class
-                (or (loop :for p = parent :then (component-parent p) :while p
-                      :thereis (module-default-component-class p))
-                    *default-component-class*)
-                :package :asdf/interface :super 'component :error nil))
-          (sysdef-error "don't recognize component type ~S" type))))
+  (defgeneric class-for-type (parent type)
+    (:documentation
+     "Return a class to be used to instantiate the component TYPE in the context of PARENT."))
+
+  (defmethod class-for-type (parent type)
+    (or (coerce-class type :package :asdf/interface :super 'component :error nil)
+        (and (eq type :file)
+             (coerce-class
+              (or (loop :for p = parent :then (component-parent p) :while p
+                          :thereis (module-default-component-class p))
+                  *default-component-class*)
+              :package :asdf/interface :super 'component :error nil))
+        (sysdef-error "don't recognize component type ~S" type))))
 
 
 ;;; Check inputs
