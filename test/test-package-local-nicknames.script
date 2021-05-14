@@ -38,11 +38,11 @@
      (delete-package :package-local-nicknames-test-1))
    (when (find-package :package-local-nicknames-test-2)
      (delete-package :package-local-nicknames-test-2)))
-  (let ((form1 `(uiop/package:define-package :package-local-nicknames-test-1 (:use)
+  (let ((form1 `(uiop:define-package :package-local-nicknames-test-1 (:use)
                   (:local-nicknames (:l :cl) (,+nn-name+ ,+pkg-name+)))))
     (eval form1))
-  (let ((form2 `(uiop/package:define-package :package-local-nicknames-test-2 (:use)
-                     (:export "CONS"))))
+  (let ((form2 `(uiop:define-package :package-local-nicknames-test-2 (:use)
+                  (:export "CONS"))))
     (eval form2)))
 
 (defmacro define-test (name &rest body)
@@ -62,7 +62,7 @@
                :package-local-nicknames-test-1
                :package-local-nicknames-test-2))
     (let ((*package* (find-package p)))
-      (let ((alist (uiop/package:package-local-nicknames :package-local-nicknames-test-1)))
+      (let ((alist (uiop:package-local-nicknames :package-local-nicknames-test-1)))
         (assert (equal (cons (case-lisp-string "L") (find-package :cl))
                        (assoc (case-lisp-string "L") alist :test 'string=)))
         (assert (equal (cons +nn-sname+ (find-package +pkg-sname+))
@@ -95,29 +95,29 @@
 
 (define-test test-package-local-nicknames-nickname-removal
   (reset-test-packages)
-  (assert (= 2 (length (uiop/package:package-local-nicknames :package-local-nicknames-test-1))))
-  (assert (uiop/package:remove-package-local-nickname :l :package-local-nicknames-test-1))
-  (assert (= 1 (length (uiop/package:package-local-nicknames :package-local-nicknames-test-1))))
+  (assert (= 2 (length (uiop:package-local-nicknames :package-local-nicknames-test-1))))
+  (assert (uiop:remove-package-local-nickname :l :package-local-nicknames-test-1))
+  (assert (= 1 (length (uiop:package-local-nicknames :package-local-nicknames-test-1))))
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (assert (not (find-package :l)))))
 
 (define-test test-package-local-nicknames-nickname-removal-char
   #+ignore (declare (optimize (debug 3) (speed 0)))
   (reset-test-packages)
-  (assert (= 2 (length (uiop/package:package-local-nicknames :package-local-nicknames-test-1))))
-  (assert (uiop/package:remove-package-local-nickname (if (eq (readtable-case *readtable*) :preserve) #\l #\L)
-                                                      :package-local-nicknames-test-1))
-  (assert (= 1 (length (uiop/package:package-local-nicknames :package-local-nicknames-test-1))))
+  (assert (= 2 (length (uiop:package-local-nicknames :package-local-nicknames-test-1))))
+  (assert (uiop:remove-package-local-nickname (if (eq (readtable-case *readtable*) :preserve) #\l #\L)
+                                              :package-local-nicknames-test-1))
+  (assert (= 1 (length (uiop:package-local-nicknames :package-local-nicknames-test-1))))
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (assert (not (find-package :l)))))
 
 
 (define-test test-package-local-nicknames-nickname-removal-readd-another-package-equality
   (reset-test-packages)
-  (assert (uiop/package:remove-package-local-nickname :l :package-local-nicknames-test-1))
+  (assert (uiop:remove-package-local-nickname :l :package-local-nicknames-test-1))
   (assert (eq (find-package :package-local-nicknames-test-1)
-              (uiop/package:add-package-local-nickname :l :package-local-nicknames-test-2
-                                          :package-local-nicknames-test-1)))
+              (uiop:add-package-local-nickname :l :package-local-nicknames-test-2
+                                               :package-local-nicknames-test-1)))
   (let ((*package* (find-package :package-local-nicknames-test-1)))
     (let ((cl (find-package :l))
           (sb (find-package +nn-name+)))

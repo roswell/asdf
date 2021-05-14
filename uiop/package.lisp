@@ -28,15 +28,6 @@
   ;; import and export the same exact symbols as for ASDF 2.27.
   ;; Any other symbol must be import-from'ed and re-export'ed in a different package.
   (:use :common-lisp)
-  #+package-local-nicknames
-  (:import-from #+allegro #:excl
-                #+sbcl #:sb-ext
-                #+(or clasp abcl ecl) #:ext
-                #+ccl #:ccl
-                #+lispworks #:hcl
-                #-(or allegro sbcl clasp abcl ccl lispworks ecl)
-                (error "Don't know from which package this lisp supplies the local-package-nicknames API.")
-                #:remove-package-local-nickname #:package-local-nicknames #:add-package-local-nickname)
   (:export
    #:find-package* #:find-symbol* #:symbol-call
    #:intern* #:export* #:import* #:shadowing-import* #:shadow* #:make-symbol* #:unintern*
@@ -47,11 +38,7 @@
    #:ensure-package-unused #:delete-package*
    #:package-names #:packages-from-names #:fresh-package-name #:rename-package-away
    #:package-definition-form #:parse-define-package-form
-   #:ensure-package #:define-package
-   #+package-local-nicknames #:add-package-local-nickname
-   #+package-local-nicknames #:remove-package-local-nickname
-   #+package-local-nicknames #:package-local-nicknames
-   ))
+   #:ensure-package #:define-package))
 
 (in-package :uiop/package)
 
@@ -363,6 +350,43 @@ or when loading the package is optional."
              ,@(when-relevant :export (and exportp (sort-names export)))
              ,@(when-relevant :intern (and internp (sort-names intern)))))))))
 
+
+;;; package-local-nicknames
+;;;
+;;; These symbols cannot be imported to (or exported from) the uiop/package
+;;; package, as its definition is frozen forever. So we create our own
+;;; functions mirroring the p-l-n API here that just dispatch to the
+;;; implementation's own functions. We then create another package (once
+;;; UIOP:DEFINE-PACKAGE is in place) that is used to export the API from the
+;;; UIOP package.
+#+package-local-nicknames
+(eval-when (:load-toplevel :compile-toplevel :execute)
+  #-(or allegro sbcl clasp abcl ecl ccl lispworks)
+  (error "Don't know from which package this lisp supplies the local-package-nicknames API.")
+
+  (defun add-package-local-nickname (local-nickname actual-package &optional (package-designator *package*))
+    (#+allegro excl:add-package-local-nickname
+     #+sbcl sb-ext:add-package-local-nickname
+     #+(or clasp abcl ecl) ext:add-package-local-nickname
+     #+ccl ccl:add-package-local-nickname
+     #+lispworks hcl:add-package-local-nickname
+     local-nickname actual-package package-designator))
+
+  (defun remove-package-local-nickname (old-nickname &optional (package-designator *package*))
+    (#+allegro excl:remove-package-local-nickname
+     #+sbcl sb-ext:remove-package-local-nickname
+     #+(or clasp abcl ecl) ext:remove-package-local-nickname
+     #+ccl ccl:remove-package-local-nickname
+     #+lispworks hcl:remove-package-local-nickname
+     old-nickname package-designator))
+
+  (defun package-local-nicknames (package-designator)
+    (#+allegro excl:package-local-nicknames
+     #+sbcl sb-ext:package-local-nicknames
+     #+(or clasp abcl ecl) ext:package-local-nicknames
+     #+ccl ccl:package-local-nicknames
+     #+lispworks hcl:package-local-nicknames
+     package-designator)))
 
 ;;; ensure-package, define-package
 (eval-when (:load-toplevel :compile-toplevel :execute)

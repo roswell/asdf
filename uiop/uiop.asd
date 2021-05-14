@@ -30,6 +30,7 @@ you already have a matching UIOP loaded."
   :components
   ((:static-file "contrib/debug.lisp")
    (:file "package")
+   (:file "package-local-nicknames" :depends-on ("package"))
    (:file "common-lisp" :depends-on ("package"))
    (:file "utility" :depends-on ("common-lisp"))
    (:file "version" :depends-on ("utility"))
@@ -43,7 +44,7 @@ you already have a matching UIOP loaded."
    (:file "run-program" :depends-on ("launch-program" "version"))
    (:file "configuration" :depends-on ("image"))
    (:file "backward-driver" :depends-on ("lisp-build" "run-program" "configuration" "version"))
-   (:file "driver" :depends-on ("backward-driver")))
+   (:file "driver" :depends-on ("backward-driver" "package-local-nicknames")))
   . #-asdf3 () #+asdf3
   (:encoding :utf-8
    :around-compile call-without-redefinition-warnings

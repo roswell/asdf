@@ -13,7 +13,8 @@
    :uiop/package :uiop/utility :uiop/version
    :uiop/os :uiop/pathname :uiop/filesystem :uiop/stream :uiop/image
    :uiop/launch-program :uiop/run-program
-   :uiop/lisp-build :uiop/configuration :uiop/backward-driver))
+   :uiop/lisp-build :uiop/configuration :uiop/backward-driver
+   :uiop/package-local-nicknames))
 
 ;; Provide both lowercase and uppercase, to satisfy more people.
 (provide "uiop") (provide "UIOP")
