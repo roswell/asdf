@@ -5,21 +5,6 @@
 variables:
   # Just let the runner fetch and update the submodules for us.
   GIT_SUBMODULE_STRATEGY: normal
-  ABCL_IMAGE: clfoundation/abcl
-  ABCL_TAG: latest
-  CCL_IMAGE: clfoundation/ccl
-  CCL_TAG: latest
-  CLASP_IMAGE: clfoundation/clasp
-  CLASP_TAG: latest
-  CLISP_IMAGE: clfoundation/clisp
-  CLISP_TAG: latest
-  CMUCL_IMAGE: clfoundation/cmucl
-  CMUCL_TAG: latest
-  ECL_IMAGE: clfoundation/ecl
-  ECL_TAG: latest
-  SBCL_IMAGE: clfoundation/sbcl
-  SBCL_TAG: latest
-
 
 # This causes pipelines to be created only on the default branch, tags, merge
 # requests, and when triggered via the web interface.
@@ -64,23 +49,15 @@ Build docs:
       - doc/asdf.info
       - doc/asdf.pdf
 
-Build asdf-tools:
-  stage: build
-  image: $SBCL_IMAGE:$SBCL_TAG
-  script:
-    - make -f Makefile-lisp-scripting build-asdf-tools
-  artifacts:
-    paths:
-      - build/asdf-tools
-  rules:
-    - if: $ENABLE_ASDF_TOOLS
-
 ###############################################################################
-# Testing Templates
+# Regression tests
 ###############################################################################
 
-.Regression tests:
+.Regression test template:
   stage: regression
+  image: clfoundation/$l:$IMAGE_TAG
+  variables:
+    IMAGE_TAG: latest
   script:
     - make
     - make test
@@ -89,8 +66,32 @@ Build asdf-tools:
       - build/results/$l-test.text
   needs: []
 
-.Upgrade tests:
+Regression test:
+  extends: .Regression test template
+  parallel:
+    matrix:
+      - l: [ccl, clasp, clisp, cmucl, ecl, sbcl]
+        IMAGE_TAG: latest
+      - l: abcl
+        IMAGE_TAG: 1.7.1-jdk8
+
+Regression test expected failure:
+  extends: .Regression test template
+  parallel:
+    matrix:
+      - l: [abcl]
+        IMAGE_TAG: latest
+  allow_failure: true
+
+###############################################################################
+# Upgrade tests
+###############################################################################
+
+.Upgrade test template:
   stage: upgrade
+  image: clfoundation/$l:$IMAGE_TAG
+  variables:
+    IMAGE_TAG: latest
   script:
     - make
     - make test-upgrade
@@ -98,306 +99,46 @@ Build asdf-tools:
     paths:
       - build/results/$l-upgrade.text
   needs: []
-  allow_failure: true
   rules:
     - if: $RUN_UPGRADE_TESTS
 
-.REQUIRE upgrade tests:
-  extends: .Upgrade tests
-  variables:
-    ASDF_UPGRADE_TEST_TAGS: REQUIRE
+Upgrade test:
+  extends: .Upgrade test template
+  parallel:
+    matrix:
+      - l: [abcl, ccl, clasp, clisp, cmucl, ecl, sbcl]
+        IMAGE_TAG: latest
+
+Upgrade test known failure:
+  extends: .Upgrade test template
+  parallel:
+    matrix:
+      - l: [abcl]
+        IMAGE_TAG: latest
+  allow_failure: true
+
+.REQUIRE upgrade test template:
+  extends: .Upgrade test template
   rules:
     - if: $RUN_UPGRADE_TESTS
       when: never
     - when: on_success
 
-.Scripting regression tests:
-  extends: .Regression tests
-  before_script:
-    - ln -s Makefile-lisp-scripting GNUmakefile
-  needs:
-    - Build asdf-tools
-  rules:
-    - if: $ENABLE_ASDF_TOOLS
-
-.Scripting upgrade tests:
-  extends: .Upgrade tests
-  before_script:
-    - ln -s Makefile-lisp-scripting GNUmakefile
-  needs:
-    - Build asdf-tools
-  rules:
-    - if: $ENABLE_ASDF_TOOLS && $RUN_UPGRADE_TESTS
-
-.REQUIRE scripting upgrade tests:
-  extends: .Scripting upgrade tests
+REQUIRE upgrade test:
+  extends: .REQUIRE upgrade test template
   variables:
     ASDF_UPGRADE_TEST_TAGS: REQUIRE
-  rules:
-    - if: $ENABLE_ASDF_TOOLS && $RUN_UPGRADE_TESTS
-      when: never
-    - if: $ENABLE_ASDF_TOOLS
+  parallel:
+    matrix:
+      - l: [ccl, clasp, clisp, cmucl, ecl, sbcl]
+        IMAGE_TAG: latest
 
-###############################################################################
-# Actual test jobs - Makefile based harness
-###############################################################################
-
-ABCL regression tests:
-  extends: .Regression tests
-  image: $ABCL_IMAGE:$ABCL_TAG
+REQUIRE upgrade test known failure:
+  extends: .REQUIRE upgrade test template
   variables:
-    l: abcl
+    ASDF_UPGRADE_TEST_TAGS: REQUIRE
+  parallel:
+    matrix:
+      - l: abcl
+        IMAGE_TAG: latest
   allow_failure: true
-
-# ABCL 1.8.0 has some issues that cause ASDF tests to fail. Remove this job
-# when the above job starts to pass again.
-ABCL 1.7.1 regression tests:
-  extends: .Regression tests
-  image: $ABCL_IMAGE:1.7.1-jdk8
-  variables:
-    l: abcl
-
-ABCL upgrade tests:
-  extends: .Upgrade tests
-  image: $ABCL_IMAGE:$ABCL_TAG
-  variables:
-    l: abcl
-
-ABCL REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $ABCL_IMAGE:$ABCL_TAG
-  variables:
-    l: abcl
-
-CCL regression tests:
-  extends: .Regression tests
-  image: $CCL_IMAGE:$CCL_TAG
-  variables:
-    l: ccl
-
-CCL upgrade tests:
-  extends: .Upgrade tests
-  image: $CCL_IMAGE:$CCL_TAG
-  variables:
-    l: ccl
-
-CCL REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $CCL_IMAGE:$CCL_TAG
-  variables:
-    l: ccl
-
-Clasp regression tests:
-  extends: .Regression tests
-  image: $CLASP_IMAGE:$CLASP_TAG
-  variables:
-    l: clasp
-
-Clasp upgrade tests:
-  extends: .Upgrade tests
-  image: $CLASP_IMAGE:$CLASP_TAG
-  variables:
-    l: clasp
-
-Clasp REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $CLASP_IMAGE:$CLASP_TAG
-  variables:
-    l: clasp
-
-CLISP regression tests:
-  extends: .Regression tests
-  image: $CLISP_IMAGE:$CLISP_TAG
-  variables:
-    l: clisp
-
-CLISP upgrade tests:
-  extends: .Upgrade tests
-  image: $CLISP_IMAGE:$CLISP_TAG
-  variables:
-    l: clisp
-
-CLISP REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $CLISP_IMAGE:$CLISP_TAG
-  variables:
-    l: clisp
-
-CMUCL regression tests:
-  extends: .Regression tests
-  image: $CMUCL_IMAGE:$CMUCL_TAG
-  variables:
-    l: cmucl
-
-CMUCL upgrade tests:
-  extends: .Upgrade tests
-  image: $CMUCL_IMAGE:$CMUCL_TAG
-  variables:
-    l: cmucl
-
-CMUCL REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $CMUCL_IMAGE:$CMUCL_TAG
-  variables:
-    l: cmucl
-
-ECL regression tests:
-  extends: .Regression tests
-  image: $ECL_IMAGE:$ECL_TAG
-  variables:
-    l: ecl
-
-ECL upgrade tests:
-  extends: .Upgrade tests
-  image: $ECL_IMAGE:$ECL_TAG
-  variables:
-    l: ecl
-
-ECL REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $ECL_IMAGE:$ECL_TAG
-  variables:
-    l: ecl
-
-SBCL regression tests:
-  extends: .Regression tests
-  image: $SBCL_IMAGE:$SBCL_TAG
-  variables:
-    l: sbcl
-
-SBCL upgrade tests:
-  extends: .Upgrade tests
-  image: $SBCL_IMAGE:$SBCL_TAG
-  variables:
-    l: sbcl
-
-SBCL REQUIRE upgrade tests:
-  extends: .REQUIRE upgrade tests
-  image: $SBCL_IMAGE:$SBCL_TAG
-  variables:
-    l: sbcl
-
-
-###############################################################################
-# Actual test jobs - lisp scripting based harness
-###############################################################################
-
-ABCL scripting regression tests:
-  extends: .Scripting regression tests
-  image: $ABCL_IMAGE:$ABCL_TAG
-  variables:
-    l: abcl
-
-ABCL scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $ABCL_IMAGE:$ABCL_TAG
-  variables:
-    l: abcl
-
-ABCL REQUIRE scripting upgrade tests:
-  extends: .REQUIRE scripting upgrade tests
-  image: $ABCL_IMAGE:$ABCL_TAG
-  variables:
-    l: abcl
-
-CCL scripting regression tests:
-  extends: .Scripting regression tests
-  image: $CCL_IMAGE:$CCL_TAG
-  variables:
-    l: ccl
-
-CCL scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $CCL_IMAGE:$CCL_TAG
-  variables:
-    l: ccl
-
-CCL REQUIRE scripting upgrade tests:
-  extends: .REQUIRE scripting upgrade tests
-  image: $CCL_IMAGE:$CCL_TAG
-  variables:
-    l: ccl
-
-Clasp scripting regression tests:
-  extends: .Scripting regression tests
-  image: $CLASP_IMAGE:$CLASP_TAG
-  variables:
-    l: clasp
-
-Clasp scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $CLASP_IMAGE:$CLASP_TAG
-  variables:
-    l: clasp
-
-CLISP scripting regression tests:
-  extends: .Scripting regression tests
-  image: $CLISP_IMAGE:$CLISP_TAG
-  variables:
-    l: clisp
-
-CLISP scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $CLISP_IMAGE:$CLISP_TAG
-  variables:
-    l: clisp
-
-CLISP REQUIRE scripting upgrade tests:
-  extends: .REQUIRE scripting upgrade tests
-  image: $CLISP_IMAGE:$CLISP_TAG
-  variables:
-    l: clisp
-
-CMUCL scripting regression tests:
-  extends: .Scripting regression tests
-  image: $CMUCL_IMAGE:$CMUCL_TAG
-  variables:
-    l: cmucl
-
-CMUCL scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $CMUCL_IMAGE:$CMUCL_TAG
-  variables:
-    l: cmucl
-
-CMUCL REQUIRE scripting upgrade tests:
-  extends: .REQUIRE scripting upgrade tests
-  image: $CMUCL_IMAGE:$CMUCL_TAG
-  variables:
-    l: cmucl
-
-ECL scripting regression tests:
-  extends: .Scripting regression tests
-  image: $ECL_IMAGE:$ECL_TAG
-  variables:
-    l: ecl
-
-ECL scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $ECL_IMAGE:$ECL_TAG
-  variables:
-    l: ecl
-
-ECL REQUIRE scripting upgrade tests:
-  extends: .REQUIRE scripting upgrade tests
-  image: $ECL_IMAGE:$ECL_TAG
-  variables:
-    l: ecl
-
-SBCL scripting regression tests:
-  extends: .Scripting regression tests
-  image: $SBCL_IMAGE:$SBCL_TAG
-  variables:
-    l: sbcl
-
-SBCL scripting upgrade tests:
-  extends: .Scripting upgrade tests
-  image: $SBCL_IMAGE:$SBCL_TAG
-  variables:
-    l: sbcl
-
-SBCL REQUIRE scripting upgrade tests:
-  extends: .REQUIRE scripting upgrade tests
-  image: $SBCL_IMAGE:$SBCL_TAG
-  variables:
-    l: sbcl
