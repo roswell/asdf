@@ -5,7 +5,7 @@
 Standard pipeline:
   trigger:
     include:
-      - local: .gitlab/pipelines/standard-pipeline.yml
+      - local: gitlab-pipelines/standard-pipeline.yml
     strategy: depend
   rules:
     - if: $CI_MERGE_REQUEST_IID
@@ -19,7 +19,7 @@ Standard pipeline:
 New image pipeline:
   trigger:
     include:
-      - local: .gitlab/pipelines/new-implementation-version.yml
+      - local: gitlab-pipelines/new-implementation-version.yml
     strategy: depend
   variables:
     l: $CLDI_IMAGE_NAME
