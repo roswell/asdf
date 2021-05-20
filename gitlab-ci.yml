@@ -12,3 +12,29 @@ Standard pipeline:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "web"
+
+# This pipeline is triggered by the cl-docker-images project using a CI
+# Trigger. It is run whenever a new image is released for an implementation
+# release candidate or full release.
+New image pipeline:
+  trigger:
+    include:
+      - local: .gitlab/pipelines/new-implementation-version.yml
+    strategy: depend
+  variables:
+    l: $CLDI_IMAGE_NAME
+    IMAGE_TAG: $CLDI_IMAGE_TAG
+    LISP_VERSION: $CLDI_LISP_VERSION
+  rules:
+    - if: '$CI_PIPELINE_TRIGGERED && ($CLDI_EVENT == "new-rc" || $CLDI_EVENT == "new-version")'
+
+# This job is also included when triggered by the cl-docker-images project. It
+# exists only to have the trigger variables visible for debugging and
+# traceability. This is needed because bridge jobs (such as above) do not have
+# an individual job page that shows all the information.
+Show cldi trigger info:
+  image: alpine
+  script:
+    - "true"
+  rules:
+    - if: '$CI_PIPELINE_TRIGGERED && ($CLDI_EVENT == "new-rc" || $CLDI_EVENT == "new-version")'
