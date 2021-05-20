@@ -14,6 +14,13 @@ stages:
   - regression
   - upgrade
 
+# This is needed otherwise the jobs won't always be added to MR pipelines. We
+# can just say when: always because this is run as a child pipeline and only
+# triggered under the desired conditions.
+workflow:
+  rules:
+    - when: always
+
 ###############################################################################
 # Build jobs
 ###############################################################################
