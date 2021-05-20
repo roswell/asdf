@@ -52,6 +52,4 @@ Open issue:
            -d "title=Test failure for $l $LISP_VERSION" \
            -d "description=An automated pipeline using image clfoundation/$l:$IMAGE_TAG has failed. See: <$CI_PIPELINE_URL>" \
            "$CI_API_V4_URL/projects/$CI_PROJECT_ID/issues"
-  rules:
-    - if: '$ASDF_ISSUE_BOT_PAT'
-      when: on_failure
+  when: on_failure
