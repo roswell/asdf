@@ -627,13 +627,13 @@ Finally, the file will be deleted, unless the KEEP argument when CALL-FUNCTION'e
                      ;; or the non-local return causes the file creation to be undone.
                      (setf results (multiple-value-list
                                     (if want-pathname-p
-                                        (funcall thunk stream pathname)
-                                        (funcall thunk stream)))))))
+                                        (call-function thunk stream pathname)
+                                        (call-function thunk stream)))))))
                ;; if we don't want a stream, then we must call the thunk *after*
                ;; the stream is closed, but only if it was successfully opened.
                (when okp
                  (when (and want-pathname-p (not want-stream-p))
-                   (setf results (multiple-value-list (funcall thunk okp))))
+                   (setf results (multiple-value-list (call-function thunk okp))))
                  ;; if the stream was successfully opened, then return a value,
                  ;; either one computed already, or one from AFTER, if that exists.
                  (if after
