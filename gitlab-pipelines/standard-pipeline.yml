@@ -63,6 +63,10 @@ Build docs:
     paths:
       - build/results/$l-test.text
   needs: []
+  retry:
+    max: 2
+    when:
+      - job_execution_timeout
 
 Regression test:
   extends: .Regression test template
