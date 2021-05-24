@@ -27,7 +27,7 @@ workflow:
 
 Build ASDF:
   stage: build
-  image: buildpack-deps:latest
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/buildpack-deps:latest
   script:
     - make
   artifacts:
@@ -36,7 +36,7 @@ Build ASDF:
 
 Build docs:
   stage: build
-  image: buildpack-deps:buster
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/buildpack-deps:buster
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends texinfo texlive
@@ -53,7 +53,7 @@ Build docs:
 
 .Regression test template:
   stage: regression
-  image: clfoundation/$l:$IMAGE_TAG
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/clfoundation/$l:$IMAGE_TAG
   variables:
     IMAGE_TAG: latest
   script:
@@ -91,7 +91,7 @@ Regression test expected failure:
 
 .Upgrade test template:
   stage: upgrade
-  image: clfoundation/$l:$IMAGE_TAG
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/clfoundation/$l:$IMAGE_TAG
   variables:
     IMAGE_TAG: latest
   script:
