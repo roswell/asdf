@@ -38,8 +38,7 @@ REQUIRE Upgrade test:
       - build/results/$l-upgrade.text
   needs: []
 
-# Open an issue so that job failures are not lost in the noise. Comment out for
-# now as we need to set up a bot account to post the issue.
+# Open an issue so that job failures are not lost in the noise.
 
 Open issue:
   stage: notify
