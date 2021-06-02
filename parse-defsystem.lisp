@@ -59,7 +59,7 @@
 
   (defgeneric class-for-type (parent type-designator)
     (:documentation
-     "Return a CLASS object to be used to instantiate the component TYPE-DESIGNATOR in the context of PARENT."))
+     "Return a CLASS object to be used to instantiate components specified by TYPE-DESIGNATOR in the context of PARENT."))
 
   (defmethod class-for-type (parent type)
     (or (coerce-class type :package :asdf/interface :super 'component :error nil)
