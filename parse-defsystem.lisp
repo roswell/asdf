@@ -57,9 +57,9 @@
   ;; What :file gets interpreted as, unless overridden by a :default-component-class
   (defvar *default-component-class* 'cl-source-file)
 
-  (defgeneric class-for-type (parent type)
+  (defgeneric class-for-type (parent type-designator)
     (:documentation
-     "Return a class to be used to instantiate the component TYPE in the context of PARENT."))
+     "Return a CLASS object to be used to instantiate the component TYPE-DESIGNATOR in the context of PARENT."))
 
   (defmethod class-for-type (parent type)
     (or (coerce-class type :package :asdf/interface :super 'component :error nil)
