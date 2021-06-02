@@ -68,7 +68,7 @@ UIOP:DEFINE-PACKAGE"
     `(defmethod file-package-to-package ((head (eql ',head)) &rest tail)
        (declare (ignorable head tail))
        nil))
-  (define-file-package-ignore :depend-on)
+  (define-file-package-ignore :depends-on)
   
   (defmethod file-package-to-package ((head (eql :local-nicknames)) &rest pairs)
     (flet ((process-pair (pair)
@@ -86,7 +86,7 @@ ASDF system names:
   list (SYSTEM-NAME PACKAGE-NAME). The ASDF system for this file will depend on SYSTEM-NAME, and \
   the package will IMPORT-FROM/USE/MIX/etc. PACKAGE-NAME.
 
-- The clause (:DEPEND-ON &rest SYSTEM-NAMES) will depend on each of the SYSTEM-NAMES without affecting \
+- The clause (:DEPENDS-ON &rest SYSTEM-NAMES) will depend on each of the SYSTEM-NAMES without affecting \
   the newly-defined package in any way.
 
 Programmers are strongly encouraged to use string literals as system names, keywords as package names, and \
@@ -96,7 +96,7 @@ E.g.:
 (asdf:define-file-package :test-inferred-system/package
   (:nicknames :test-inferred-system)
   (:import-from (\"bad-system\" :not-the-system-name) #:foo)
-  (:depend-on \"bordeaux-threads\")
+  (:depends-on \"bordeaux-threads\")
   (:use :cl)
   (:export #:bar))"
     `(uiop:define-package ,name ,@(remove-if #'null
@@ -165,7 +165,7 @@ the DEFPACKAGE-FORM uses it or imports a symbol from it."
                 (dep (string (component-package-designator-component package)))))
          (loop :for (option . arguments) :in (cddr defpackage-form) :do
            (ecase option
-             ((:use :mix :reexport :use-reexport :mix-reexport :depend-on)
+             ((:use :mix :reexport :use-reexport :mix-reexport :depends-on)
               (dolist (p arguments)
                 (depend-on p)))
              ((:import-from :shadowing-import-from)
