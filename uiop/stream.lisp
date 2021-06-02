@@ -664,6 +664,8 @@ Upon success, the KEEP form is evaluated and the file is is deleted unless it ev
            (after (when afterp (subseq body (1+ afterp))))
            (beforef (gensym "BEFORE"))
            (afterf (gensym "AFTER")))
+      (when (eql afterp 0)
+        (style-warn ":CLOSE-STREAM should not be the first form of BODY. Instead, do not provide a STREAM."))
       `(flet (,@(when before
                   `((,beforef (,@(when streamp `(,stream)) ,@(when pathnamep `(,pathname)))
                        ,@(when after `((declare (ignorable ,pathname))))
