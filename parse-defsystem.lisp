@@ -20,7 +20,10 @@
    #:*known-systems-with-bad-secondary-system-names*
    #:known-system-with-bad-secondary-system-names-p
    #:sysdef-error-component #:check-component-input
-   #:explain #:compute-component-children))
+   #:explain
+   ;; for extending the component types
+   #:compute-component-children
+   #:class-for-type))
 (in-package :asdf/parse-defsystem)
 
 ;;; Pathname
