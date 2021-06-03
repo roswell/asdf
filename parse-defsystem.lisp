@@ -61,7 +61,12 @@
     (:documentation
      "Return a CLASS object to be used to instantiate components specified by TYPE-DESIGNATOR in the context of PARENT."))
 
-  (defmethod class-for-type (parent type)
+  (defmethod class-for-type ((parent null) type)
+    "If the PARENT is NIL, then TYPE must designate a subclass of SYSTEM."
+    (or (coerce-class type :package :asdf/interface :super 'system :error nil)
+        (sysdef-error "don't recognize component type ~S in the context of no parent" type)))
+
+  (defmethod class-for-type ((parent parent-component) type)
     (or (coerce-class type :package :asdf/interface :super 'component :error nil)
         (and (eq type :file)
              (coerce-class
@@ -442,7 +447,7 @@ children."))
          (error 'non-system-system :name name :class-name (class-name class)))
        (unless (eq (type-of system) class)
          (reset-system-class system class)))
-     (parse-component-form nil (list* :module name :pathname directory component-options))))
+     (parse-component-form nil (list* :system name :pathname directory component-options))))
 
   (defmacro defsystem (name &body options)
     `(apply 'register-system-definition ',name ',options)))

@@ -3422,9 +3422,9 @@ children.
 
 @deffn {Generic function} class-for-type @var{parent} @var{type-designator}
 
-Return a @code{class} object to be used to instantiate a component whose
-type is specified by @var{type-designator} in the context of
-@var{parent} (which should be a @code{parent-component} object).
+Return a @code{class} designator to be used to instantiate a component
+whose type is specified by @var{type-designator} in the context of
+@var{parent}.
 
 This generic function provides a means for changing how ASDF translates
 type-designators (like @code{:file}) into CLOS classes.  It is intended
