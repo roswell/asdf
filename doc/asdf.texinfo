@@ -3398,6 +3398,12 @@ as well as an inclusive lower bound.
 Thanks to Eric Timmons, ASDF now provides hooks to extend how it parses
 @code{defsystem} forms.
 
+@strong{Warning!} These interfaces are experimental, and as such are not
+exported from the ASDF package yet. We plan to export them in ASDF
+3.4.0. If you use them before they are exported, please subscribe to
+@url{https://gitlab.common-lisp.net/asdf/asdf/-/issues/76} so you are
+made aware of any changes.
+
 @defun parse-component-form @var{parent} @var{options} &key @var{previous-serial-components}
 
 This is the core function for parsing a system definition. At the
