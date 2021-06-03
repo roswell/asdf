@@ -3424,7 +3424,8 @@ children.
 
 Return a @code{class} designator to be used to instantiate a component
 whose type is specified by @var{type-designator} in the context of
-@var{parent}.
+@var{parent} (which should be either a @code{parent-component} or
+@code{nil} (if this is a system).
 
 This generic function provides a means for changing how ASDF translates
 type-designators (like @code{:file}) into CLOS classes.  It is intended
