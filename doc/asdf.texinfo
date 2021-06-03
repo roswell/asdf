@@ -141,6 +141,12 @@ Defining systems with defsystem
 * Other code in .asd files::
 * The package-inferred-system extension::
 
+The package-inferred-system extension
+
+* Files within a package-inferred-system::
+* Reexport packages::
+* Mismatched package and system names::
+
 The Object model of ASDF
 
 * Operations::
@@ -2044,7 +2050,7 @@ of output from ASDF operations.
 @end itemize
 
 
-@node The package-inferred-system extension, , Other code in .asd files, Defining systems with defsystem
+@node The package-inferred-system extension,  , Other code in .asd files, Defining systems with defsystem
 @section The package-inferred-system extension
 @cindex Package inferred systems
 @cindex Packages, inferring dependencies from
@@ -2054,7 +2060,7 @@ of output from ASDF operations.
 @menu
 * Files within a package-inferred-system::
 * Reexport packages::
-* Mismatched package and system names
+* Mismatched package and system names::
 @end menu
 
 Starting with release 3.1.2,
@@ -2105,7 +2111,7 @@ or later, which provides @code{asdf:define-file-package}. If your Lisp implement
 provide ASDF 3.4, you can replace uses of @code{asdf:define-file-package} with @code{uiop:define-package},
 but see @ref{Mismatched package and system names}.
 
-@node Files within a package-inferred-system, Reexport packages, , The package-inferred-system extension
+@node Files within a package-inferred-system, Reexport packages, The package-inferred-system extension, The package-inferred-system extension
 @subsection Files within a package-inferred-system
 
 Each file under the @code{my-lib} hierarchy will start with a
@@ -2191,7 +2197,7 @@ Then the top level system @code{my-lib/package} need only depend on the reexport
 systems' @code{:use-reexport} clauses, which effectively
 allow for ``inheritance'' of symbols being exported.
 
-@node Mismatched package and system names, , Reexport packages, The package-inferred-system extension
+@node Mismatched package and system names,  , Reexport packages, The package-inferred-system extension
 @subsection Mismatched package and system names
 
 Many Common Lisp libraries define packages whose names are not the same as the ASDF system names
