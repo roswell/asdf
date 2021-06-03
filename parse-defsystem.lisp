@@ -14,7 +14,7 @@
   (:import-from :asdf/find-system #:define-op)
   (:export
    #:defsystem #:register-system-definition
-   #:class-for-type #:*default-component-class*
+   #:*default-component-class*
    #:determine-system-directory #:parse-component-form
    #:non-toplevel-system #:non-system-system #:bad-system-name
    #:*known-systems-with-bad-secondary-system-names*
