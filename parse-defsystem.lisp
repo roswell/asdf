@@ -366,7 +366,6 @@ children."))
       :for c = (parse-component-form component c-form
                                      :previous-serial-components previous-components)
       :for name :of-type string = (component-name c)
-      :collect c
       :when serial-p
         ;; if this is an if-feature component, we need to make a serial link
         ;; from previous components to following components -- otherwise should
@@ -374,8 +373,11 @@ children."))
         ;; broken.
         :unless (component-if-feature c)
           :do (setf previous-components nil)
+        :end
+        :and
+          :do (push name previous-components)
       :end
-      :and :do (push name previous-components)))
+      :collect c))
 
   ;; the following are all systems that Stas Boukarev maintains and refuses to fix,
   ;; hoping instead to make my life miserable. Instead, I just make ASDF ignore them.
