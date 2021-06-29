@@ -32,6 +32,8 @@
       (cons (first designator))
       ((or symbol string) designator)))
   (defgeneric file-package-to-package (head &rest tail))
+  ;; FIXME: parse `:feature' dependencies correctly, i.e. don't pass them to `uiop:define-package' unless
+  ;; they're `featurep'.
   (defmacro define-file-package-to-package (head arglist)
     "Define a DEFINE-FILE-PACKAGE clause whose component-package-designators must be transformed for
 UIOP:DEFINE-PACKAGE"
