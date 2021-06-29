@@ -7,6 +7,8 @@
         :asdf/upgrade :asdf/session
         :asdf/component :asdf/system :asdf/system-registry :asdf/lisp-action
         :asdf/parse-defsystem)
+  (:import-from :asdf/parse-defsystem
+                #:parse-dependency-def)
   (:export
    #:define-file-package
    #:package-inferred-system #:sysdef-package-inferred-system-search
@@ -162,7 +164,7 @@ the DEFPACKAGE-FORM uses it or imports a symbol from it."
                 ;; note: calling COMPONENT-PACKAGE-DESIGNATOR-COMPONENT on package-names provided to
                 ;; CL:DEFPACKAGE and UIOP:DEFINE-PACKAGE will allow malformed invocations of those macros,
                 ;; which will not be caught until we actually try to macroexpand those files.
-                (dep (string (component-package-designator-component package)))))
+                (dep (parse-dependency-def (component-package-designator-component package)))))
          (loop :for (option . arguments) :in (cddr defpackage-form) :do
            (ecase option
              ((:use :mix :reexport :use-reexport :mix-reexport :depends-on)
