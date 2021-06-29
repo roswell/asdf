@@ -146,6 +146,8 @@ The package-inferred-system extension
 * Files within a package-inferred-system::
 * Reexport packages::
 * Mismatched package and system names::
+* FEATURE REQUIRE and VERSION dependencies::
+* The define-file-package grammar::
 
 The Object model of ASDF
 
@@ -1814,6 +1816,7 @@ where significant API incompatibilities are signaled by an increased major numbe
 
 @subsection Require
 @cindex :require dependencies
+@anchor{Require}
 
 Use the implementation's own @code{require} to load the @var{module-name}.
 
@@ -2061,6 +2064,8 @@ of output from ASDF operations.
 * Files within a package-inferred-system::
 * Reexport packages::
 * Mismatched package and system names::
+* FEATURE REQUIRE and VERSION dependencies::
+* The define-file-package grammar::
 @end menu
 
 Starting with release 3.1.2,
@@ -2120,8 +2125,8 @@ package definition.
 @findex uiop:define-package
 @findex define-file-package
 Starting with ASDF 3.4, @c{FIXME Correct release version for define-file-package}
-the form @code{asdf:define-system-package} provides extensions to @code{defpackage}
-for this purpose. 
+the form @code{asdf:define-file-package} provides extensions to @code{defpackage}
+for this purpose. @xref{The define-file-package grammar}
 The form @code{uiop:define-package} is supported as well.
 ASDF will compute dependencies from the
 @code{:use}, @code{:mix}, @code{:import-from} and other importation clauses of this package definition.
@@ -2197,7 +2202,7 @@ Then the top level system @code{my-lib/package} need only depend on the reexport
 systems' @code{:use-reexport} clauses, which effectively
 allow for ``inheritance'' of symbols being exported.
 
-@node Mismatched package and system names,  , Reexport packages, The package-inferred-system extension
+@node Mismatched package and system names, FEATURE REQUIRE and VERSION dependencies, Reexport packages, The package-inferred-system extension
 @subsection Mismatched package and system names
 
 Many Common Lisp libraries define packages whose names are not the same as the ASDF system names
@@ -2208,9 +2213,13 @@ without further intervention, ASDF will attempt to load a system named @code{"cl
 
 @findex define-file-package
 @c{FIXME Correct version number for `define-file-package` macro}
-Starting in ASDF 3.4, these dependencies can be declared using @code{asdf:define-file-package},
-which extends the syntax of @code{defpackage} to allow package-system designators of the form
-@code{(SYSTEM-DESIGNATOR PACKAGE-DESIGNATOR)}. For example:
+Starting in ASDF 3.4, these dependencies can be declared using
+@code{asdf:define-file-package}, which extends the syntax of
+@code{defpackage} to allow package-system designators of the form
+@code{(SYSTEM-DESIGNATOR PACKAGE-DESIGNATOR)}. A system designator may
+be any form suitable to appear in a @code{defsystem} @code{:depends-on}.
+
+For example:
 
 @example
 (asdf:define-file-package :my-lib/mop
@@ -2218,6 +2227,8 @@ which extends the syntax of @code{defpackage} to allow package-system designator
    ("closer-mop" :closer-common-lisp)
    :alexandria))
 @end example
+
+@xref{The define-file-package grammar}.
 
 @findex register-system-packages
 Prior to ASDF 3.4 @c{FIXME release version for define-file-package},
@@ -2248,6 +2259,76 @@ which must support versions of ASDF prior to 3.4 might write:
    :c2cl-user))
 @end example
 @c{@codequoteundirected off}
+
+@node FEATURE REQUIRE and VERSION dependencies, The define-file-package grammar, Mismatched package and system names, The package-inferred-system extension
+@subsection :feature, :require and :version dependencies
+
+@c FIXME release version for define-file-package
+As of ASDF 3.4, package-inferred-systems may introduce @code{:version},
+@code{:feature} and @code{:require} dependencies as system-designators
+within @code{asdf:define-file-package}.
+
+These use the same syntax as in @code{defsystem} @code{:depends-on}
+lists. @xref{The defsystem grammar}.
+
+Note that @code{:version}, @code{:feature} and @code{:require}
+dependencies in @code{define-file-package} forms must use the extended
+package-system designator form described in @ref{Mismatched package and
+system names}.
+
+For example, a package-inferred-system may depend on and use at least version
+@code{"3.4"} of a system @code{"need-minimum-version"} which defines a
+package @code{:need-minimum-version} by writing:
+
+@c{FIXME releasee version for define-file-package}
+@example
+(asdf:define-file-package :my-lib/interface/base
+  (:use ((:version "need-minimum-version" "3.4") :need-minimum-version)))
+@end example
+@c{@codequoteundirected off}
+
+@xref{Version specifiers}, @ref{Require}, @ref{Feature dependencies},
+and @ref{The define-file-package grammar}.
+
+@node The define-file-package grammar,  , FEATURE REQUIRE and VERSION dependencies, The package-inferred-system extension
+@subsection The define-file-package grammar
+
+@example
+@defrule{file-package-definition} ( define-file-package @refrule{package-name} @refrule{file-package-option}* )
+
+@defrule{package-name} @var{keyword}
+
+@defrule{symbol-name} @var{uninterned symbol}
+
+@defrule{system-name} @var{string}
+
+@defrule{package-system-designator} @refrule{package-name}
+                           | ( @refrule{dependency-def} @refrule{package-name} )
+
+@defrule{file-package-option} ( :depends-on @refrule{package-system-designator}* )
+                     | ( :use @refrule{package-system-designator}* )
+                     | ( :mix @refrule{package-system-designator}* )
+                     | ( :reexport @refrule{package-system-designator}* )
+                     | ( :use-reexport @refrule{package-system-designator}* )
+                     | ( :mix-reexport @refrule{package-system-designator}* )
+                     | ( :recycle @refrule{package-system-designator}* )
+                     | ( :import-from @refrule{package-system-designator} @refrule{symbol-name}* )
+                     | ( :shadowing-import-from @refrule{package-system-designator} @refrule{symbol-name}* )
+                     | ( :intern @refrule{symbol-name}* )
+                     | ( :unintern @refrule{symbol-name}* )
+                     | ( :shadow @refrule{symbol-name}* )
+                     | ( :export @refrule{symbol-name}* )
+                     | ( :documentation @var{string} )
+                     | ( :nicknames @refrule{package-name}* )
+
+@end example
+
+Note that the implementation is somewhat more permissive than the grammar
+listed above, in particular allowing both package names and symbol names
+to be any string designators. Users are strongly encouraged to obey the
+grammar described by the manual by using only kewords as package names
+and only uninterned symbols as symbol names. Users are similarly
+encouraged to use strings as symbol names.
 
 @c See this blog post about it:
 @c @url{http://davazp.net/2014/11/26/modern-library-with-asdf-and-package-inferred-system.html}

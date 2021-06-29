@@ -21,7 +21,7 @@
   ;; A COMPONENT-PACKAGE-DESIGNATOR is either:
   ;; - a string-designator which names both an ASDF system and a CL package
   ;; - a two-element list (SYSTEM PACKAGE), where
-  ;;   - SYSTEM is a string designator which names an ASDF system
+  ;;   - SYSTEM is a dependency def suitable for ASDF/PARSE-DEFSYSTEM:PARSE-DEPENDENCY-DEF
   ;;   - PACKAGE is a string designator which names a package
   (defun component-package-designator-package (designator)
     (etypecase designator
@@ -33,12 +33,12 @@
       ((or symbol string) designator)))
   (defgeneric file-package-to-package (head &rest tail))
   (defmacro define-file-package-to-package (head arglist)
-    "Define a DEFINE-FILE-PACKAGE clause whose component-package-designators must be transformed for \
+    "Define a DEFINE-FILE-PACKAGE clause whose component-package-designators must be transformed for
 UIOP:DEFINE-PACKAGE"
     `(defmethod file-package-to-package ((head (eql ',head)) &rest tail)
        (destructuring-bind ,arglist tail
          (cons head
-               ;; note: there are actually only a very small number of different arglist shapes for a
+               ;; there are actually only a very small number of different arglist shapes for a
                ;; define-file-package clause, so we just hard-code the inputs and their expansions
                ,(cond ((equal arglist '(&rest package))
                        '(mapcar #'component-package-designator-package package))
@@ -81,17 +81,18 @@ UIOP:DEFINE-PACKAGE"
   (defmacro define-file-package (name &rest clauses)
     "Define a package for a PACKAGE-INFERRED-SYSTEM.
 
-Like UIOP:DEFINE-PACKAGE, with extensions to handle systems whose CL package names don't match their \
+Like UIOP:DEFINE-PACKAGE, with extensions to handle systems whose CL package names don't match their
 ASDF system names:
 
-- Anywhere UIOP:DEFINE-PACKAGE accepts a package name, DEFINE-FILE-PACKAGE also accepts a two-element \
-  list (SYSTEM-NAME PACKAGE-NAME). The ASDF system for this file will depend on SYSTEM-NAME, and \
-  the package will IMPORT-FROM/USE/MIX/etc. PACKAGE-NAME.
+- Anywhere UIOP:DEFINE-PACKAGE accepts a package name, DEFINE-FILE-PACKAGE also accepts a two-element
+  list (SYSTEM-NAME PACKAGE-NAME). The ASDF system for this file will depend on SYSTEM-NAME, and the package
+  will IMPORT-FROM/USE/MIX/etc. PACKAGE-NAME. SYSTEM-NAME may be a string designator or a :VERSION, :FEATURE
+  or :REQUIRE dependency as in a DEFSYSTEM :DEPENDS-ON clause.
 
-- The clause (:DEPENDS-ON &rest SYSTEM-NAMES) will depend on each of the SYSTEM-NAMES without affecting \
+- The clause (:DEPENDS-ON &rest SYSTEM-NAMES) will depend on each of the SYSTEM-NAMES without affecting
   the newly-defined package in any way.
 
-Programmers are strongly encouraged to use string literals as system names, keywords as package names, and \
+Programmers are strongly encouraged to use string literals as system names, keywords as package names, and
 uninterned symbols as symbol designators.
 
 E.g.:
@@ -99,7 +100,8 @@ E.g.:
   (:nicknames :test-inferred-system)
   (:import-from (\"bad-system\" :not-the-system-name) #:foo)
   (:depends-on \"bordeaux-threads\")
-  (:use :cl)
+  (:use :cl
+        ((:version \"need-recent-version\" \"3.2\") :need-recent-version))
   (:export #:bar))"
     `(uiop:define-package ,name ,@(remove-if #'null
                                              (loop :for clause :in clauses
