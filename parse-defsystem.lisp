@@ -15,6 +15,7 @@
   (:export
    #:defsystem #:register-system-definition
    #:*default-component-class*
+   #:parse-dependency-def
    #:determine-system-directory #:parse-component-form
    #:non-toplevel-system #:non-system-system #:bad-system-name
    #:*known-systems-with-bad-secondary-system-names*

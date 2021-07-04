@@ -62,6 +62,7 @@
    #:register-preloaded-system #:sysdef-preloaded-system-search
    #:register-immutable-system #:sysdef-immutable-system-search
    #:package-inferred-system #:register-system-packages
+   #:define-file-package
    #:component-children
    #:component-children-by-name
    #:component-pathname
