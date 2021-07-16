@@ -59,7 +59,8 @@
 (DBG :tdw1 *warnings-file-type*)
 (assert
  (handler-case
-     (let ((*warnings-file-type* nil))
+     (let ((*warnings-file-type* nil)
+           (*with-compilation-unit-deferred-warnings-behavior* :ignore))
        (load-system :use-foo-only :force t)
        t)
    (error ()
