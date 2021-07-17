@@ -41,7 +41,8 @@
 (DBG :tdw0 *compile-file-warnings-behaviour*)
 (handler-bind
     ((error (lambda (c) (DBG :cfwbi-ufo c))))
-  (let ((*compile-file-warnings-behaviour* :ignore))
+  (let ((*compile-file-warnings-behaviour* :ignore)
+        (*with-compilation-unit-deferred-warnings-behavior* :ignore))
     (load-system :use-foo-only :force t)))
 
 (reset-session)
@@ -52,7 +53,8 @@
 (reset-session)
 (handler-bind
     ((error (lambda (c) (DBG :cfwbi-usfo c))))
-  (let ((*compile-file-warnings-behaviour* :ignore))
+  (let ((*compile-file-warnings-behaviour* :ignore)
+        (*with-compilation-unit-deferred-warnings-behavior* :ignore))
     (load-system :use-setf-foo-only :force t)))
 
 (reset-session)
