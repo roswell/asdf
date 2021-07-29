@@ -13,6 +13,12 @@ webhome_public	:= "http://common-lisp.net/project/asdf/"
 clnet_home      := "/project/asdf/public_html/"
 sourceDirectory := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
+SHELL := /bin/bash
+# For target debian-buildpackage
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+# For some reason this gives me "0 " instead of "0", breaking the rule logic below.
+WORKING_DIR_CLEANP := $(shell test "" == "$(git status -s)" ; echo -nE $$?) # make sure we have a clean working dir
+
 #### Common Lisp implementations available for testing.
 ## export ASDF_TEST_LISPS to override the default list of such implementations,
 ## or specify a lisps= argument at the make command-line
@@ -183,7 +189,6 @@ clean:
 	     fi; \
 	    echo "Cleaned $$dir"; \
 	done
-	echo "Done with cleaning loop."
 	rm -rf build/ LICENSE test/try-reloading-dependency.asd test/hello-world-example asdf.lisp
 	rm -rf test/hello-world-example.exe test/mkcl_*.dll # needed only on MS-Windows
 	${MAKE} -C doc clean
@@ -295,6 +300,27 @@ TODO:
 	exit 2
 
 release: TODO test-all test-on-other-machines-too debian-changelog debian-package send-mail-to-mailing-lists
+
+# As far as I can tell, conditionals must be handled by changing the rules, rather than
+# conditionaly executing in them.
+# Not sure this wouldn't be more easily done by dumping the release branch in to a subdirectory and building there,
+# instead of fighting to make sure we don't mess up the working copy.
+ifeq ($(WORKING_DIR_CLEANP), 0)
+debian-package:
+	echo "Working directory is not clean; cannot make debian package"
+	false
+else
+debian-package:	clean
+	echo "Current branch is ${BRANCH}"
+	# this shows a sticking point: the Makefile/shell variable has a trailing space in it, which breaks
+	# the above conditional.
+	echo "Working definition cleanp is '${WORKING_DIR_CLEANP}'"
+	# switch to release branch
+	git checkout release
+	git-buildpackage --git-builder="debuild -k0x",keyid" -i -I" --git-debian-branch=release --git-tag --git-retag --git-force-create --git-ignore-branch
+	# switch back to whatever your original branch was
+	git checkout $BRANCH
+endif
 
 .PHONY: install archive push doc website clean mrproper show-version \
 	test-forward-references test test-lisp test-upgrade test-forward-references \
