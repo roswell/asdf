@@ -259,7 +259,8 @@ typically but not necessarily representing the files in a subdirectory of the bu
     ;; We ought to be able to extract this from the component alone with FILE-TYPE.
     ;; TODO: track who uses it in Quicklisp, and have them not use it anymore;
     ;; maybe issue a WARNING (then eventually CERROR) if the two methods diverge?
-    (let ((parent
+    (let (#+abcl
+          (parent
             (component-parent-pathname component)))
       (parse-unix-namestring
        (or (and (slot-boundp component 'relative-pathname)
