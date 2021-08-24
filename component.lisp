@@ -263,7 +263,10 @@ typically but not necessarily representing the files in a subdirectory of the bu
      (or (and (slot-boundp component 'relative-pathname)
               (slot-value component 'relative-pathname))
          (component-name component))
-     :want-relative t
+     :want-relative
+     #-abcl t
+     ;; JAR-PATHNAMES always have absolute directories
+     #+abcl (not (ext:pathname-jar-p parent))
      :type (source-file-type component (component-system component))
      :defaults (component-parent-pathname component)))
 
