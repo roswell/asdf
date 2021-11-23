@@ -96,6 +96,7 @@ Manual for Version 3.3.5.7
 * Using ASDF::
 * Defining systems with defsystem::
 * The object model of ASDF::
+* Version specifiers and ASDF::
 * Controlling where ASDF searches for systems::
 * Controlling where ASDF saves compiled files::
 * Error handling::
@@ -146,8 +147,14 @@ The Object model of ASDF
 * Operations::
 * Components::
 * Dependencies::
-* Functions::
 * Parsing system definitions::
+
+Version specifiers and ASDF
+
+* Introduction to Versions::
+* The Many Hats of a Programmer::
+* Version Specifier Parsing::
+* Version Constraints::
 
 Operations
 
@@ -1194,10 +1201,11 @@ especially if you intend your software to be eventually included in Quicklisp.
 @c FIXME: this is way too detailed for the first example!
 @c move it!
 @item
-Make sure you know how the @code{:version} numbers will be parsed!
-By default, ASDF accepts a semver-like string, but this may be changed
-through the use of a different system class.
-@xref{Version specifiers}.
+Make sure you know how the @code{:version} numbers will be parsed!  By
+default, ASDF accepts a string containing period-separated
+non-negative integers and pre-release information separated by a
+hyphen. However, this may be changed through the use of a different
+system or version class. @xref{Version specifiers}.
 
 @item
 This file contains a single form, the @code{defsystem} declaration.
@@ -1487,8 +1495,9 @@ Presumably, the 4th form looks like @code{(defparameter *foo-version* "5.6.7")}.
                      | :source-control @refrule{source-control}
                      | :version @refrule{version-specifier}
                      | :entry-point @var{object} # @pxref{Entry point}
-                     # This is only available since ASDF 3.4
+                     # These are only available since ASDF 3.4
                      | :compatible-versions @refrule{version-constraint}
+                     | :version-class @var{class-name} # @pxref{Version class}
 
 @defrule{source-control} ( @var{keyword} @var{string} )
 
@@ -1788,62 +1797,57 @@ fulfills whatever constraints are required from that component type
 on the other hand, you can circumvent the file type that would otherwise
 be forced upon you if you were specifying a string.
 
+@subsection Version class
+@cindex version class
+@cindex :version-class
+@anchor{Version class}
+
+A version class name will be looked up the same way as a component
+type (see above), except that only subclasses of @code{uiop:version}
+are allowed. Typically, one will not need to specify a version class
+name, unless they want to customize their version specifier.
+
 @subsection Version specifiers
 @cindex version specifiers
 @cindex :version
 @anchor{Version specifiers}
 
-Version specifiers are strings that are parsed in three segments. The
-first segment is the core version number and must be a period-separated
-list of integers. The second segment is the pre-release segment. It is
-separated from the first segment by a @code{#\-} character and must be a
-period-separated list of identifiers. Each identifier consists of
-alphanumeric characters and the @code{#\-} character. The third segment
-is the build metadata segment. It is separated from the other segments
-by a @code{#\+} character and must be a period separated list of
-identifiers.
+A version specifier is a string that can be parsed to make an object
+that is a subclass of @code{uiop:version}. The default version class,
+@code{uiop:default-version} accepts strings that are parsed in two
+segments.
 
-For example, the version specifier @code{"0.2.1-rc.1+git.01234567"} is
-to be interpreted as the core version @code{(0 2 1)}, pre-release
-@code{("rc" 1)}, and build @code{("git" "01234567")}. Leading zeros from
-numeric identifiers in the core and pre-release segments are
-stripped. So @code{"0.2.1-rc.1+git.01234567"} is interpreted the same as
-@code{"0.0002.1-rc.01+git.01234567"}, though the latter is not canonical
-and may lead to a warning being issued. Build metadata is not used at
-all for version comparisons, so every identifier is parsed as a string,
-even if it consists entirely of numeric characters.
+The first segment denotes the ``core'' version number. It is required
+and must consist of any number of non-negative integers, separated by
+@code{#\.} characters.
 
-@code{uiop:version<} is used to order versions. When two versions
-@code{x} and @code{y} are ordered, the following rules are observed:
+The second segment is optional and contains pre-release
+information. If present, the pre-release segment must be separated
+from the first by a @code{#\-} character. This segment consists of a
+``category'' (@code{alpha}, @code{beta}, or @code{rc}), optionally
+followed by @code{#\.}  character and a non-negative integer.
+
+Examples of valid specifiers include:
 
 @enumerate
 
 @item
-If the core segments of @code{x} and @code{y} are not equal, they are
-ordered lexicographically.
+@code{1.2.0} - The released 1.2.0.
 
 @item
-If the core segments of @code{x} and @code{y} are equal and @code{y} has
-no pre-release segment, but @code{x} does, then @code{x} is
-@code{uiop:version<} than @code{y}.
+@code{1.3.0-alpha.4} - The fourth alpha release of 1.3.0.
 
 @item
-If the core segments of @code{x} and @code{y} are equal and both have
-pre-release segments, then the pre-release segments are compared
-lexicographically. When comparing two identifiers that are both
-integers, @code{<} is used. When comparing two identifiers that are both
-strings, @code{string<} is used. Otherwise, integers are considered
-@code{<} strings.
+@code{1.3.0-rc} - A release candidate of 1.3.0.
 
 @item
-Build metadata is ignored.
+@code{1.3.0} - The released 1.3.0.
 
 @end enumerate
 
-The grammar and ordering rules are adopted from
-@url{https://semver.org/spec/v2.0.0.html,Semver v2.0.0}, with the
-modification that the core version segment is not limited to exactly
-three integers.
+@code{uiop:version<} is used to order versions. The above list of
+versions is ordered as @code{uiop:version<} would order them. For more
+details on the default ordering rules, @pxref{Version specifiers and ASDF}.
 
 Instead of a string representing the version,
 the @code{:version} argument can be an expression that is resolved to
@@ -1863,7 +1867,7 @@ subforms can also be specified, with e.g. @code{(1 2 2)} specifying
 ``the third subform (index 2) of the third subform (index 2) of the second form (index 1)''
 in the file (mind the off-by-one error in the English language).
 
-System definers are encouraged to use version identifiers of the form
+System implementors are encouraged to use version identifiers of the form
 @var{x}.@var{y}.@var{z} for
 major version, minor version and patch level,
 where significant API incompatibilities are signaled by an increased major number.
@@ -1876,31 +1880,33 @@ where significant API incompatibilities are signaled by an increased major numbe
 @anchor{Version constraints}
 
 ASDF allows systems to specify constraints on the allowed version of
-their dependencies. Additionally, systems can specify which of their own
-versions they are API compatible with. Both of these are specified using
-version constraints. Be aware that ASDF simply evaluates these
-constraints and signals an error if they are not met. It is up to you or
-your package management system to ensure that compatible versions of
-systems are installed and discoverable by ASDF.
+their dependencies. Additionally, systems can specify which of their
+own previous versions they are API compatible with. Both of these are
+specified using version constraints. Be aware that ASDF simply
+evaluates these constraints and signals a continuable error if they
+are not met. It is up to you or your package management system to
+ensure that compatible versions of systems are installed and
+discoverable by ASDF.
 
-To specify a constraint on the version of dependency @code{foo}, simply
-add something like the following to your @code{:depends-on} list:
-@code{(:version "foo" (:and "1.2" (:/= "1.4.0")))}. This constraint says
-that any version of @code{foo} is allowed, so long as it is
-``compatible'' with version 1.2 (discussed more below) and is not equal
-to 1.4.0.
+We @emph{strongly} recommend reading the chapter on version specifiers
+and ASDF before using version constraints in your
+systems. @xref{Version specifiers and ASDF}.
 
-By default a compatibility constraint is equivalent to specifying the
-minimum version of a system. However, a system can provide its own
-defintion of what compatibility means to it via the
-@code{:compatible-versions} argument to @code{defsystem}. Version
-@var{x} of a system is considered compatible with version @var{y} of
-itself if both @var{x} is greater than or equal to @var{y} and @var{y}
-satisfies version @var{x}'s @code{:compatible-versions} constraint, if
-any.
+A simple version constraint consists of an operator followed by a
+version specifier (string). The allowed operators are @code{:>=},
+@code{:>}, @code{:<=}, @code{:<}, @code{:=}, and @code{:/=}.
 
-Consider the three following examples of system @code{foo}. The first
-two satisfy the previous dependency constraint, but the third does not.
+ASDF also includes a ``compatibility'' constraint. This constraint is
+specified using either the @code{:compatible} operator or a raw
+version specifier string. A compatibility specifies a minimum version
+(similar to the @code{:>=} operator, but additionally respects the
+depended on system's @code{:compatible-versions} argument.
+
+Last, the previous constraints can be composed together as a compound
+version constraint, using the @code{:and} or @code{:or} operators.
+
+As an example, consider the three following examples of system
+@code{foo}.
 
 @lisp
 (defsystem "foo"
@@ -1917,19 +1923,29 @@ two satisfy the previous dependency constraint, but the third does not.
   ...)
 @end lisp
 
-Common Lisp allows for a great deal of introspection at run and compile
-time. As such, it is very possible that your system can handle any
-version of @code{foo}, even if @code{foo}'s author believes them to be
-incompatible under normal circumstances. If that is the case, simply use
-the @code{:or} operator. All three definitions of @code{foo} satisfy
-this constraint: @code{(:version "foo" (:and (:or "1.2" "3.0") (:/= "1.4.0")))}.
 
-While the version constraint language allows you to disallow versions of
-a dependency that are yet unrelasesed, it is extremely bad form to do
-so. When specifying a constraint on a dependency, you should avoid the
-@code{:<} and @code{:<=} operators. Instead you should use @code{:/=} to
-knock out known bad versions and otherwise leave it up to the author of
-your dependency to declare known incompatibilities.
+The first two satisfy the dependency constraint
+@code{(:version "foo" (:and "1.2" (:/= "1.4.0")))}, but the third does
+not. Note that the third does not satisfy the constraint because
+@code{foo}'s author believes the API has changed enough in version
+@code{3.0.0} that any system written for a previous version will not
+work as-is.
+
+However, Common Lisp allows for a great deal of introspection at run
+and compile time. As such, it is very possible that your system can
+handle any version of @code{foo}, even if @code{foo}'s author believes
+them to be incompatible under normal circumstances. If that is the
+case, simply use the @code{:or} operator. All three definitions of
+@code{foo} satisfy this constraint:
+@code{(:version "foo" (:and (:or "1.2" "3.0") (:/= "1.4.0")))}.
+
+While the version constraint language allows you to disallow versions
+of a dependency that are not yet released, it is extremely bad form to
+do so. When specifying a constraint on a dependency, you should avoid
+the @code{:<} and @code{:<=} operators. Instead you should use
+@code{:/=} to knock out known bad versions and otherwise leave it up
+to the author of your dependency to declare known incompatibilities.
+
 
 @subsection Require
 @cindex :require dependencies
@@ -2321,7 +2337,7 @@ where the @file{.asd} file resides.
 
 @codequoteundirected off
 
-@node The object model of ASDF, Controlling where ASDF searches for systems, Defining systems with defsystem, Top
+@node The object model of ASDF, Version specifiers and ASDF, Defining systems with defsystem, Top
 @comment  node-name,  next,  previous,  up
 @chapter The Object model of ASDF
 @tindex component
@@ -2386,7 +2402,6 @@ customize the behaviour of existing @emph{functions}.
 * Operations::
 * Components::
 * Dependencies::
-* Functions::
 * Parsing system definitions::
 @end menu
 
@@ -3444,7 +3459,7 @@ The new component type is used in a @code{defsystem} form in this way:
     )
 @end lisp
 
-@node Dependencies, Functions, Components, The object model of ASDF
+@node Dependencies, Parsing system definitions, Components, The object model of ASDF
 @section Dependencies
 @c FIXME: Moved this material here, but it isn't very comfortable
 @c here....  Also needs to be revised to be coherent.
@@ -3479,61 +3494,7 @@ remain at the system level, and are not propagated along the hierarchy,
 but instead do something global on the system.
 
 
-@node Functions, Parsing system definitions, Dependencies, The object model of ASDF
-@comment  node-name,  next,  previous,  up
-@section Functions
-
-@c FIXME: this does not belong here....
-@defun version-satisfies @var{version} @var{version-spec}
-Does @var{version} satisfy the @var{version-spec}.  A generic function.
-ASDF provides built-in methods for @var{version} being a @code{component} or @code{string}.
-@var{version-spec} should be a string.
-If it's a component, its version is extracted as a string before further processing.
-
-A version string satisfies the version-spec if after parsing, the former
-is no older than the latter. Additionally, if @code{version-spec} has no
-pre-release segment, then any pre-release segment of @code{version} is
-ignored as well. Therefore @code{"1.9.1"}, @code{"1.9.1-0"},
-@code{"1.9.2"}, @code{"1.10"}, and @code{"2.0.0"} all satisfy
-@code{"1.9.1"}, but @code{"1.8.4"} or @code{"1.9.0"} do
-not. Additionally, @code{"1.9.1"} and @code{"1.9.1-rc.1"} all satisfy
-@code{"1.9.1-beta"}, but @code{"1.9.1-alpha"} does not. For more
-information about how @code{version-satisfies} parses and interprets
-version strings and specifications, @pxref{Version specifiers} and
-@ref{Common attributes of components}.
-
-This behavior may be surprising to users of version strings from other
-languages where the default version constraints (such as Node's
-@code{^1.9.1} or Python's @code{~=1.9}) enforce that major versions
-match and pre-release versions do not satisfy the constraints.@footnote{
-We desire to point out here that the Semver specification makes no
-mention of version constraint operators and, at the time of writing,
-formalizing such operators continues to be a
-@url{https://github.com/semver/semver/pull/584,hotly debated topic}
-}
-However, we believe that our choices to eschew these traditions from
-other language's build systems is best for the CL community.
-
-In versions of ASDF prior to 3.0.1, including the entire ASDF 1 and ASDF
-2 series, @code{version-satisfies} would also require that the version
-and the version-spec have the same major version number (the first
-integer in the list); if the major version differed, the version would
-be considered as not matching the spec.  But that feature was not
-documented, therefore presumably not relied upon, whereas it was a
-nuisance to several users. Additionally, the level of compile time
-introspection that Common Lisp provides means that code may easily be
-compatible with multiple major versions of its dependencies.
-
-We allow pre-release versions to satisfy the constraints largely out of
-separation of concerns. ASDF is not responsible for fetching
-dependencies and we feel the decision on whether or not to use
-pre-release versions is best made there. If you choose to make
-pre-releases visible to ASDF, presumably you know that things could
-break horribly as the code could change drastically before it is fully
-released.
-@end defun
-
-@node Parsing system definitions,  , Functions, The object model of ASDF
+@node Parsing system definitions,  , Dependencies, The object model of ASDF
 @section Parsing system definitions
 @cindex Parsing system definitions
 @cindex Extending ASDF's defsystem parser
@@ -3588,8 +3549,391 @@ for) new component types.
 @end deffn
 
 
+@node Version specifiers and ASDF, Controlling where ASDF searches for systems, The object model of ASDF, Top
+@comment  node-name,  next,  previous,  up
+@chapter Version specifiers and ASDF
 
-@node Controlling where ASDF searches for systems, Controlling where ASDF saves compiled files, The object model of ASDF, Top
+@menu
+* Introduction to Versions::
+* The Many Hats of a Programmer::
+* Version Specifier Parsing::
+* Version Constraints::
+@end menu
+
+@node Introduction to Versions, The Many Hats of a Programmer, Version specifiers and ASDF, Version specifiers and ASDF
+@section Introduction to Versions
+
+Version specifiers are an imprecise, yet concise and widely used way
+to summarize what the features and API are of a library. Like any good
+build system, ASDF allows systems to provide their version, depend on
+specific versions of their dependencies, and advertise when API
+breakage occurs. However, unlike many extant build systems, ASDF
+allows its version grammar to be extended and chooses slightly
+different defaults that are more in line with how the Common Lisp
+community operates (especially when paired with the stability of the
+language!).
+
+In this chapter, we describe the different considerations that a
+programmer must keep in mind when they are versioning their systems,
+using versioned systems, or assembling a complete development (or
+production, etc.) environment. We then continue be describing ASDF's
+API for specifying versions and the API for specifying version
+constraints.
+
+@node The Many Hats of a Programmer, Version Specifier Parsing, Introduction to Versions, Version specifiers and ASDF
+@section The Many Hats of a Programmer
+
+@menu
+* The Implementor Hat::
+* The Consumer Hat::
+* The Integrator Hat::
+@end menu
+
+There are (at least) three hats that a programmer must wear when
+thinking about versions and version constraints: implementor,
+consumer, and integrator. In each role, the programmer has different
+considerations they must keep in mind.
+
+@node The Implementor Hat, The Consumer Hat, The Many Hats of a Programmer, The Many Hats of a Programmer
+@subsection The Implementor Hat
+
+When a programmer is writing a system for others to use, they must
+wear their implementor hat. The goal of an implementor is to concisely
+communicate a feature (and bug!) set to those that depend on their
+system. Additionally, an implementor must communicate how backward
+compatible each version is.
+
+In order to communicate a feature set, we encourage all implementors
+to provide version numbers for each of their systems. Additionally,
+implementors should maintain a change log that a consumer can use to
+see what features were added, changed, or removed in each release.
+
+In order to communicate how backward compatible each release is, we
+encourage implementors to both communicate a general policy to their
+users and use the @code{:compatible-versions} argument to
+@code{defsystem} to declaratively state when the last ``breaking''
+change was.
+
+A good implementor always has backward compatibility on their mind and
+seeks to maintain it. As such, we recommend that implementors adopt
+one of the following policies, with the policies listed from most to
+least preferable.
+
+@enumerate
+
+@item
+Once your system has been released for others to use, never break
+backward compatibility. One way to accomplish this in Common Lisp is
+to version your package names. For example, release v1.0 of system
+@code{foo} could provide the @code{foo-v1} package. If @code{foo}'s
+author then realizes that exported functions are not particularly easy
+to use, they can release @code{foo} v2 that provides both the
+@code{foo-v1} @emph{and} @code{foo-v2} packages. Where @code{foo-v1}
+exports the same API as it did in @code{foo} v1.0, but all of its
+functions have been rewritten to call functionality exported by the
+@code{foo-v2} package.
+
+@item
+If an update would break an API, create an entirely new system (and
+potentially an entirely new project) for the new version. The old
+system can remain frozen and usable while other systems slowly move
+over to your new system name.
+
+@item
+Introduce the new API and have it coexist with the old API for a
+period of time. Document the old API as deprecated. Work with all of
+your consumers to move over to your new API. After a reasonable amount
+of time, remove the old API, increment the version number, and update
+your system's @code{:compatible-versions} constraint.
+
+@end enumerate
+
+@node The Consumer Hat, The Integrator Hat, The Implementor Hat, The Many Hats of a Programmer
+@subsection The Consumer Hat
+
+When a programmer is declaring a dependency on another system, they
+must wear their consumer hat. The goal of a consumer is to communicate
+what feature set and API they need from their dependency.
+
+Typically, this is communicated by declaring a minimum version of the
+dependency that is required. However, a consumer may also specify
+upper bounds or state that specific versions of a dependency are not
+to be allowed.
+
+A good consumer must try and ensure that they do not artificially
+constrain which versions of their dependencies are allowed. Therefore,
+we recommend that consumers only use the ``compatibility''
+constraint. This both declares a minimum version and tells ASDF to
+respect the dependency's @code{:compatible-versions} argument.
+
+If a consumer's dependency does introduce a breaking change but the
+consumer uses reader macros or other introspection capabilities to
+remain compatible with releases before and after the breaking change,
+the consumer may use the @code{:or} operator to combine compatibility
+constraints. For example, the constraint
+@code{(:version "foo" (:or "1" "2"))} states that the consumer can use
+version 1 or 2 of @code{foo}, even if v2 introduced a breaking change.
+
+We @emph{strongly} recommend that consumers do not use the @code{:<},
+@code{:<=}, or @code{:/=} operators when specifying a version
+constraint. They should only be used if either you have observed that
+the disallowed versions break the consumer @emph{or} you do not trust
+your dependency's implementor to use @code{:compatible-versions}
+correctly (in which case, we recommend that you do the community a
+favor and engage with the implementor to remedy the issue or fork the
+project if necessary).
+
+@node The Integrator Hat, The Consumer Hat, Version Specifier Parsing, The Many Hats of a Programmer
+@subsection The Integrator Hat
+
+The last hat a programmer typically wears is that of an integrator. An
+integrator is responsible for assembling and maintaining a complete
+environment. This includes not only the direct dependencies of a
+system (or systems), but their transitive dependencies as well.
+
+The most frequent environment that a programmer assembles is the
+development and testing environment for one of their systems. However,
+this also includes things such as production and quality assurance
+environments typically used by large scale application development
+processes.
+
+Typically, an integrator is tasked with creating an environment that
+both works (e.g., there are no conflicts between different systems in
+the environment) and is reproducible.
+
+Most of our guidance for implementors and consumers is designed to
+make the lives of integrators easier. If implementors make few
+breaking changes and consumers state only the bare minimum needed from
+their dependencies, then integrators have more flexibility to assemble
+a working environment.
+
+The only tool that ASDF provides which is aimed specifically at
+integrators is that all errors resulting from version constraint
+violations are continuable. So if you are forced to work with a set of
+systems that does not adhere to ASDF's recommendations, you can tell
+ASDF to ignore the constraint violation and continue operating
+anyways.
+
+We recommend that integrators look into the features their chosen
+Common Lisp dependency manager provides for assembling a working,
+coherent, reproducible environment.
+
+@node Version Specifier Parsing, Version Constraints, Introduction to Versions, Version specifiers and ASDF
+@section Version Specifier Parsing
+
+ASDF's default version specifier parsing methods are designed to parse
+a majority of version strings seen in the wild. However, it is fully
+extensible so that system implementors may use whichever scheme they
+want.
+
+All version specifiers must parse to an object that is a subclass of
+@code{uiop:version}. The default version class is
+@code{uiop:default-version}. A system implementor can choose a
+non-default class using the @code{:version-class} argument to
+@code{defsystem}.
+
+The value of @code{:version-class} must be a symbol or string naming
+the class. If it is a keyword, ASDF attempts to find the class in the
+@code{asdf} package. If it is a symbol, it must be the name of the
+class. If it is a string, it will be @code{read} after the
+@code{:defsystem-depends-on} list have been loaded and must result in
+a symbol naming the class to use.
+
+A custom version class must implement the following interface:
+
+@deffn {Initarg} :version-string
+
+The class must accept the @code{:version-string} initarg. This will
+be the string the user specified in the @code{defsystem}.
+
+If the @code{:version-string} is invalid, the class's initialization
+methods must signal a @code{uiop:version-string-invalid-error}
+condition. ASDF will provide restarts for the user to either enter
+another string or treat the version as being unspecified.
+
+@end deffn
+
+@deffn {Generic Function} uiop:version-pre-release-p @var{version}
+
+Returns non-NIL if @code{version} is a pre-release.
+
+@end deffn
+
+@deffn {Generic Function} uiop:version-pre-release-for @var{version}
+
+If @code{uiop:version-pre-release-p} is non-NIL, this must return an
+instance of @code{uiop:version} that represents the version for which
+@code{version} is a pre-release.
+
+If the returned version is @code{final-version},
+@code{(uiop:version-pre-release-p final-version)} must be NIL and
+@code{(uiop:version< version final-version)} must be non-NIL.
+
+@end deffn
+
+@deffn {Generic Function} uiop:version< @var{version-1} @var{version-2}
+
+Returns non-NIL if @code{version-1} is ordered before
+@code{version-2}.
+
+UIOP provides two default methods, @code{(uiop:version string)} and
+@code{(string uiop:version)}. Each parses the string as a version
+object (using the equivalent of
+@code{(make-instance (class-of version) :version-string string)} and
+then calls @code{uiop:version<} again.
+
+@end deffn
+
+@deffn {Generic Function} uiop:version-string @var{version}
+
+Returns a string that represents @code{version}. To be used primarily
+for display to a user. The returned string must also be suitable for
+the @code{:version-string} initarg.
+
+@end deffn
+
+ASDF provides two version classes, @code{semantic-version} and
+@code{default-version}.
+
+@code{semantic-version} implements the grammar and ordering rules from
+@url{https://semver.org/spec/v2.0.0.html,Semver v2.0.0}, with the
+modification that the core version segment is not limited to exactly
+three integers.
+
+@code{default-version} implements the same grammar and ordering rules
+as @code{semantic-version}, but limits the pre-release segment to be
+contain only @code{alpha}, @code{beta}, or @code{rc}, optionally
+followed by a @code{#\.} character and a non-negative
+integer. Currently, @code{default-version} is a subclass of
+@code{semantic-version} but this may change in the future.
+
+@node Version Constraints, Controlling where ASDF searches for systems, Version Specifier Parsing, Version specifiers and ASDF
+@section Version Constraints
+
+Version constraints are used for two purposes. The first is to declare
+dependencies as part of the @code{:depends-on} or
+@code{:defsystem-depends-on} argument. The second is to declare how
+backwards compatible a system is using the @code{:compatible-versions}
+argument.
+
+If a version constraint is not satisfied, a
+@code{missing-dependency-of-version} error is signaled. This error is
+continuable, so you may choose to ignore it and use the dependency
+anyways.
+
+A simple version constraint is a list of two elements. The first is an
+operator and the second is a version designator.
+
+A compound version constraint is a list of two or more elements. The
+first is an operator and the remaining elements are version
+constraints.
+
+Last, there is a compatibility version constraint. This is allowed
+only for declaring dependencies and is not legal for use in the
+@code{:compatible-versions} argument to @code{defsystem}. A
+compatibility constraint is either a list of two elements or a version
+designator. If a list, the first element must be @code{:compatible}
+and the second must be a version designator.
+
+The allowed simple constraint operators are @code{:>=}, @code{:>},
+@code{:<=}, @code{:<}, @code{:=}, and @code{:/=}. @code{uiop:version<}
+is used to compare versions under the hood.
+
+For example, assume there is a system @code{foo}, with version
+@code{V1}. If system @code{bar} has the dependency
+@code{(:version "foo" (:>= VS2)}, where @code{VS2} is some
+string. First, @code{VS2} will be parsed as a version object @code{V2}
+using @code{foo}'s version class. If parsing fails, the constraint is
+not satisfied. Then, if @code{(not (uiop:version< V1 V2))} is true,
+the constraint is satisfied. If it is false, the constraint is not
+satisfied.
+
+Compound constraints require that either all sub-constraints are
+satisfied (@code{:and}), or at least one of them is (@code{:or}).
+
+A compatibility constraint is satisfied if the dependency's version is
+@code{:>=} the requested version @emph{and} the requested version
+satisfies the dependency's @code{:compatible-versions} constraint (if
+it is non-NIL). For example, consider @code{foo} is at version
+@code{3.0.0} with no @code{:compatible-versions} constraint. That
+version of foo will satisfy the constraint @code{(:version "foo" "1.4")}.
+
+However, if @code{foo} has the @code{:compatible-versions} constraint
+@code{(:>= "2")}, it will no longer satisfy the constraint
+@code{(:version "foo" "1.4")}. That is because the requested version
+(@code{1.4}) is not at least @code{2}.
+
+Additionally, note that for any simple or compatibility constraint, if
+the requested version does not contain pre-release information, then
+pre-release information is also stripped from the dependency's version
+when comparing. This means that @code{foo} version @code{1.2-alpha.1},
+@emph{does} satisfy the constraint
+@code{(:version "foo" "1.2")}. However, it will @emph{not} satisfy
+@code{(:version "foo" "1.2-rc.1")}.
+
+This behavior may be surprising to users of version strings from other
+languages where the default version constraints (such as Node's
+@code{^1.4.1} or Python's @code{~=1.4}) enforce that major versions
+must match and pre-release versions do not satisfy the constraints.
+However, we believe that our choice to eschew these traditions from
+other language's build systems better fits how the CL community
+operates.
+
+Common Lisp developers tend to take backward compatibility very
+seriously. Additionally, the Common Lisp ecosystem provides plenty of
+tools to help system implementors maintain backward compatibility
+without excessive verbosity or pain. For instance, a system may
+provide multiple, versioned packages and recommend that consumers use
+package local nicknames to access a particular versioned package.
+
+Additionally, the default version constraints in other language
+ecosystems often require that a system consumer mark a wide swath of
+dependency versions as incompatible before those version have even
+been released! As no one can accurately predict the future, and given
+Common Lisp developers' predilection for backwards compatibility, it
+is very likely that a system consumer would declare future systems as
+incompatible, even when they're not.
+
+In light of this, ASDF's approach makes no assumptions about the
+meaning of the ``major'' version number. Additionally, as a dependency
+implementor is the only one that truly knows if a backwards
+compatibility breaking change is going to be released, ASDF's approach
+lets them communicate that to their consumers.
+
+We allow pre-release versions to satisfy the constraints largely out
+of separation of concerns. ASDF is not responsible for fetching
+dependencies and we feel the decision on whether or not to use
+pre-release versions is best made there. If you choose to make
+pre-releases visible to ASDF, presumably you know that things could
+break horribly as the code could change drastically before it is fully
+released.
+
+The primary entry point to the version constraint checking logic is
+@code{version-satisfies}.
+
+@deffn {Generic Function} version-satisfies @var{version} @var{version-constraint}
+
+Does @var{version} satisfy the @var{version-spec}. Returns two values,
+the first is a boolean. If the first is NIL, the second value contains
+a section of the @code{version-constraint} that is not satisfied.
+
+ASDF provides built-in methods for @var{version} being a @code{component} or @code{string}.
+@var{version-constraint} should be a version constraint specified in the version constraint DSL.
+If @code{version} is a component, its version is extracted before further processing.
+
+This function should not need to be specialized.
+
+In versions of ASDF prior to 3.0.1, including the entire ASDF 1 and
+ASDF 2 series, @code{version-satisfies} would also require that the
+version and the version-spec have the same major version number (the
+first integer in the list); if the major version differed, the version
+would be considered as not matching the constraint. But that feature
+was not documented, therefore presumably not relied upon, whereas it
+was a nuisance to several users.
+
+@end deffn
+
+@node Controlling where ASDF searches for systems, Controlling where ASDF saves compiled files, Version specifiers and ASDF, Top
 @comment  node-name,  next,  previous,  up
 @chapter Controlling where ASDF searches for systems
 
