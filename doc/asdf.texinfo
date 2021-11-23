@@ -3792,6 +3792,16 @@ the @code{:version-string} initarg.
 
 @end deffn
 
+@deffn {Generic Function} asdf:component-version @var{component}
+Returns the version of @code{component}. Returns two values.
+
+For backwards compatibility, the first value is the string
+representation of the version, or NIL (if no version is specified or
+it is invalid). The second value is the object that is a subclass of
+@code{uiop:version}.
+
+@end deffn
+
 ASDF provides two version classes, @code{semantic-version} and
 @code{default-version}.
 
