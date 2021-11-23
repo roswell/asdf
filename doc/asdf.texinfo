@@ -3576,7 +3576,7 @@ language!).
 In this chapter, we describe the different considerations that a
 programmer must keep in mind when they are versioning their systems,
 using versioned systems, or assembling a complete development (or
-production, etc.) environment. We then continue be describing ASDF's
+production, etc.) environment. We then continue by describing ASDF's
 API for specifying versions and the API for specifying version
 constraints.
 
@@ -3636,8 +3636,8 @@ functions have been rewritten to call functionality exported by the
 @item
 If an update would break an API, create an entirely new system (and
 potentially an entirely new project) for the new version. The old
-system can remain frozen and usable while other systems slowly move
-over to your new system name.
+system can remain frozen and usable while other systems move over to
+your new system name.
 
 @item
 Introduce the new API and have it coexist with the old API for a
