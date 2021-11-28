@@ -201,7 +201,7 @@ the primary one."
   ;; ASDF4: Move this back into *system-virtual-slots*. We can't return the
   ;; slot directly as we want to mimic the result of COMPONENT-VERSION which
   ;; now returns two VALUES.
-  (defun* system-version (system)
+  (defun system-version (system)
     (let ((direct-version (multiple-value-list (component-version system))))
       (if (first direct-version)
           (values-list direct-version)

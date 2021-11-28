@@ -72,7 +72,6 @@
    #:component-system
    #:component-encoding
    #:component-external-format
-   #:normalize-component-version
    #:system-description
    #:system-long-description
    #:system-author

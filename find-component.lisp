@@ -114,10 +114,11 @@ in the context of COMPONENT"))
                        :requires name))
               (when version
                 (unless (version-satisfies comp version)
-                  (error 'missing-dependency-of-version
-                         :required-by component
-                         :version version
-                         :requires name)))
+                  (cerror "Continue anyways"
+                          'missing-dependency-of-version
+                          :required-by component
+                          :version version
+                          :requires name)))
               comp))
         (retry ()
           :report (lambda (s)

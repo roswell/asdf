@@ -39,13 +39,7 @@
    #:defsystem-depends-on ; This symbol retained for backward compatibility.
    #:sideway-dependencies #:if-feature #:in-order-to #:inline-methods
    #:relative-pathname #:absolute-pathname #:operation-times #:around-compile
-   #:%encoding #:properties #:component-properties #:parent)
-  (:shadow
-   ;; UIOP started exporting VERSION in ASDF 3.4. VERSION is also the name of a
-   ;; slot in COMPONENT. Shadow VERSION so that we don't lose the value of that
-   ;; slot on upgrades. Otherwise, we'd need to
-   ;; UPDATE-INSTANCE-FOR-REDEFINED-CLASS.
-   #:version))
+   #:%encoding #:properties #:component-properties #:parent))
 (in-package :asdf/component)
 
 (with-upgradability ()
@@ -72,8 +66,8 @@ Use asdf-encodings to support more encodings."))
 as the specified VERSION, which must be a string of dot-separated natural numbers, or NIL."))
   (defgeneric component-version (component)
     (:documentation "Return the version of a COMPONENT in two VALUES. The first
-value is a string that specifies the version, or NIL. The second value is
-the UIOP:VERSION instance that is suitable for use with UIOP:VERSION<, or NIL."))
+value is a string that specifies the version, or NIL. The second value is the
+VERSION-OBJECT instance that is suitable for use with UIOP:VERSION<, or NIL."))
   (defgeneric (setf component-version) (new-version component)
     (:documentation "Updates the version of a COMPONENT."))
   (defgeneric component-version-class (component)
@@ -172,8 +166,8 @@ The return value is a list of component NAMES; a list of strings."
 
   (defmethod component-version ((component component))
     "The VERSION slot of COMPONENT may be NIL, unbound, a string, or a
-UIOP:VERSION object. If it's a string, update it to be a UIOP:VERSION object
-and return it. If it's a UIOP:VERSION object, return it. Else, return NIL."
+VERSION-OBJECT. If it's a string, update it to be a VERSION-OBJECT and return
+it. If it's a VERSION-OBJECT object, return it. Else, return NIL."
     (if-let (raw-version (and (slot-boundp component 'version)
                               (slot-value component 'version)))
       (typecase raw-version
@@ -184,7 +178,7 @@ and return it. If it's a UIOP:VERSION object, return it. Else, return NIL."
          (let ((new-version (make-version raw-version)))
            (setf (slot-value component 'version) new-version)
            (values (version-string new-version) new-version)))
-        (uiop:version
+        (version-object
          (values (version-string raw-version) raw-version)))))
 
   (defmethod (setf component-version) ((value string) (component component))
@@ -197,7 +191,7 @@ and return it. If it's a UIOP:VERSION object, return it. Else, return NIL."
   (defmethod (setf component-version) ((value null) (component component))
     (setf (slot-value component 'version) nil)
     value)
-  (defmethod (setf component-version) ((value uiop:version) (component component))
+  (defmethod (setf component-version) ((value version-object) (component component))
     (setf (slot-value component 'version) value)
     value))
 
@@ -356,14 +350,11 @@ this compilation, or check its results, etc."))
       (return-from version-satisfies nil))
     (version-satisfies (nth-value 1 (component-version c)) version))
 
+  (defmethod version-satisfies ((cver version-object) version-constraint)
+    (version-constraint-satisfied-p cver version-constraint))
+
   (defmethod version-satisfies ((cver string) version)
-    (if (nth-value 1 (parse-version version))
-        ;; The required VERSION has a pre-release segment, do not ignore
-        ;; pre-release segments in CVER.
-        (version<= version cver)
-        ;; No pre-release segment on VERSION. Ignore any pre-release
-        ;; information in CVER.
-        (version<= version (version-core-string cver)))))
+    (version-satisfies (make-version cver) version)))
 
 
 ;;; all sub-components (of a given type)

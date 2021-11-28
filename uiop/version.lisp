@@ -4,9 +4,10 @@
   (:export
    #:*uiop-version*
    #:make-version
-   #:version #:version-string-invalid-error #:version-pre-release-p #:version-pre-release-for
+   #:version-object #:version-string-invalid-error #:version-pre-release-p #:version-pre-release-for
    #:version-next #:version-string
    #:semantic-version #:default-version
+   #:version-constraint-satisfied-p
    #:parse-version #:unparse-version #:version< #:version<= #:version= ;; version support, moved from uiop/utility
    #:next-version
    #:deprecated-function-condition #:deprecated-function-name ;; deprecation control
@@ -16,16 +17,25 @@
 (in-package :uiop/version)
 
 (with-upgradability ()
-  (defparameter *uiop-version* "3.3.5.7"))
+  (defparameter *fake-uiop-version* "3.4.0"
+    "ASDF has some logic in FIND-SYSTEM to ensure that an old version of UIOP
+isn't returned. To do so, it looks at form '(2 2 2) in this file. Because old
+versions of ASDF can't parse version strings with pre-release information, we
+make sure this is always set to the non-pre-release version.")
+  (defparameter *uiop-version* "3.4.0-alpha.1"))
 
-;; Base version class and API.
+;; Base version-object class and API.
 (with-upgradability ()
-  (defclass version ()
+  ;; Introduced in version 3.4. This can't be called VERSION because ASDF
+  ;; already exports a VERSION (a slot name for COMPONENT, why???). So let's
+  ;; not deal with changing VERSION's home package and all the messiness that
+  ;; would entail.
+  (defclass version-object ()
     ()
     (:documentation
      "The base class of version specifiers."))
 
-  (defmethod print-object ((version version) stream)
+  (defmethod print-object ((version version-object) stream)
     (print-unreadable-object (version stream :type t :identity t)
       (format stream "~A" (version-string version))))
 
@@ -42,7 +52,23 @@
                (%version-string condition) (%reason condition)))))
 
   (defun make-version (version-string &key (class 'default-version))
-    (make-instance class :version-string version-string))
+    (when (not (null version-string))
+      (restart-case
+          (make-instance class :version-string version-string)
+        (continue ()
+          :report "Return NIL as the version object."
+          nil)
+        (use-value (new-version-string)
+          :report "Retry parsing, with a new version string."
+          :interactive (lambda ()
+                         (format *query-io* "Enter a new version string: ")
+                         (list (read-line *query-io*)))
+          (make-version new-version-string :class class)))))
+
+  (defun ensure-version (maybe-version &key (class 'default-version))
+    (if (stringp maybe-version)
+        (make-version maybe-version :class class)
+        maybe-version))
   (defgeneric version-next (version)
     (:documentation "Returns the next version after VERSION. The returned
 version must not be a pre-release.")
@@ -59,7 +85,7 @@ version must not be a pre-release.")
 stating for which version it is a pre-release.")
     (:method ((version string))
       (version-pre-release-for (make-version version))))
-  (when (and (symbol-function 'version<)
+  (when (and (fboundp 'version<)
              (not (typep (symbol-function 'version<) 'generic-function)))
     ;; ASDF 3.4: Turned from function to generic function. Only conditionally
     ;; making it unbound because this is an extension point for the user and we
@@ -97,7 +123,7 @@ the second is also newer or the same."
       #\-)
     "List of all characters valid in pre-release and build metadata segments.")
 
-  (defclass semantic-version (version)
+  (defclass semantic-version (version-object)
     (core-segment
      pre-release-segment
      build-metadata-segment)
@@ -297,6 +323,87 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
           (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by an integer."))))))
 
 (with-upgradability ()
+  (defun simple-version-constraint-p (constraint)
+    (and (listp constraint)
+         (and (= (length constraint) 2))
+         (member (first constraint) '(:>= :> :<= :< := :/=))
+         (or (stringp (second constraint))
+             (typep (second constraint) 'version-object))))
+  (defun simple-version-constraint-satisfied-p (operator version requested
+                                                &key (strip-pre-release-p (not (version-pre-release-p requested))))
+    (let ((version (if (and strip-pre-release-p (version-pre-release-p version))
+                       (version-pre-release-for version)
+                       version)))
+      (ecase operator
+        (:>=
+         (not (version< version requested)))
+        (:>
+         (version< requested version))
+        (:<=
+         (not (version< requested version)))
+        (:<
+         (version< version requested))
+        (:=
+         (version= version requested))
+        (:/=
+         (not (version= version requested))))))
+
+  (defun compound-version-constraint-p (constraint)
+    (and (listp constraint)
+         (member (first constraint) '(:and :or))))
+  (defun compound-version-constraint-satisfied-p (operator version subcs
+                                                  &rest args
+                                                  &key strip-pre-release-p)
+    (declare (ignore strip-pre-release-p))
+    (ecase operator
+      (:and
+       (every (lambda (subc) (apply #'version-constraint-satisfied-p version subc args))
+              subcs))
+      (:or
+       (some (lambda (subc) (apply #'version-constraint-satisfied-p version subc args))
+             subcs))))
+
+  (defun compatible-version-constraint-p (constraint)
+    (or (and (listp constraint)
+             (and (= (length constraint) 2))
+             (eql (first constraint) :compatible)
+             (or (stringp (second constraint))
+                 (typep (second constraint) 'version-object)))
+        (stringp constraint)
+        (typep constraint 'version-object)))
+  (defun compatible-version-constraint-satisfied-p (version requested
+                                                    &rest args
+                                                    &key compatible-versions
+                                                      (strip-pre-release-p (not (version-pre-release-p requested))))
+    (let ((version (if (and strip-pre-release-p (version-pre-release-p version))
+                       (version-pre-release-for version)
+                       version)))
+      (and (not (version< version requested))
+           (or (null compatible-versions)
+               (apply #'version-constraint-satisfied-p requested compatible-versions
+                      (remove-plist-key :compatible-versions args))))))
+
+  (defun version-constraint-satisfied-p (version constraint &rest args &key strip-pre-release-p)
+    (declare (ignore strip-pre-release-p))
+    (let ((version (ensure-version version)))
+      (cond
+        ((simple-version-constraint-p constraint)
+         (apply #'simple-version-constraint-satisfied-p
+                (first constraint) version
+                (ensure-version (second constraint)
+                                :class (class-of version))
+                args))
+        ((compatible-version-constraint-p constraint)
+         (let ((requested (ensure-version (if (listp constraint) (second constraint) constraint)
+                                          :class (class-of version))))
+           (apply #'compatible-version-constraint-satisfied-p version requested args)))
+        ((compound-version-constraint-p constraint)
+         (apply #'compound-version-constraint-satisfied-p
+                (first constraint) version (rest constraint)
+                args))
+        (t t)))))
+
+(with-upgradability ()
   (define-condition deprecated-function-condition (condition)
     ((name :initarg :name :reader deprecated-function-name)))
   (define-condition deprecated-function-style-warning (deprecated-function-condition style-warning) ())
@@ -417,12 +524,41 @@ from instrumentation by enclosing it in a PROGN."
 
 ;; All of these were deprecated in 3.4
 (with-upgradability ()
+  ;; These implement the actual logic of the deprecated functions. Doing it
+  ;; this way ensures that we don't get style warnings when loading UIOP
+  ;; itself.
+  (defun %unparse-version (version-list)
+    (format nil "~{~D~^.~}" version-list))
+  (defun %parse-version (version-string &optional on-error)
+    (block nil
+      (unless (stringp version-string)
+        (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
+        (return))
+      (unless (loop :for prev = nil :then c :for c :across version-string
+                    :always (or (digit-char-p c)
+                                (and (eql c #\.) prev (not (eql prev #\.))))
+                    :finally (return (and c (digit-char-p c))))
+        (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
+                       'parse-version version-string)
+        (return))
+      (let* ((version-list
+               (mapcar #'parse-integer (split-string version-string :separator ".")))
+             (normalized-version (%unparse-version version-list)))
+        (unless (equal version-string normalized-version)
+          (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
+        version-list)))
+  (defun %next-version (version)
+    (when version
+      (let ((version-list (%parse-version version)))
+        (incf (car (last version-list)))
+        (%unparse-version version-list))))
+
   (with-deprecation ((version-deprecation *uiop-version* :style-warning "3.4" :delete "4.0"))
     (defun unparse-version (version-list)
       "DEPRECATED. Use VERSION-STRING instead.
 
 From a parsed version (a list of natural numbers), compute the version string"
-      (format nil "~{~D~^.~}" version-list))
+      (%unparse-version version-list))
 
     (defun parse-version (version-string &optional on-error)
       "DEPRECATED. Use MAKE-VERSION instead.
@@ -435,30 +571,11 @@ When invalid, ON-ERROR is called as per CALL-FUNCTION before to return NIL,
 with format arguments explaining why the version is invalid.
 ON-ERROR is also called if the version is not canonical
 in that it doesn't print back to itself, but the list is returned anyway."
-      (block nil
-        (unless (stringp version-string)
-          (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
-          (return))
-        (unless (loop :for prev = nil :then c :for c :across version-string
-                      :always (or (digit-char-p c)
-                                  (and (eql c #\.) prev (not (eql prev #\.))))
-                      :finally (return (and c (digit-char-p c))))
-          (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
-                         'parse-version version-string)
-          (return))
-        (let* ((version-list
-                 (mapcar #'parse-integer (split-string version-string :separator ".")))
-               (normalized-version (unparse-version version-list)))
-          (unless (equal version-string normalized-version)
-            (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
-          version-list)))
+      (%parse-version version-string on-error))
 
     (defun next-version (version)
       "DEPRECATED. Use VERSION-NEXT instead.
 
 When VERSION is not nil, it is a string, then parse it as a version, compute the next version
 and return it as a string."
-      (when version
-        (let ((version-list (parse-version version)))
-          (incf (car (last version-list)))
-          (unparse-version version-list))))))
+      (%next-version version))))

@@ -21,8 +21,6 @@
    #:known-system-with-bad-secondary-system-names-p
    #:sysdef-error-component #:check-component-input
    #:explain
-   ;; For extending version strings
-   #:normalize-component-version
    ;; for extending the component types
    #:compute-component-children
    #:class-for-type))
@@ -147,7 +145,7 @@ Please only define ~S and secondary systems with a name starting with ~S (e.g. ~
       (pushnew pathname (cdr cell) :test 'pathname-equal)
       (values)))
 
-    (defun* (parse-version-pointer) (form &key pathname)
+  (defun parse-version-pointer (form &key pathname)
     "Given a form used as a :version specification, in the context of a system
 definition in a file at PATHNAME, attempt to read the form as part of ASDF's
 mini-DSL for reading version information from another file. If FORM is not a
@@ -169,54 +167,7 @@ specifying the pathname that was used to derive the return value, if any."
                        path))))
           (otherwise
            form))
-        form))
-
-  ;; Given a form used as :version specification, in the context of a system definition
-  ;; in a file at PATHNAME, for given COMPONENT with given PARENT, normalize the form
-  ;; to an acceptable ASDF-format version.
-  (fmakunbound 'normalize-version) ;; signature changed between 2.27 and 2.31
-  (defun normalize-version (form &key pathname component parent)
-    (labels ((invalid (&optional (continuation "using NIL instead"))
-               (warn (compatfmt "~@<Invalid :version specifier ~S~@[ for component ~S~]~@[ in ~S~]~@[ from file ~S~]~@[, ~A~]~@:>")
-                     form component parent pathname continuation))
-             (invalid-parse (control &rest args)
-               (unless (if-let (target (find-component parent component)) (builtin-system-p target))
-                 (apply 'warn control args)
-                 (invalid))))
-      (if-let (v (typecase form
-                   ((or string null) form)
-                   (real
-                    (invalid "Substituting a string")
-                    (format nil "~D" form)) ;; 1.0 becomes "1.0"
-                   (cons
-                    ;; We shouldn't ever get here now that parsing version
-                    ;; pointers happens before normalizing the version, but
-                    ;; leave for backwards compatibility. Consider removing in
-                    ;; ASDF 4.
-                    (multiple-value-bind (version-form additional-input-file)
-                        (parse-version-pointer form :pathname pathname)
-                      (when additional-input-file
-                        (record-additional-system-input-file additional-input-file component parent))
-                      version-form))
-                   (t
-                    (invalid))))
-        (multiple-value-bind (core-segment pre-release-segment build-segment)
-            (parse-version v #'invalid-parse)
-          (if core-segment
-              ;; Store both the core segment (which we use for version
-              ;; comparisons) and the full version. This prevents calls to
-              ;; PARSE-VERSION from within COMPONENT-VERSION.
-              (list (unparse-version core-segment)
-                    (unparse-version core-segment pre-release-segment build-segment))
-              (invalid))))))
-
-  (defgeneric* (normalize-component-version) (component form &key pathname parent)
-    (:documentation "Given a form used as :version specification, in the
-context of a system definition in a file at PATHNAME, for given COMPONENT with
-given PARENT, normalize the form to an object that can be stored in the
-COMPONENT's VERSION slot.")
-    (:method ((component component) form &key pathname parent)
-      (normalize-version form :pathname pathname :component component :parent parent))))
+        form)))
 
 
 ;;; "inline methods"
@@ -340,7 +291,7 @@ children."))
                                 ;; remove-plist-keys form.  important to keep them in sync
                                 components pathname perform explain output-files operation-done-p
                                 weakly-depends-on depends-on serial
-                                do-first if-component-dep-fails version
+                                do-first if-component-dep-fails version version-class
                                 ;; list ends
          &allow-other-keys) options
       (declare (ignore perform explain output-files operation-done-p builtin-system-p))
@@ -352,14 +303,19 @@ children."))
                          (class-for-type parent type))))
         (error 'duplicate-names :name name))
       (when do-first (error "DO-FIRST is not supported anymore as of ASDF 3"))
+      (unless (null version-class)
+        (setf version-class (coerce-class version-class :package :asdf/interface
+                                                        :super 'version-object)))
       (let* ((name (coerce-name name))
              (args `(:name ,name
                      :pathname ,pathname
+                     ,@(unless (null version-class)
+                         `(:version-class ,version-class))
                      ,@(when parent `(:parent ,parent))
                      ,@(remove-plist-keys
                         '(:components :pathname :if-component-dep-fails :version
                           :perform :explain :output-files :operation-done-p
-                          :weakly-depends-on :depends-on :serial)
+                          :weakly-depends-on :depends-on :serial :version-class)
                         rest)))
              (component (find-component parent name))
              (class (class-for-type parent type)))
@@ -386,7 +342,11 @@ children."))
               (record-additional-system-input-file additional-input-file component parent))))
         ;; Don't use the accessor: kluge to avoid upgrade issue on CCL 1.8.
         ;; A better fix is required.
-        (setf (slot-value component 'version) version)
+        (setf (slot-value component 'version)
+              (if (null version)
+                  nil
+                  (apply #'make-version version
+                         (unless (null version-class) (list :version-class version-class)))))
         (when (typep component 'parent-component)
           (setf (component-children component) (compute-component-children component components serial))
           (compute-children-by-name component))
