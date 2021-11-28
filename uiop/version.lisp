@@ -3,6 +3,7 @@
   (:use :uiop/common-lisp :uiop/package :uiop/utility)
   (:export
    #:*uiop-version*
+   #:make-version
    #:version #:version-string-invalid-error #:version-pre-release-p #:version-pre-release-for
    #:version-next #:version-string
    #:semantic-version #:default-version
@@ -46,22 +47,35 @@
     (:documentation "Returns the next version after VERSION. The returned
 version must not be a pre-release.")
     (:method ((version null))
-      nil))
+      nil)
+    (:method ((version string))
+      (version-next (make-version version))))
   (defgeneric version-pre-release-p (version)
-    (:documentation "Returns non-NIL if VERSION is a pre-release."))
+    (:documentation "Returns non-NIL if VERSION is a pre-release.")
+    (:method ((version string))
+      (version-pre-release-p (make-version version))))
   (defgeneric version-pre-release-for (version)
     (:documentation "If VERSION is a pre-release, returns an version specifier
-stating for which version it is a pre-release."))
+stating for which version it is a pre-release.")
+    (:method ((version string))
+      (version-pre-release-for (make-version version))))
   (when (and (symbol-function 'version<)
              (not (typep (symbol-function 'version<) 'generic-function)))
     ;; ASDF 3.4: Turned from function to generic function. Only conditionally
     ;; making it unbound because this is an extension point for the user and we
     ;; don't want to gratuitously remove their methods.
     (fmakunbound 'version<))
-  (defgeneric version< (version-1 version-2)
-    (:documentation "Returns non-NIL if VERSION-1 is ordered before VERSION-2."))
+  (defgeneric version< (version1 version2)
+    (:documentation "Returns non-NIL if VERSION2 is strictly newer than VERSION1.")
+    (:method ((version1 string) version2)
+      (version< (make-version version1) version2))
+    (:method (version1 (version2 string))
+      (version< version1 (make-version version2))))
   (defgeneric version-string (version)
-    (:documentation "Return a string that represents VERSION."))
+    (:documentation "Return a string that represents VERSION.")
+    (:method ((version string))
+      ;; Round trip instead of returning VERSION, in case VERSION is invalid.
+      (version-string (make-version version))))
 
   (defun version<= (version1 version2)
     "Given two version strings, return T if the second is newer or the same"
@@ -280,14 +294,7 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
                              (equal "beta" (first pre-release-segment))
                              (equal "rc" (first pre-release-segment)))
                          (integerp (second pre-release-segment))))
-          (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by an integer.")))))
-
-  (defmethod version-next ((version string))
-    (version-next (make-version version)))
-  (defmethod version< ((version1 string) version2)
-    (version< (make-version version1) version2))
-  (defmethod version< (version1 (version2 string))
-    (version< version1 (make-version version2))))
+          (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by an integer."))))))
 
 (with-upgradability ()
   (define-condition deprecated-function-condition (condition)
@@ -341,11 +348,14 @@ various levels of deprecation, return the current level of deprecation as per WI
 that is the highest level that has a declared version older than the specified version.
 Each start version for a level of deprecation can be specified by a keyword argument, or
 if left unspecified, will be the VERSION-NEXT of the immediate lower level of deprecation."
-    (cond
-      ((and delete (version<= delete version)) :delete)
-      ((and error (version<= error version)) :error)
-      ((and warning (version<= warning version)) :warning)
-      ((and style-warning (version<= style-warning version)) :style-warning)))
+    (let ((version (if (version-pre-release-p version)
+                       (version-pre-release-for version)
+                       version)))
+      (cond
+        ((and delete (version<= delete version)) :delete)
+        ((and error (version<= error version)) :error)
+        ((and warning (version<= warning version)) :warning)
+        ((and style-warning (version<= style-warning version)) :style-warning))))
 
   (defmacro with-deprecation ((level) &body definitions)
     "Given a deprecation LEVEL (a form to be EVAL'ed at macro-expansion time), instrument the

@@ -39,7 +39,13 @@
    #:defsystem-depends-on ; This symbol retained for backward compatibility.
    #:sideway-dependencies #:if-feature #:in-order-to #:inline-methods
    #:relative-pathname #:absolute-pathname #:operation-times #:around-compile
-   #:%encoding #:properties #:component-properties #:parent))
+   #:%encoding #:properties #:component-properties #:parent)
+  (:shadow
+   ;; UIOP started exporting VERSION in ASDF 3.4. VERSION is also the name of a
+   ;; slot in COMPONENT. Shadow VERSION so that we don't lose the value of that
+   ;; slot on upgrades. Otherwise, we'd need to
+   ;; UPDATE-INSTANCE-FOR-REDEFINED-CLASS.
+   #:version))
 (in-package :asdf/component)
 
 (with-upgradability ()
@@ -65,13 +71,14 @@ Use asdf-encodings to support more encodings."))
     (:documentation "Check whether a COMPONENT satisfies the constraint of being at least as recent
 as the specified VERSION, which must be a string of dot-separated natural numbers, or NIL."))
   (defgeneric component-version (component)
-    (:documentation "Return the version of a COMPONENT in two VALUES. The
-first value is a string of dot-separated natural numbers that specifies the
-primary version number, or NIL. The second value is the full version string
-that is suitable for display and may contain pre- or post-release information,
-or NIL.")) ;; ASDF internals never use the second value.
+    (:documentation "Return the version of a COMPONENT in two VALUES. The first
+value is a string that specifies the version, or NIL. The second value is
+the UIOP:VERSION instance that is suitable for use with UIOP:VERSION<, or NIL."))
   (defgeneric (setf component-version) (new-version component)
     (:documentation "Updates the version of a COMPONENT."))
+  (defgeneric component-version-class (component)
+    (:documentation "Return the class COMPONENT uses to represent its
+versions."))
   (defgeneric component-parent (component)
     (:documentation "The parent of a child COMPONENT,
 or NIL for top-level components (a.k.a. systems)"))
@@ -89,12 +96,12 @@ or NIL for top-level components (a.k.a. systems)"))
                (format s (compatfmt "~@<Error while defining system: multiple components are given same name ~S~@:>")
                        (duplicate-names-name c))))))
 
-
 (with-upgradability ()
   (defclass component ()
     ((name :accessor component-name :initarg :name :type string :documentation
            "Component name: designator for a string composed of portable pathname characters")
      (version :initarg :version :initform nil)
+     (version-class :reader component-version-class :initarg :version-class :initform 'uiop:default-version)
      (description :accessor component-description :initarg :description :initform nil)
      (long-description :accessor component-long-description :initarg :long-description :initform nil)
      (sideway-dependencies :accessor component-sideway-dependencies :initform nil)
@@ -164,44 +171,35 @@ The return value is a list of component NAMES; a list of strings."
       component))
 
   (defmethod component-version ((component component))
-    "This method assumes that version has been normalized to a string of
-dot-separated natural numbers."
+    "The VERSION slot of COMPONENT may be NIL, unbound, a string, or a
+UIOP:VERSION object. If it's a string, update it to be a UIOP:VERSION object
+and return it. If it's a UIOP:VERSION object, return it. Else, return NIL."
     (if-let (raw-version (and (slot-boundp component 'version)
                               (slot-value component 'version)))
       (typecase raw-version
         (string
          ;; If we're upgrading ASDF and some systems have already been loaded,
          ;; they likely have the old representation of the version (plain
-         ;; string) stored. We could automatically rewrite the contents of the
-         ;; slot if this happens, but it should be rare since ASDF always tries
-         ;; to upgrade itself first.
-         (if-let (core-segment (parse-version raw-version))
-           (values (unparse-version core-segment) raw-version)))
-        (cons
-         (values-list raw-version)))))
+         ;; string) stored.
+         (let ((new-version (make-version raw-version)))
+           (setf (slot-value component 'version) new-version)
+           (values (version-string new-version) new-version)))
+        (uiop:version
+         (values (version-string raw-version) raw-version)))))
 
-  (defmethod (setf component-version) (value (component component))
-    (when (typep value 'string)
-      (if-let (core-segment (parse-version value))
-        (let ((core-string (unparse-version core-segment)))
-          (setf (slot-value component 'version) (list core-string value))
-          (values core-string value))
-        (component-version component))))
-
-  ;; Adapt any existing implementation of COMPONENT-VERSION to the new
-  ;; interface.
-  (defmethod component-version :around ((component component))
-    (let ((next-values (multiple-value-list (call-next-method))))
-      (if (and (first next-values) (null (second next-values)))
-          (values (first next-values) (first next-values))
-          (values-list next-values))))
-
-  (defmethod (setf component-version) :around (value (component component))
-    (declare (ignore value))
-    (let ((next-values (multiple-value-list (call-next-method))))
-      (if (and (first next-values) (null (second next-values)))
-          (component-version component)
-          (values-list next-values)))))
+  (defmethod (setf component-version) ((value string) (component component))
+    "Set the VERSION slot of component."
+    (setf (slot-value component 'version)
+          (make-version value :class (component-version-class component)))
+    ;; It's tempting to return (VALUES VALUE VALUE-AS-VERSION) here, but that
+    ;; does not seem to be allowed under 5.1.2.9 of the spec.
+    value)
+  (defmethod (setf component-version) ((value null) (component component))
+    (setf (slot-value component 'version) nil)
+    value)
+  (defmethod (setf component-version) ((value uiop:version) (component component))
+    (setf (slot-value component 'version) value)
+    value))
 
 
 ;;;; Component hierarchy within a system
