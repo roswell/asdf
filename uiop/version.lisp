@@ -1,10 +1,9 @@
 (uiop/package:define-package :uiop/version
-  (:recycle :uiop/version :uiop/utility :asdf)
-  (:use :uiop/common-lisp :uiop/package :uiop/utility)
+  (:recycle :uiop/version :uiop/version-specifier :uiop/utility :asdf)
+  (:use :uiop/common-lisp :uiop/package :uiop/utility :uiop/version-specifier)
   (:export
    #:*uiop-version*
    #:parse-version #:unparse-version #:version< #:version<= #:version= ;; version support, moved from uiop/utility
-   #:version-core-string
    #:next-version
    #:deprecated-function-condition #:deprecated-function-name ;; deprecation control
    #:deprecated-function-style-warning #:deprecated-function-warning
@@ -15,116 +14,36 @@
 (with-upgradability ()
   (defparameter *uiop-version* "3.3.5.7")
 
-  (defparameter *pre-release-and-build-metadata-chars*
-    '(#\a #\b #\c #\d #\e #\f #\g #\h #\i #\j #\k #\l #\m
-      #\n #\o #\p #\q #\r #\s #\t #\u #\v #\w #\x #\y #\z
-      #\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M
-      #\N #\O #\P #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z
-      #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9
-      #\-))
-
-  (defun unparse-version (version-list &optional pre-release-list build-metadata)
-    "From a parsed version (a list of natural numbers), compute the version
-string. VERSION-LIST is a list of natural numbers. PRE-RELEASE-LIST is a list
-of pre-release identifiers (strings or natural numbers). BUILD-METADATA is a
-list of build metadata identifiers (strings or )string or NIL."
-    (format nil "~{~D~^.~}~@[-~{~A~^.~}~]~@[+~{~A~^.~}~]" version-list pre-release-list build-metadata))
-
-  (defun split-version-string (version-string)
-    "Given a semver string, split it into its three basic components: the core
-segment, the pre-release segment, and the build segment. Returns the three
-components in a list. If the component is missing from the string, it returns
-nil."
-    (let ((pre-release-separator-position (position #\- version-string))
-          (build-separator-position (position #\+ version-string)))
-      ;; If the pre-release and build separators both exist and the former comes
-      ;; after the latter, treat the former as not existing.
-      (when (and pre-release-separator-position
-                 build-separator-position
-                 (> pre-release-separator-position build-separator-position))
-        (setf pre-release-separator-position nil))
-      (list
-       ;; The core segment
-       (subseq version-string 0 (or pre-release-separator-position
-                                    build-separator-position))
-       ;; The pre-release segment
-       (when pre-release-separator-position
-         (subseq version-string (1+ pre-release-separator-position)
-                 build-separator-position))
-       ;; The build segment
-       (when build-separator-position
-         (subseq version-string (1+ build-separator-position))))))
+  (defun unparse-version (version-list)
+    "From a parsed version (a list of natural numbers), compute the version string"
+    (format nil "~{~D~^.~}" version-list))
 
   (defun parse-version (version-string &optional on-error)
-    "Parse a VERSION-STRING as a core version followed by an optional
-pre-release segment (preceded by a -), followed by an optional build metadata
-segment (preceded by a +). Each segment is returned as a separate VALUE.
+    "Parse a VERSION-STRING as a series of natural numbers separated by dots.
+Return a (non-null) list of integers if the string is valid;
+otherwise return NIL.
 
-The core version segment must consist entirely of natural numbers separated by
-dots. The pre-release segment consists of a series of identifiers (consisting
-of the characters 0-9, a-z, A-Z, and -), separated by dots. The build metadata
-segment consists of a series of identifiers (consisting of the characters 0-9,
-a-z, A-Z, and -), separated by dots.
-
-This grammar is heavily inspired by semver v2.0's grammar with the major
-difference that the core version segment is not limited to exactly three dot
-separated natural numbers.
-
-When invalid, ON-ERROR is called as per CALL-FUNCTION before returning NIL,
-with format arguments explaining why the version is invalid.  ON-ERROR is also
-called if the version is not canonical in that it doesn't print back to itself,
-but the values are returned anyway."
+When invalid, ON-ERROR is called as per CALL-FUNCTION before to return NIL,
+with format arguments explaining why the version is invalid.
+ON-ERROR is also called if the version is not canonical
+in that it doesn't print back to itself, but the list is returned anyway."
     (block nil
       (unless (stringp version-string)
         (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
         (return))
-      (destructuring-bind (core-segment-string pre-release-segment-string build-segment-string)
-          (split-version-string version-string)
-        (labels ((invalid ()
-                   (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
-                                  'parse-version version-string))
-                 (parse-dot-separated-segment (segment-string character-test transform)
-                   (unless (loop :for prev = nil :then c :for c :across segment-string
-                                 :always (or (funcall character-test c)
-                                             (and (eql c #\.) prev (not (eql prev #\.))))
-                                 :finally (return (and c (funcall character-test c))))
-                     (invalid)
-                     (return))
-                   (mapcar transform (split-string segment-string :separator ".")))
-                 (parse-core-segment (segment-string)
-                   (parse-dot-separated-segment segment-string #'digit-char-p #'parse-integer))
-                 (parse-pre-release-segment (segment-string)
-                   (parse-dot-separated-segment segment-string
-                                                (lambda (c)
-                                                  (member c *pre-release-and-build-metadata-chars*))
-                                                (lambda (x)
-                                                  (let ((as-integer (ignore-errors (parse-integer x))))
-                                                    (if (and as-integer (not (minusp as-integer)))
-                                                        as-integer
-                                                        x)))))
-                 (parse-build-segment (segment-string)
-                   (parse-dot-separated-segment segment-string
-                                                (lambda (c)
-                                                  (member c *pre-release-and-build-metadata-chars*))
-                                                #'identity)))
-          (unless core-segment-string
-            (invalid)
-            (return))
-          (let* ((core-segment (parse-core-segment core-segment-string))
-                 (pre-release-segment (when pre-release-segment-string
-                                        (parse-pre-release-segment pre-release-segment-string)))
-                 (build-segment (when build-segment-string
-                                  (parse-build-segment build-segment-string)))
-                 (normalized-version (unparse-version core-segment pre-release-segment build-segment)))
-            (unless (equal version-string normalized-version)
-              (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
-            (values core-segment pre-release-segment build-segment))))))
-
-  (defun version-core-string (version)
-    "When VERSION is not NIL, it is a string, then parse it as a version,
-return the string corresponding to the core segment of VERSION."
-    (when version
-      (unparse-version (parse-version version))))
+      (unless (loop :for prev = nil :then c :for c :across version-string
+                    :always (or (digit-char-p c)
+                                (and (eql c #\.) prev (not (eql prev #\.))))
+                    :finally (return (and c (digit-char-p c))))
+        (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
+                       'parse-version version-string)
+        (return))
+      (let* ((version-list
+               (mapcar #'parse-integer (split-string version-string :separator ".")))
+             (normalized-version (unparse-version version-list)))
+        (unless (equal version-string normalized-version)
+          (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
+        version-list)))
 
   (defun next-version (version)
     "When VERSION is not nil, it is a string, then parse it as a version, compute the next version
@@ -134,29 +53,10 @@ and return it as a string."
         (incf (car (last version-list)))
         (unparse-version version-list))))
 
-  (defun version< (version1 version2)
-    "Given two version strings, return T if the second is strictly newer"
-    (multiple-value-bind (core-1 pre-release-1)
-        (parse-version version1)
-      (multiple-value-bind (core-2 pre-release-2)
-          (parse-version version2)
-        (labels ((identifier< (id1 id2)
-                   (cond
-                     ((and (integerp id1) (integerp id2))
-                      (< id1 id2))
-                     ((integerp id1)
-                      t)
-                     ((integerp id2)
-                      nil)
-                     (t
-                      (string< id1 id2))))
-                 (pre-release-< (pr1 pr2)
-                   (or
-                    (and pr1 (null pr2))
-                    (lexicographic< #'identifier< pr1 pr2))))
-          (or (lexicographic< '< core-1 core-2)
-              (and (equal core-1 core-2)
-                   (pre-release-< pre-release-1 pre-release-2)))))))
+  (defmethod version< ((version1 string) version2)
+    (version< (make-instance 'default-version :version-string version1) version2))
+  (defmethod version< (version1 (version2 string))
+    (version< version1 (make-instance 'default-version :version-string version2)))
 
   (defun version<= (version1 version2)
     "Given two version strings, return T if the second is newer or the same"
