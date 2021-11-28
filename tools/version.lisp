@@ -95,7 +95,7 @@
 
 (defun version-transformer (new-version file prefix suffix &optional dont-warn)
   (let* ((qprefix (cl-ppcre:quote-meta-chars prefix))
-         (versionrx "([0-9]+(\\.[0-9]+)+)")
+         (versionrx "([0-9]+(\\.[0-9]+)+(-[a-zA-Z0-9_.-]+)?)")
          (qsuffix (cl-ppcre:quote-meta-chars suffix))
          (regex (strcat "(" qprefix ")(" versionrx ")(" qsuffix ")"))
          (replacement
