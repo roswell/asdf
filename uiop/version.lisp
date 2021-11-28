@@ -4,7 +4,7 @@
   (:export
    #:*uiop-version*
    #:version #:version-string-invalid-error #:version-pre-release-p #:version-pre-release-for
-   #:version-string
+   #:version-next #:version-string
    #:semantic-version #:default-version
    #:parse-version #:unparse-version #:version< #:version<= #:version= ;; version support, moved from uiop/utility
    #:next-version
@@ -24,6 +24,10 @@
     (:documentation
      "The base class of version specifiers."))
 
+  (defmethod print-object ((version version) stream)
+    (print-unreadable-object (version stream :type t :identity t)
+      (format stream "~A" (version-string version))))
+
   (define-condition version-string-invalid-error (error)
     ((%version-string
       :initarg :version-string
@@ -38,6 +42,11 @@
 
   (defun make-version (version-string &key (class 'default-version))
     (make-instance class :version-string version-string))
+  (defgeneric version-next (version)
+    (:documentation "Returns the next version after VERSION. The returned
+version must not be a pre-release.")
+    (:method ((version null))
+      nil))
   (defgeneric version-pre-release-p (version)
     (:documentation "Returns non-NIL if VERSION is a pre-release."))
   (defgeneric version-pre-release-for (version)
@@ -52,7 +61,16 @@ stating for which version it is a pre-release."))
   (defgeneric version< (version-1 version-2)
     (:documentation "Returns non-NIL if VERSION-1 is ordered before VERSION-2."))
   (defgeneric version-string (version)
-    (:documentation "Return a string that represents VERSION.")))
+    (:documentation "Return a string that represents VERSION."))
+
+  (defun version<= (version1 version2)
+    "Given two version strings, return T if the second is newer or the same"
+    (not (version< version2 version1)))
+  (defun version= (version1 version2)
+    "Given two version strings, return T if the first is newer or the same and
+the second is also newer or the same."
+    (and (version<= version1 version2)
+         (version<= version2 version1))))
 
 ;; Semantic version class
 (with-upgradability ()
@@ -213,6 +231,11 @@ If VERSION-STRING is otherwise invalid, a VERSION-STRING-INVALID-ERROR is signal
     (or (and pre-release-segment-1 (null pre-release-segment-2))
         (lexicographic< 'semver-pre-release-segment-< pre-release-segment-1 pre-release-segment-2)))
 
+  (defmethod version-next ((version semantic-version))
+    (with-slots (core-segment) version
+      (let ((new-core-segment (copy-list core-segment)))
+        (incf (car (last new-core-segment)))
+        (make-version (format nil "~{~D~^.~}" new-core-segment) :class (class-of version)))))
   (defmethod version-pre-release-p ((version semantic-version))
     (with-slots (pre-release-segment) version
       (not (null pre-release-segment))))
@@ -257,63 +280,14 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
                              (equal "beta" (first pre-release-segment))
                              (equal "rc" (first pre-release-segment)))
                          (integerp (second pre-release-segment))))
-          (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by an integer."))))))
+          (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by an integer.")))))
 
-(with-upgradability ()
-  (defun unparse-version (version-list)
-    "From a parsed version (a list of natural numbers), compute the version string"
-    (format nil "~{~D~^.~}" version-list))
-
-  (defun parse-version (version-string &optional on-error)
-    "Parse a VERSION-STRING as a series of natural numbers separated by dots.
-Return a (non-null) list of integers if the string is valid;
-otherwise return NIL.
-
-When invalid, ON-ERROR is called as per CALL-FUNCTION before to return NIL,
-with format arguments explaining why the version is invalid.
-ON-ERROR is also called if the version is not canonical
-in that it doesn't print back to itself, but the list is returned anyway."
-    (block nil
-      (unless (stringp version-string)
-        (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
-        (return))
-      (unless (loop :for prev = nil :then c :for c :across version-string
-                    :always (or (digit-char-p c)
-                                (and (eql c #\.) prev (not (eql prev #\.))))
-                    :finally (return (and c (digit-char-p c))))
-        (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
-                       'parse-version version-string)
-        (return))
-      (let* ((version-list
-               (mapcar #'parse-integer (split-string version-string :separator ".")))
-             (normalized-version (unparse-version version-list)))
-        (unless (equal version-string normalized-version)
-          (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
-        version-list)))
-
-  (defun next-version (version)
-    "When VERSION is not nil, it is a string, then parse it as a version, compute the next version
-and return it as a string."
-    (when version
-      (let ((version-list (parse-version version)))
-        (incf (car (last version-list)))
-        (unparse-version version-list))))
-
+  (defmethod version-next ((version string))
+    (version-next (make-version version)))
   (defmethod version< ((version1 string) version2)
     (version< (make-version version1) version2))
   (defmethod version< (version1 (version2 string))
-    (version< version1 (make-version version2)))
-
-  (defun version<= (version1 version2)
-    "Given two version strings, return T if the second is newer or the same"
-    (not (version< version2 version1))))
-
-  (defun version= (version1 version2)
-    "Given two version strings, return T if the first is newer or the same and
-the second is also newer or the same."
-    (and (version<= version1 version2)
-         (version<= version2 version1)))
-
+    (version< version1 (make-version version2))))
 
 (with-upgradability ()
   (define-condition deprecated-function-condition (condition)
@@ -359,14 +333,14 @@ the second is also newer or the same."
       ((:error) (cerror "USE FUNCTION ANYWAY" 'deprecated-function-error :name name))))
 
   (defun version-deprecation (version &key (style-warning nil)
-                                        (warning (next-version style-warning))
-                                        (error (next-version warning))
-                                        (delete (next-version error)))
+                                        (warning (version-next style-warning))
+                                        (error (version-next warning))
+                                        (delete (version-next error)))
     "Given a VERSION string, and the starting versions for notifying the programmer of
 various levels of deprecation, return the current level of deprecation as per WITH-DEPRECATION
 that is the highest level that has a declared version older than the specified version.
 Each start version for a level of deprecation can be specified by a keyword argument, or
-if left unspecified, will be the NEXT-VERSION of the immediate lower level of deprecation."
+if left unspecified, will be the VERSION-NEXT of the immediate lower level of deprecation."
     (cond
       ((and delete (version<= delete version)) :delete)
       ((and error (version<= error version)) :error)
@@ -430,3 +404,51 @@ from instrumentation by enclosing it in a PROGN."
                                 form)))
                  (t
                   form))))))))
+
+;; All of these were deprecated in 3.4
+(with-upgradability ()
+  (with-deprecation ((version-deprecation *uiop-version* :style-warning "3.4" :delete "4.0"))
+    (defun unparse-version (version-list)
+      "DEPRECATED. Use VERSION-STRING instead.
+
+From a parsed version (a list of natural numbers), compute the version string"
+      (format nil "~{~D~^.~}" version-list))
+
+    (defun parse-version (version-string &optional on-error)
+      "DEPRECATED. Use MAKE-VERSION instead.
+
+Parse a VERSION-STRING as a series of natural numbers separated by dots.
+Return a (non-null) list of integers if the string is valid;
+otherwise return NIL.
+
+When invalid, ON-ERROR is called as per CALL-FUNCTION before to return NIL,
+with format arguments explaining why the version is invalid.
+ON-ERROR is also called if the version is not canonical
+in that it doesn't print back to itself, but the list is returned anyway."
+      (block nil
+        (unless (stringp version-string)
+          (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
+          (return))
+        (unless (loop :for prev = nil :then c :for c :across version-string
+                      :always (or (digit-char-p c)
+                                  (and (eql c #\.) prev (not (eql prev #\.))))
+                      :finally (return (and c (digit-char-p c))))
+          (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
+                         'parse-version version-string)
+          (return))
+        (let* ((version-list
+                 (mapcar #'parse-integer (split-string version-string :separator ".")))
+               (normalized-version (unparse-version version-list)))
+          (unless (equal version-string normalized-version)
+            (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
+          version-list)))
+
+    (defun next-version (version)
+      "DEPRECATED. Use VERSION-NEXT instead.
+
+When VERSION is not nil, it is a string, then parse it as a version, compute the next version
+and return it as a string."
+      (when version
+        (let ((version-list (parse-version version)))
+          (incf (car (last version-list)))
+          (unparse-version version-list))))))
