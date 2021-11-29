@@ -111,22 +111,22 @@ Upgrade test:
   extends: .Upgrade test template
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clasp, clisp, cmucl, ecl, sbcl]
+      - l: [abcl, allegro, ccl, clasp, clisp, ecl, sbcl]
         IMAGE_TAG: latest
       - l: allegro
         IMAGE_TAG: latest
         variant: modern
 
-# No more tests are known to fail. But leave commented out in case it needs to
-# be resurrected.
-
-# Upgrade test known failure:
-#   extends: .Upgrade test template
-#   parallel:
-#     matrix:
-#       - l: []
-#         IMAGE_TAG: latest
-#   allow_failure: true
+Upgrade test known failure:
+  extends: .Upgrade test template
+  parallel:
+    matrix:
+      # CMUCL fails due to CLOS bugs. 3.4 adds a new slot to SYSTEM, which
+      # causes "Error in function KERNEL:CLASS-TYPEP: Class is currently
+      # invalid: #<KERNEL::STANDARD-CLASS ASDF/SYSTEM:SYSTEM {60F43685}>"
+      - l: [cmucl]
+        IMAGE_TAG: latest
+  allow_failure: true
 
 .REQUIRE upgrade test template:
   extends: .Upgrade test template
@@ -141,14 +141,11 @@ REQUIRE upgrade test:
     ASDF_UPGRADE_TEST_TAGS: REQUIRE
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clisp, cmucl, ecl, sbcl]
+      - l: [abcl, allegro, ccl, clisp, ecl, sbcl]
         IMAGE_TAG: latest
       - l: allegro
         IMAGE_TAG: latest
         variant: modern
-
-# No more tests are known to fail. But leave commented out in case it needs to
-# be resurrected.
 
 REQUIRE upgrade test known failure:
   extends: .REQUIRE upgrade test template
@@ -156,6 +153,10 @@ REQUIRE upgrade test known failure:
     ASDF_UPGRADE_TEST_TAGS: REQUIRE
   parallel:
     matrix:
+      # CMUCL fails due to CLOS bugs. 3.4 adds a new slot to SYSTEM, which
+      # causes "Error in function KERNEL:CLASS-TYPEP: Class is currently
+      # invalid: #<KERNEL::STANDARD-CLASS ASDF/SYSTEM:SYSTEM {60F43685}>"
+      - l: [cmucl]
       - l: [clasp]
         IMAGE_TAG: latest
   allow_failure: true
