@@ -58,25 +58,6 @@
 
 (assert (make-operation 'my-good-operation))
 
-
-;; This test exercises the backward-compatibility mechanism of operation,
-;; whereby traditional unqualified operations are implicitly downward and sideward
-(defclass trivial-operation (operation) ())
-
-(assert-equal
- (loop :for (o . c) :in (traverse 'trivial-operation '(:test-asdf/test-module-depend "quux"))
-       :collect (cons (type-of o) (component-find-path c)))
- '((trivial-operation "test-asdf/test-module-depend" "file1")
-   (trivial-operation "test-asdf/test-module-depend" "quux" "file2")
-   (trivial-operation "test-asdf/test-module-depend" "quux" "file3mod" "file3")
-   (trivial-operation "test-asdf/test-module-depend" "quux" "file3mod")
-   (trivial-operation "test-asdf/test-module-depend" "quux")))
-
-(operate 'trivial-operation 'test-asdf/test-module-depend)
-;;; this test intended to catch a bug in operate :around method in operate.lisp,
-;;; thanks to Jan Moringen [2014/08/10:rpg]
-(operate (make-operation 'trivial-operation) 'test-asdf/test-module-depend)
-
 ;;; operations should only be made by MAKE-OPERATION, and now we enforce this.
 (signals system-definition-error
     (make-instance 'load-op))
