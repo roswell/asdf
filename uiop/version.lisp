@@ -369,10 +369,10 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
     (declare (ignore strip-pre-release-p))
     (ecase operator
       (:and
-       (every (lambda (subc) (apply #'version-constraint-satisfied-p version subc args))
+       (every (lambda (subc) (apply 'version-constraint-satisfied-p version subc args))
               subcs))
       (:or
-       (some (lambda (subc) (apply #'version-constraint-satisfied-p version subc args))
+       (some (lambda (subc) (apply 'version-constraint-satisfied-p version subc args))
              subcs))))
 
   (defun compatible-version-constraint-p (constraint)
@@ -392,7 +392,7 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
                        version)))
       (and (not (version< version requested))
            (or (null compatible-versions)
-               (apply #'version-constraint-satisfied-p requested compatible-versions
+               (apply 'version-constraint-satisfied-p requested compatible-versions
                       (remove-plist-key :compatible-versions args))))))
 
   (defun version-constraint-satisfied-p (version constraint &rest args &key strip-pre-release-p)
