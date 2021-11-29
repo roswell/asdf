@@ -96,7 +96,19 @@ stating for which version it is a pre-release.")
     (:method ((version1 string) version2)
       (version< (make-version version1) version2))
     (:method (version1 (version2 string))
-      (version< version1 (make-version version2))))
+      (version< version1 (make-version version2)))
+    (:method (version1 (version2 null))
+      "This method doesn't make a lot of sense, but it it here to maintain
+backward compatibility with the behavior of VERSION< prior to 3.4."
+      nil)
+    (:method ((version1 null) version2)
+      "This method doesn't make a lot of sense, but it it here to maintain
+backward compatibility with the behavior of VERSION< prior to 3.4."
+      t)
+    (:method ((version1 null) (version2 null))
+      "This method doesn't make a lot of sense, but it it here to maintain
+backward compatibility with the behavior of VERSION< prior to 3.4."
+      nil))
   (defgeneric version-string (version)
     (:documentation "Return a string that represents VERSION.")
     (:method ((version string))
