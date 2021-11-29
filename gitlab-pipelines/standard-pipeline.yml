@@ -111,7 +111,7 @@ Upgrade test:
   extends: .Upgrade test template
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clasp, clisp, ecl, sbcl]
+      - l: [allegro, ccl, clasp, clisp, ecl, sbcl]
         IMAGE_TAG: latest
       - l: allegro
         IMAGE_TAG: latest
@@ -124,7 +124,10 @@ Upgrade test known failure:
       # CMUCL fails due to CLOS bugs. 3.4 adds a new slot to SYSTEM, which
       # causes "Error in function KERNEL:CLASS-TYPEP: Class is currently
       # invalid: #<KERNEL::STANDARD-CLASS ASDF/SYSTEM:SYSTEM {60F43685}>"
-      - l: [cmucl]
+      #
+      # ABCL fails due to compiler macros being called for generic functions
+      # locally declared NOTINLINE. See https://abcl.org/trac/ticket/487
+      - l: [cmucl, abcl]
         IMAGE_TAG: latest
   allow_failure: true
 
@@ -141,7 +144,7 @@ REQUIRE upgrade test:
     ASDF_UPGRADE_TEST_TAGS: REQUIRE
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clisp, ecl, sbcl]
+      - l: [allegro, ccl, clisp, ecl, sbcl]
         IMAGE_TAG: latest
       - l: allegro
         IMAGE_TAG: latest
@@ -157,6 +160,9 @@ REQUIRE upgrade test known failure:
       # causes "Error in function KERNEL:CLASS-TYPEP: Class is currently
       # invalid: #<KERNEL::STANDARD-CLASS ASDF/SYSTEM:SYSTEM {60F43685}>"
       - l: [cmucl]
+      # ABCL fails due to compiler macros being called for generic functions
+      # locally declared NOTINLINE. See https://abcl.org/trac/ticket/487
+      - l: [abcl]
       - l: [clasp]
         IMAGE_TAG: latest
   allow_failure: true
