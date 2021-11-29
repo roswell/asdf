@@ -44,6 +44,11 @@
   :pathname #.*test-directory*
   :version "1.2")
 
+(def-test-system :versioned-system-4
+  :pathname #.*test-directory*
+  :version "2.1"
+  :compatible-versions (:>= "2.0"))
+
 (def-test-system :versioned-system-file-form
   :defsystem-depends-on ((:version :test-asdf/2 "2.1"))
   :pathname #.*test-directory*
@@ -61,6 +66,7 @@
 (vtest :versioned-system-1 "1.0")
 (vtest :versioned-system-2 "1.0")
 (vtest :versioned-system-3 "2.0" nil)
+(vtest :versioned-system-4 "2.0")
 (vtest :versioned-system-file-form "1.0")
 (vtest :versioned-system-file-line "1.0")
 ;; version UNmatching
@@ -72,4 +78,5 @@
 (vtest :versioned-system-3 "1.2")
 (vtest :versioned-system-3 "1.1")
 (vtest :versioned-system-3 "1.1.1")
-
+(vtest :versioned-system-4 "1.2" nil)
+(vtest :versioned-system-4 "2.3" nil)
