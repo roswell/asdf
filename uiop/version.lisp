@@ -96,10 +96,12 @@ stating for which version it is a pre-release.")
     (:method (version1 (version2 null))
       "This method doesn't make a lot of sense, but it it here to maintain
 backward compatibility with the behavior of VERSION< prior to 3.4."
+      (declare (ignore version1))
       nil)
     (:method ((version1 null) version2)
       "This method doesn't make a lot of sense, but it it here to maintain
 backward compatibility with the behavior of VERSION< prior to 3.4."
+      (declare (ignore version2))
       t)
     (:method ((version1 null) (version2 null))
       "This method doesn't make a lot of sense, but it it here to maintain
