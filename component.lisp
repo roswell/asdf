@@ -90,6 +90,7 @@ or NIL for top-level components (a.k.a. systems)"))
                (format s (compatfmt "~@<Error while defining system: multiple components are given same name ~S~@:>")
                        (duplicate-names-name c))))))
 
+
 (with-upgradability ()
   (defclass component ()
     ((name :accessor component-name :initarg :name :type string :documentation
