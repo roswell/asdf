@@ -35,10 +35,6 @@ make sure this is always set to the non-pre-release version.")
     (:documentation
      "The base class of version specifiers."))
 
-  (defmethod print-object ((version version-object) stream)
-    (print-unreadable-object (version stream :type t :identity t)
-      (format stream "~A" (version-string version))))
-
   (define-condition version-string-invalid-error (error)
     ((%version-string
       :initarg :version-string
@@ -122,7 +118,11 @@ backward compatibility with the behavior of VERSION< prior to 3.4."
     "Given two version strings, return T if the first is newer or the same and
 the second is also newer or the same."
     (and (version<= version1 version2)
-         (version<= version2 version1))))
+         (version<= version2 version1)))
+
+  (defmethod print-object ((version version-object) stream)
+    (print-unreadable-object (version stream :type t :identity t)
+      (format stream "~A" (version-string version)))))
 
 ;; Semantic version class
 (with-upgradability ()
