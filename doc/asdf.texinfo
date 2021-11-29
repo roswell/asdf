@@ -1826,7 +1826,8 @@ The second segment is optional and contains pre-release
 information. If present, the pre-release segment must be separated
 from the first by a @code{#\-} character. This segment consists of a
 ``category'' (@code{alpha}, @code{beta}, or @code{rc}), optionally
-followed by @code{#\.} character and a non-negative integer.
+followed by one or two non-negative integers, separated from the
+catagory and easch other by a @code{#\.} character.
 
 Examples of valid specifiers include:
 

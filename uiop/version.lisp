@@ -314,8 +314,8 @@ If VERSION-STRING is otherwise invalid, a VERSION-STRING-INVALID-ERROR is signal
     (:documentation
      "A version specifier that parses and orders identically to
 SEMANTIC-VERSION. However, no build metadata is allowed and the pre-release
-segment can consist of at most two identifiers. The first must be \"alpha\",
-\"beta\", or \"rc\". The second must be an integer."))
+segment can consist of at most three identifiers. The first must be \"alpha\",
+\"beta\", or \"rc\". The second and third (if they exist) must be integers."))
 
   (defmethod initialize-instance :after ((version default-version) &key version-string)
     (with-slots (pre-release-segment build-metadata-segment) version
@@ -325,16 +325,12 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
         (unless (null build-metadata-segment)
           (invalid "The build metadata segment must not exist."))
         (unless (or (null pre-release-segment)
-                    (and (= 1 (length pre-release-segment))
-                         (or (equal "alpha" (first pre-release-segment))
-                             (equal "beta" (first pre-release-segment))
-                             (equal "rc" (first pre-release-segment))))
-                    (and (= 2 (length pre-release-segment))
+                    (and (<= (length pre-release-segment) 3)
                          (or (equal "alpha" (first pre-release-segment))
                              (equal "beta" (first pre-release-segment))
                              (equal "rc" (first pre-release-segment)))
-                         (integerp (second pre-release-segment))))
-          (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by an integer."))))))
+                         (every #'integerp (rest pre-release-segment))))
+          (invalid "The pre-release segment must be absent or consist of \"alpha\", \"beta\", or \"rc\", optionally followed by up to two integers."))))))
 
 (with-upgradability ()
   (defun simple-version-constraint-p (constraint)

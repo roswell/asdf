@@ -94,9 +94,9 @@ previously-loaded version of ASDF."
          ;; Relying on its automation, the version is now redundantly present on top of asdf.lisp.
          ;; "3.4" would be the general branch for major version 3, minor version 4.
          ;; "3.4.5" would be an official release in the 3.4 branch.
-         ;; "3.4.5.67" would be a development version in the official branch, on top of 3.4.5.
-         ;; "3.4.5.0.8" would be your eighth local modification of official release 3.4.5
-         ;; "3.4.5.67.8" would be your eighth local modification of development version 3.4.5.67
+         ;; "3.4.6-alpha.1" would be a development version in the official branch, on top of 3.4.5.
+         ;; "3.4.5.8" would be your eighth local modification of official release 3.4.5
+         ;; "3.4.6-alpha.1.8" would be your eighth local modification of development version 3.4.6-alpha.1
          (asdf-version "3.4.0-alpha.1")
          (existing-version (asdf-version)))
     (setf *asdf-version* asdf-version)
