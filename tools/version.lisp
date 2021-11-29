@@ -10,8 +10,9 @@
 
 (defun version-from-file (&optional commit)
   (if commit
-      (nth-value 2 (git `(show (,commit":version.lisp-expr")) :output :form))
-      (safe-read-file-form (pn "version.lisp-expr"))))
+      (or (ignore-errors (nth-value 2 (git `(show (,commit":full-version.lisp-expr")) :output :form)))
+          (nth-value 2 (git `(show (,commit":version.lisp-expr")) :output :form)))
+      (safe-read-file-form (pn "full-version.lisp-expr"))))
 
 (defun debian-version-from-file (&optional commit)
   (match (if commit
@@ -40,7 +41,8 @@
 ;;; Bumping the version of ASDF
 
 (defparameter *versioned-files*
-  '(("version.lisp-expr" "\"" "\"")
+  '(("full-version.lisp-expr" "\"" "\"")
+    ("full-version.lisp-expr" "\"" "\"" t)
     ("uiop/version.lisp" "(defparameter *uiop-version* \"" "\")")
     ("asdf.asd" "  :version \"" "\" ;; to be automatically updated by make bump-version")
     ("header.lisp" "This is ASDF " ": Another System Definition Facility.")
@@ -93,7 +95,10 @@
           (format t "done.~%"))))
   (success))
 
-(defun version-transformer (new-version file prefix suffix &optional dont-warn)
+(defun version-transformer (new-version file prefix suffix &key dont-warn strip-pre-release)
+  (let ((--position (position #\- new-version)))
+    (when (and strip-pre-release (not (null --position)))
+      (setf new-version (subseq new-version 0 --position))))
   (let* ((qprefix (cl-ppcre:quote-meta-chars prefix))
          (versionrx "([0-9]+(\\.[0-9]+)+(-[a-zA-Z0-9_.-]+)?)")
          (qsuffix (cl-ppcre:quote-meta-chars suffix))
@@ -107,8 +112,9 @@
           (warn "Missing version in ~A" (file-namestring file)))
         (values new-text foundp)))))
 
-(defun transform-file (new-version file prefix suffix)
-  (maybe-replace-file (pn file) (version-transformer new-version file prefix suffix)))
+(defun transform-file (new-version file prefix suffix &optional strip-pre-release)
+  (maybe-replace-file (pn file) (version-transformer new-version file prefix suffix
+                                                     :strip-pre-release strip-pre-release)))
 
 (defun transform-files (new-version)
   (loop :for f :in *versioned-files* :do (apply 'transform-file new-version f))
@@ -118,7 +124,7 @@
   (let ((lines (read-file-lines (pn file))))
     (dolist (l lines (progn (warn "Couldn't find a match in ~A" file) nil))
       (multiple-value-bind (new-text foundp)
-          (funcall (version-transformer new-version file prefix suffix t) l)
+          (funcall (version-transformer new-version file prefix suffix :dont-warn t) l)
         (when foundp
           (format t "Found a match:~%  ==> ~A~%Replacing with~%  ==> ~A~%~%"
                   l new-text)

@@ -23,7 +23,7 @@
 ;; and compulsory to sort them in defsystem-depends-on order.
 #+asdf3
 (defsystem "asdf/prelude"
-  :version (:read-file-form "version.lisp-expr")
+  :version (:read-file-form "full-version.lisp-expr")
   :around-compile call-without-redefinition-warnings ;; we need be the same as uiop
   :encoding :utf-8
   :components ((:file "header")))
@@ -51,7 +51,7 @@
   :bug-tracker "https://launchpad.net/asdf/"
   :mailto "asdf-devel@common-lisp.net"
   :source-control (:git "git://common-lisp.net/projects/asdf/asdf.git")
-  :version (:read-file-form "version.lisp-expr")
+  :version (:read-file-form "full-version.lisp-expr")
   :build-operation monolithic-concatenate-source-op
   :build-pathname "build/asdf" ;; our target
   :around-compile call-without-redefinition-warnings ;; we need be the same as uiop

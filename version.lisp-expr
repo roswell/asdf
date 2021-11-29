@@ -1,2 +1,5 @@
-"3.4.0-alpha.1"
+;; This must contain the version without pre-release info, as versions of ASDF
+;; earlier than 3.4 use this file to determine if they should self-upgrade and
+;; they are unable to parse pre-release info.
+"3.4.0"
 

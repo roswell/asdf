@@ -149,7 +149,8 @@ Do NOT try to load a .asd file directly with CL:LOAD. Always use ASDF:LOAD-ASD."
         (null pathname)
         (let* ((asdfp (equal name "asdf")) ;; otherwise, it's uiop
                (version-pathname
-                (subpathname pathname "version" :type (if asdfp "lisp-expr" "lisp")))
+                 (subpathname pathname (if asdfp "full-version" "version")
+                              :type (if asdfp "lisp-expr" "lisp")))
                (version (and (probe-file* version-pathname :truename nil)
                              (read-file-form version-pathname :at (if asdfp '(0) '(2 2 2)))))
                (old-version (asdf-version)))

@@ -32,7 +32,7 @@ else
   endif
 endif
 
-version := $(shell cat "version.lisp-expr")
+version := $(shell cat "full-version.lisp-expr")
 #$(info $$version is [${version}])
 version := $(patsubst "%",%,$(version))
 #$(info $$version is [${version}])
@@ -119,8 +119,8 @@ load: build/asdf.lisp
 install: archive
 
 bump: bump-version
-	git commit -a -m "Bump version to $$(eval a=$$(cat version.lisp-expr) ; echo $$a)"
-	temp=$$(cat version.lisp-expr); temp="$${temp%\"}"; temp="$${temp#\"}"; git tag $$temp
+	git commit -a -m "Bump version to $$(eval a=$$(cat full-version.lisp-expr) ; echo $$a)"
+	temp=$$(cat full-version.lisp-expr); temp="$${temp%\"}"; temp="$${temp#\"}"; git tag $$temp
 
 bump-version: build/asdf.lisp
 	./bin/bump-version ${v}
@@ -143,7 +143,7 @@ archive: build/asdf.lisp
 	rm -r build/$(UIOPDIR)
 	$(eval ASDFDIR := "asdf-$(version)")
 	mkdir -p build/$(ASDFDIR) # asdf-defsystem tarball
-	cp -pHux build/asdf.lisp asdf.asd version.lisp-expr header.lisp README.md ${defsystem_lisp} build/$(ASDFDIR)
+	cp -pHux build/asdf.lisp asdf.asd full-version.lisp-expr version.lisp-expr header.lisp README.md ${defsystem_lisp} build/$(ASDFDIR)
 	tar zcf "build/asdf-defsystem-${version}.tar.gz" -C build $(ASDFDIR)
 	rm -r build/$(ASDFDIR)
 	git archive --worktree-attributes --prefix="asdf-$(version)/" --format=tar -o "build/asdf-${version}.tar" ${version} #asdf-all tarball

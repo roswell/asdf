@@ -4,6 +4,7 @@ use FindBin;
 use Getopt::Long;
 our $old;
 our $new;
+our $new_no_pre_release;
 our $usage = 0;
 
 &GetOptions("help"=>\$usage,
@@ -18,16 +19,17 @@ if ($usage) {
 }
 
 our $asdf_dir = $FindBin::RealBin . "/../";
-our $file = $asdf_dir . "version.lisp-expr";
+our $file = $asdf_dir . "full-version.lisp-expr";
 
 our @transform_ref =
   (
-   [ "version.lisp-expr", "\"", "\"" ],
-   [ "uiop/version.lisp", "(defparameter *uiop-version* \"", "\")" ],
-   [ "asdf.asd", "  :version \"", "\" ;; to be automatically updated by make bump-version" ],
-   [ "header.lisp", "This is ASDF ", ": Another System Definition Facility." ],
-   [ "upgrade.lisp", "(asdf-version \"", "\")" ],
-   [ "doc/asdf.texinfo", "Manual for Version ", "" ], );
+   [ "version.lisp-expr", "\"", "\"",  1],
+   [ "full-version.lisp-expr", "\"", "\"",  0],
+   [ "uiop/version.lisp", "(defparameter *uiop-version* \"", "\")", 0 ],
+   [ "asdf.asd", "  :version \"", "\" ;; to be automatically updated by make bump-version", 0 ],
+   [ "header.lisp", "This is ASDF ", ": Another System Definition Facility.", 0 ],
+   [ "upgrade.lisp", "(asdf-version \"", "\")", 0 ],
+   [ "doc/asdf.texinfo", "Manual for Version ", "", 0 ], );
 
 if ($#ARGV == 1) {
   $old = $ARGV[0];
@@ -39,6 +41,9 @@ if ($#ARGV == 1) {
   $old = read_asdf_version();
   $new = bump_asdf_version($old);
 }
+
+$new_no_pre_release = $new;
+$new_no_pre_release =~ s/-.*//g;
 
 print STDERR "Bumping from $old to $new\n";
 transform_files();
@@ -65,12 +70,18 @@ sub transform_files {
   foreach my $entryptr (@transform_ref) {
     my @entry = @{$entryptr};
     my $file = $entry[0];
+    my $strip_pre_release = $entry[3];
     print STDERR "Modifying file $file\n";
     print STDERR "Prefix is $entry[1], suffix is $entry[2]\n";
     my $regex = "(" . quotemeta($entry[1]) . ")" . "((\\d+\\.)+\\d+(\\-[a-zA-Z0-9_.-]+)?)" . "(" . quotemeta($entry[2]) .")";
     my $filename = $asdf_dir . $file;
     my $data = read_text($filename);
-    my $count = ($data =~ s/$regex/$1$new$5/g);
+    my $count;
+    if ($strip_pre_release) {
+        $count = ($data =~ s/$regex/$1$new_no_pre_release$5/g);
+    } else {
+        $count = ($data =~ s/$regex/$1$new$5/g);
+    }
     if ($count == 0) {
       die "Unable to replace $regex with $1$new$5";
     }

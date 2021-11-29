@@ -276,7 +276,10 @@ How do I navigate this source tree?
         the lisp scripting variants of the build system.
 
 *   [version.lisp-expr](version.lisp-expr)
-    *   The current version. Bumped up every time the code changes, using:
+    [full-version.lisp-expr](full-version.lisp-expr)
+    *   The current version. The `full-version.lisp-expr` file contains
+        pre-release information, `version.lisp-expr` does not. Bumped up every
+        time the code changes, using:
 
             make bump
 
