@@ -481,9 +481,9 @@ which is probably not what you want; you probably need to tweak your output tran
         (let ((*package* (find-package :asdf-user)))
           (pprint `(defsystem ,name
                      :class prebuilt-system
-                     :version ,(version-string version)
                      :depends-on ,depends-on
                      :components ((:compiled-file ,(pathname-name fasl)))
+                     ,@(when version `(:version ,(version-string version)))
                      ,@(when library `(:lib ,(file-namestring library))))
                   s)
           (terpri s)))))
