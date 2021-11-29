@@ -54,18 +54,12 @@
 (defparameter *new-version* :default)
 
 (defun compute-next-version (v)
-  (let ((pv (parse-version v 'error)))
-    (assert (first pv))
-    (assert (second pv))
-    (unless (third pv) (appendf pv (list 0)))
-    (unless (fourth pv) (appendf pv (list 0)))
-    (incf (car (last pv)))
-    (unparse-version pv)))
+  (version-string (version-next v)))
 
 (defun versions-from-args (&optional v1 v2)
   (labels ((check (old new)
-             (parse-version old 'error)
-             (parse-version new 'error)
+             (make-version old)
+             (make-version new)
              (values old new)))
     (cond
       ((and v1 v2) (check v1 v2))

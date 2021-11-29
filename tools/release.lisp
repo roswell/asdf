@@ -197,7 +197,7 @@
   (break) ;; for each function, offer to do it or not (?)
   (with-asdf-dir ()
     (let ((log (newlogfile "release" "all"))
-          (releasep (= (length (parse-version new-version)) 3)))
+          (releasep (not (uiop:version-pre-release-p (make-version new-version)))))
       (when releasep
         (let ((debian-version (debian-version-from-file)))
           (unless (equal new-version (parse-debian-version debian-version))
