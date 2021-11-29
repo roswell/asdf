@@ -199,7 +199,10 @@ If OUTPUT is a PATHNAME, open the file and write to it, passing ELEMENT-TYPE to 
 Otherwise, signal an error."
     (etypecase output
       (null
-       (with-output-to-string (stream nil :element-type element-type) (funcall function stream)))
+       ;; SBCL emits an annoying note here because it can't stack allocate the
+       ;; initial buffer if the element-type isn't known at compile time.
+       (locally (declare #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
+         (with-output-to-string (stream nil :element-type element-type) (funcall function stream))))
       ((eql t)
        (funcall function *standard-output*))
       (stream
@@ -390,8 +393,12 @@ Otherwise, using WRITE-SEQUENCE using a buffer of size BUFFER-SIZE."
     "Read the contents of the INPUT stream as a string"
     (let ((string
             (with-open-stream (input input)
-              (with-output-to-string (output nil :element-type element-type)
-                (copy-stream-to-stream input output :element-type element-type)))))
+              ;; SBCL emits an annoying note here because it can't stack
+              ;; allocate the initial buffer if the element-type isn't known at
+              ;; compile time.
+              (locally (declare #+sbcl (sb-ext:muffle-conditions sb-ext:compiler-note))
+                (with-output-to-string (output nil :element-type element-type)
+                  (copy-stream-to-stream input output :element-type element-type))))))
       (if stripped (stripln string) string)))
 
   (defun slurp-stream-lines (input &key count)
