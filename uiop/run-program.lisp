@@ -424,7 +424,7 @@ or whether it's already taken care of by the implementation's underlying run-pro
                        'run-program :stream))
     #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
     (let (#+(or abcl ecl mkcl)
-            (version (parse-version
+            (version (make-version
                       #-abcl
                       (lisp-implementation-version)
                       #+abcl
@@ -570,8 +570,8 @@ or an indication of failure via the EXIT-CODE of the process"
                             #-(or allegro clisp clozure sbcl) (os-cond ((os-windows-p) t))))
                    #+(or clasp clisp cormanlisp gcl (and lispworks os-windows) mcl xcl) t
                    ;; A race condition in ECL <= 16.0.0 prevents using ext:run-program
-                   #+ecl #.(if-let (ver (parse-version (lisp-implementation-version)))
-                                   (lexicographic<= '< ver '(16 0 0)))
+                   #+ecl #.(if-let (ver (make-version (lisp-implementation-version)))
+                             (version<= ver "16.0.0"))
                    #+(and lispworks os-unix) (%interactivep input output error-output))
                '%use-system '%use-launch-program)
            command keys)))
