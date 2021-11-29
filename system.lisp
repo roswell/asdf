@@ -9,7 +9,7 @@
    #:system-source-file #:system-source-directory #:system-relative-pathname
    #:system-description #:system-long-description
    #:system-author #:system-maintainer #:system-licence #:system-license
-   #:system-version
+   #:system-version #:system-compatible-versions
    #:definition-dependency-list #:definition-dependency-set #:system-defsystem-depends-on
    #:system-depends-on #:system-weakly-depends-on
    #:component-build-pathname #:build-pathname
@@ -104,7 +104,10 @@ a SYSTEM is redefined and its class is modified."))
                            :initform nil)
      ;; these two are specially set in parse-component-form, so have no :INITARGs.
      (depends-on :reader system-depends-on :initform nil)
-     (weakly-depends-on :reader system-weakly-depends-on :initform nil))
+     (weakly-depends-on :reader system-weakly-depends-on :initform nil)
+     ;; This slot added in ASDF 3.4
+     (compatible-versions :reader system-compatible-versions :initarg :compatible-versions
+                          :initform nil))
     (:documentation "SYSTEM is the base class for top-level components that users may request
 ASDF to build."))
 
@@ -262,3 +265,13 @@ return the absolute pathname of a corresponding file under that system's source 
   (defmethod component-build-pathname ((c component))
     nil))
 
+;;;; version-satisfies
+(with-upgradability ()
+  (defmethod version-satisfies ((c system) version)
+    (let ((component-version (nth-value 1 (component-version c))))
+      (unless (and version component-version)
+        (when version
+          (warn "Requested version ~S but ~S has no version" version c))
+        (return-from version-satisfies nil))
+      (version-constraint-satisfied-p component-version version
+                                      :compatible-versions (system-compatible-versions c)))))

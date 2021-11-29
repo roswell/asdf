@@ -365,8 +365,8 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
          (member (first constraint) '(:and :or))))
   (defun compound-version-constraint-satisfied-p (operator version subcs
                                                   &rest args
-                                                  &key strip-pre-release-p)
-    (declare (ignore strip-pre-release-p))
+                                                  &key strip-pre-release-p compatible-versions)
+    (declare (ignore strip-pre-release-p compatible-versions))
     (ecase operator
       (:and
        (every (lambda (subc) (apply 'version-constraint-satisfied-p version subc args))
@@ -395,8 +395,10 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
                (apply 'version-constraint-satisfied-p requested compatible-versions
                       (remove-plist-key :compatible-versions args))))))
 
-  (defun version-constraint-satisfied-p (version constraint &rest args &key strip-pre-release-p)
-    (declare (ignore strip-pre-release-p))
+  (defun version-constraint-satisfied-p (version constraint
+                                         &rest args
+                                         &key strip-pre-release-p compatible-versions)
+    (declare (ignore strip-pre-release-p compatible-versions))
     (let ((version (ensure-version version)))
       (cond
         ((simple-version-constraint-p constraint)
@@ -404,7 +406,7 @@ segment can consist of at most two identifiers. The first must be \"alpha\",
                 (first constraint) version
                 (ensure-version (second constraint)
                                 :class (class-of version))
-                args))
+                (remove-plist-key :compatible-versions args)))
         ((compatible-version-constraint-p constraint)
          (let ((requested (ensure-version (if (listp constraint) (second constraint) constraint)
                                           :class (class-of version))))

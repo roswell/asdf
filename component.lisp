@@ -344,11 +344,12 @@ this compilation, or check its results, etc."))
   (defmethod version-satisfies :around ((c t) (version null))
     t)
   (defmethod version-satisfies ((c component) version)
-    (unless (and version (component-version c))
-      (when version
-        (warn "Requested version ~S but ~S has no version" version c))
-      (return-from version-satisfies nil))
-    (version-satisfies (nth-value 1 (component-version c)) version))
+    (let ((component-version (component-version c)))
+      (unless (and version component-version)
+        (when version
+          (warn "Requested version ~S but ~S has no version" version c))
+        (return-from version-satisfies nil))
+      (version-satisfies component-version version)))
 
   (defmethod version-satisfies ((cver version-object) version-constraint)
     (version-constraint-satisfied-p cver version-constraint))
