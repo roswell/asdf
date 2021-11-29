@@ -1803,9 +1803,10 @@ be forced upon you if you were specifying a string.
 @anchor{Version class}
 
 A version class name will be looked up the same way as a component
-type (see above), except that only subclasses of @code{uiop:version}
-are allowed. Typically, one will not need to specify a version class
-name, unless they want to customize their version specifier.
+type (see above), except that only subclasses of
+@code{uiop:version-object} are allowed. Typically, one will not need
+to specify a version class name, unless they want to customize their
+version specifier.
 
 @subsection Version specifiers
 @cindex version specifiers
@@ -1813,9 +1814,9 @@ name, unless they want to customize their version specifier.
 @anchor{Version specifiers}
 
 A version specifier is a string that can be parsed to make an object
-that is a subclass of @code{uiop:version}. The default version class,
-@code{uiop:default-version} accepts strings that are parsed in two
-segments.
+that is a subclass of @code{uiop:version-object}. The default version
+class, @code{uiop:default-version} accepts strings that are parsed in
+two segments.
 
 The first segment denotes the ``core'' version number. It is required
 and must consist of any number of non-negative integers, separated by
@@ -1825,7 +1826,7 @@ The second segment is optional and contains pre-release
 information. If present, the pre-release segment must be separated
 from the first by a @code{#\-} character. This segment consists of a
 ``category'' (@code{alpha}, @code{beta}, or @code{rc}), optionally
-followed by @code{#\.}  character and a non-negative integer.
+followed by @code{#\.} character and a non-negative integer.
 
 Examples of valid specifiers include:
 
@@ -3727,7 +3728,7 @@ extensible so that system implementors may use whichever scheme they
 want.
 
 All version specifiers must parse to an object that is a subclass of
-@code{uiop:version}. The default version class is
+@code{uiop:version-object}. The default version class is
 @code{uiop:default-version}. A system implementor can choose a
 non-default class using the @code{:version-class} argument to
 @code{defsystem}.
@@ -3762,8 +3763,8 @@ Returns non-NIL if @code{version} is a pre-release.
 @deffn {Generic Function} uiop:version-pre-release-for @var{version}
 
 If @code{uiop:version-pre-release-p} is non-NIL, this must return an
-instance of @code{uiop:version} that represents the version for which
-@code{version} is a pre-release.
+instance of @code{uiop:version-object} that represents the version for
+which @code{version} is a pre-release.
 
 If the returned version is @code{final-version},
 @code{(uiop:version-pre-release-p final-version)} must be NIL and
@@ -3776,11 +3777,9 @@ If the returned version is @code{final-version},
 Returns non-NIL if @code{version-1} is ordered before
 @code{version-2}.
 
-UIOP provides two default methods, @code{(uiop:version string)} and
-@code{(string uiop:version)}. Each parses the string as a version
-object (using the equivalent of
-@code{(make-instance (class-of version) :version-string string)} and
-then calls @code{uiop:version<} again.
+UIOP provides default methods that parse strings as
+@code{uiop:default-version} using @code{uiop:make-version} and then
+call @code{uiop:version<} again.
 
 @end deffn
 
@@ -3798,7 +3797,7 @@ Returns the version of @code{component}. Returns two values.
 For backwards compatibility, the first value is the string
 representation of the version, or NIL (if no version is specified or
 it is invalid). The second value is the object that is a subclass of
-@code{uiop:version}.
+@code{uiop:version-object}.
 
 @end deffn
 
@@ -3919,29 +3918,21 @@ break horribly as the code could change drastically before it is fully
 released.
 
 The primary entry point to the version constraint checking logic is
-@code{version-satisfies}.
+@code{uiop:version-constraint-satisfied-p}.
 
-@deffn {Generic Function} version-satisfies @var{version} @var{version-constraint}
+@defun version-constraint-satisfied-p @var{version} @var{version-constraint} &key @var{strip-pre-release-p} @var{compatible-versions}
 
-Does @var{version} satisfy the @var{version-spec}. Returns two values,
-the first is a boolean. If the first is NIL, the second value contains
-a section of the @code{version-constraint} that is not satisfied.
+Returns non-NIL if @var{version} satisfies the @var{version-constraint}.
 
-ASDF provides built-in methods for @var{version} being a @code{component} or @code{string}.
-@var{version-constraint} should be a version constraint specified in the version constraint DSL.
-If @code{version} is a component, its version is extracted before further processing.
+If @var{strip-pre-release-p} is provided and non-NIL, then any
+pre-release information will be unconditionally stripped from
+@var{version}. If it is provided and NIL, then no pre-release
+information is ever stripped from @var{version}.
 
-This function should not need to be specialized.
+If @var{compatible-versions} is non-NIL, it must be a version
+constraint that is used during checking of compatibility constraints.
 
-In versions of ASDF prior to 3.0.1, including the entire ASDF 1 and
-ASDF 2 series, @code{version-satisfies} would also require that the
-version and the version-spec have the same major version number (the
-first integer in the list); if the major version differed, the version
-would be considered as not matching the constraint. But that feature
-was not documented, therefore presumably not relied upon, whereas it
-was a nuisance to several users.
-
-@end deffn
+@end defun
 
 @node Controlling where ASDF searches for systems, Controlling where ASDF saves compiled files, Version specifiers and ASDF, Top
 @comment  node-name,  next,  previous,  up
