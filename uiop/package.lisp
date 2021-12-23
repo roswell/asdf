@@ -98,11 +98,13 @@
     (:report (lambda (c s)
               (format s "No package named ~a" (string (slot-value c 'package-designator))))))
 
-  (defun find-package* (package-designator &optional (error t))
+  (defun find-package* (package-designator &optional (errorp t))
+    "Like CL:FIND-PACKAGE, but by default raises a UIOP:NO-SUCH-PACKAGE-ERROR if the
+  package is not found."
     (let ((package (find-package package-designator)))
       (cond
         (package package)
-        (error (error 'no-such-package-error :package-designator package-designator))
+        (errorp (error 'no-such-package-error :package-designator package-designator))
         (t nil))))
 
   (defun find-symbol* (name package-designator &optional (error t))
