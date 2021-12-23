@@ -49,6 +49,7 @@
    #:package-names #:packages-from-names #:fresh-package-name #:rename-package-away
    #:package-definition-form #:parse-define-package-form
    #:ensure-package #:define-package
+   #:no-such-package-error
    ))
 
 (in-package :uiop/package)
@@ -89,12 +90,21 @@
 ;;;; General purpose package utilities
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
+  (define-condition no-such-package-error (error)
+    ((package-designator
+      :initarg :package-designator
+      :reader package-designator
+      ))
+    (:report (lambda (c s)
+              (format s "No package named ~a" (string (slot-value c 'package-designator))))))
+
   (defun find-package* (package-designator &optional (error t))
     (let ((package (find-package package-designator)))
       (cond
         (package package)
-        (error (error "No package named ~S" (string package-designator)))
+        (error (error 'no-such-package-error :package-designator package-designator))
         (t nil))))
+
   (defun find-symbol* (name package-designator &optional (error t))
     "Find a symbol in a package of given string'ified NAME;
 unlike CL:FIND-SYMBOL, work well with 'modern' case sensitive syntax
@@ -749,7 +759,7 @@ or when loading the package is optional."
               (do-external-symbols (sym pp) (ensure-mix (symbol-name sym) sym package pp shadowed imported inherited)))
       ;; handle import-from packages
       (loop :for (p . syms) :in import-from
-            :for pp = (find-package p) :do
+            :for pp = (find-package* p) :do
               (dolist (sym syms) (ensure-import (symbol-name sym) package pp shadowed imported)))
       ;; handle use-list and mix
       (dolist (p (append use mix))
