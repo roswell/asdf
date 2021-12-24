@@ -641,9 +641,12 @@
 
 (DBG "Test error-checking in DEFINE-PACKAGE")
 (signals uiop:no-such-package-error
- (uiop:define-package #:amb
-   (:use #:cl)
-   (:shadow #:require)
-   (:import-from #:foobar
-                 #:with-gensyms #:shuffle #:when-let #:define-constant)
-   (:export #:amb #:amb-failure #:amb-failure-stack #:+empty-stack+)))
+  (let ((package-name (gentemp "IMPORTER"))
+        (import-package-name (gentemp "IMPORT-FROM")))
+   (eval
+    `(uiop:define-package ,package-name
+       (:use #:cl)
+       (:shadow #:require)
+       (:import-from ,import-package-name
+                     #:with-gensyms #:shuffle #:when-let #:define-constant)
+       (:export #:amb #:amb-failure #:amb-failure-stack #:+empty-stack+)))))
