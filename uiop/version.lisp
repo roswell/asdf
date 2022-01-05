@@ -536,41 +536,12 @@ from instrumentation by enclosing it in a PROGN."
 
 ;; All of these were deprecated in 3.4
 (with-upgradability ()
-  ;; These implement the actual logic of the deprecated functions. Doing it
-  ;; this way ensures that we don't get style warnings when loading UIOP
-  ;; itself.
-  (defun %unparse-version (version-list)
-    (format nil "~{~D~^.~}" version-list))
-  (defun %parse-version (version-string &optional on-error)
-    (block nil
-      (unless (stringp version-string)
-        (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
-        (return))
-      (unless (loop :for prev = nil :then c :for c :across version-string
-                    :always (or (digit-char-p c)
-                                (and (eql c #\.) prev (not (eql prev #\.))))
-                    :finally (return (and c (digit-char-p c))))
-        (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
-                       'parse-version version-string)
-        (return))
-      (let* ((version-list
-               (mapcar #'parse-integer (split-string version-string :separator ".")))
-             (normalized-version (%unparse-version version-list)))
-        (unless (equal version-string normalized-version)
-          (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
-        version-list)))
-  (defun %next-version (version)
-    (when version
-      (let ((version-list (%parse-version version)))
-        (incf (car (last version-list)))
-        (%unparse-version version-list))))
-
   (with-deprecation ((version-deprecation *uiop-version* :style-warning "3.4" :delete "4.0"))
     (defun unparse-version (version-list)
       "DEPRECATED. Use VERSION-STRING instead.
 
 From a parsed version (a list of natural numbers), compute the version string"
-      (%unparse-version version-list))
+      (format nil "~{~D~^.~}" version-list))
 
     (defun parse-version (version-string &optional on-error)
       "DEPRECATED. Use MAKE-VERSION instead.
@@ -583,11 +554,33 @@ When invalid, ON-ERROR is called as per CALL-FUNCTION before to return NIL,
 with format arguments explaining why the version is invalid.
 ON-ERROR is also called if the version is not canonical
 in that it doesn't print back to itself, but the list is returned anyway."
-      (%parse-version version-string on-error))
+      (declare (notinline unparse-version))
+      (block nil
+        (unless (stringp version-string)
+          (call-function on-error "~S: ~S is not a string" 'parse-version version-string)
+          (return))
+        (unless (loop :for prev = nil :then c :for c :across version-string
+                      :always (or (digit-char-p c)
+                                  (and (eql c #\.) prev (not (eql prev #\.))))
+                      :finally (return (and c (digit-char-p c))))
+          (call-function on-error "~S: ~S doesn't follow asdf version numbering convention"
+                         'parse-version version-string)
+          (return))
+        (let* ((version-list
+                 (mapcar #'parse-integer (split-string version-string :separator ".")))
+               (normalized-version (unparse-version version-list)))
+          (unless (equal version-string normalized-version)
+            (call-function on-error "~S: ~S contains leading zeros" 'parse-version version-string))
+          version-list)))
 
     (defun next-version (version)
       "DEPRECATED. Use VERSION-NEXT instead.
 
 When VERSION is not nil, it is a string, then parse it as a version, compute the next version
 and return it as a string."
-      (%next-version version))))
+      (declare (notinline parse-version unparse-version next-version))
+      (when version
+        (let ((version-list (parse-version version)))
+          (incf (car (last version-list)))
+          (unparse-version version-list)))
+      (next-version version))))
