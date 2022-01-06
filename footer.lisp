@@ -83,7 +83,7 @@
     (setf excl:*warn-on-nested-reader-conditionals* uiop/common-lisp::*acl-warn-save*))
 
   ;; Advertise the features we provide.
-  (dolist (f '(:asdf :asdf2 :asdf3 :asdf3.1 :asdf3.2 :asdf3.3)) (pushnew f *features*))
+  (dolist (f '(:asdf :asdf2 :asdf3 :asdf3.1 :asdf3.2 :asdf3.3 :asdf3.4)) (pushnew f *features*))
 
   ;; Provide both lowercase and uppercase, to satisfy more people, especially LispWorks users.
   (provide "asdf") (provide "ASDF")
