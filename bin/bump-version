@@ -26,7 +26,8 @@ our @transform_ref =
    [ "version.lisp-expr", "\"", "\"",  1],
    [ "full-version.lisp-expr", "\"", "\"",  0],
    [ "uiop/version.lisp", "(defparameter *uiop-version* \"", "\")", 0 ],
-   [ "asdf.asd", "  :version \"", "\" ;; to be automatically updated by make bump-version", 0 ],
+   [ "asdf.asd", "  #+asdf3.4 :version #+asdf3.4 \"", "\" ;; to be automatically updated by make bump-version", 0 ],
+   [ "asdf.asd", "  #-asdf3.4 :version #-asdf3.4 \"", "\" ;; to be automatically updated by make bump-version", 1 ],
    [ "header.lisp", "This is ASDF ", ": Another System Definition Facility.", 0 ],
    [ "upgrade.lisp", "(asdf-version \"", "\")", 0 ],
    [ "doc/asdf.texinfo", "Manual for Version ", "", 0 ], );

@@ -49,4 +49,4 @@ you already have a matching UIOP loaded."
    :around-compile call-without-redefinition-warnings
    . #-asdf3.1 () #+asdf3.1
    (:class package-system
-    :version (:read-file-form "version.lisp" :at (2 3 2)))))
+    :version #-asdf3.4 (:read-file-form "version.lisp" :at (2 2 2)) #+asdf3.4 (:read-file-form "version.lisp" :at (2 3 2)))))

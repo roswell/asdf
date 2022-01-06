@@ -23,7 +23,7 @@
 ;; and compulsory to sort them in defsystem-depends-on order.
 #+asdf3
 (defsystem "asdf/prelude"
-  :version (:read-file-form "full-version.lisp-expr")
+  :version #+asdf3.4 (:read-file-form "full-version.lisp-expr") #-asdf3.4 (:read-file-form "version.lisp-expr")
   :around-compile call-without-redefinition-warnings ;; we need be the same as uiop
   :encoding :utf-8
   :components ((:file "header")))
@@ -51,7 +51,7 @@
   :bug-tracker "https://launchpad.net/asdf/"
   :mailto "asdf-devel@common-lisp.net"
   :source-control (:git "git://common-lisp.net/projects/asdf/asdf.git")
-  :version (:read-file-form "full-version.lisp-expr")
+  :version #+asdf3.4 (:read-file-form "full-version.lisp-expr") #-asdf3.4 (:read-file-form "version.lisp-expr")
   :build-operation monolithic-concatenate-source-op
   :build-pathname "build/asdf" ;; our target
   :around-compile call-without-redefinition-warnings ;; we need be the same as uiop
@@ -93,7 +93,10 @@
   :licence "MIT"
   :description "Another System Definition Facility"
   :long-description "ASDF builds Common Lisp software organized into defined systems."
-  :version "3.4.0-alpha.1" ;; to be automatically updated by make bump-version
+  ;; Having two :VERSION arguments makes the bump-version script a bit easier
+  ;; to write for a non-Perl expert.
+  #+asdf3.4 :version #+asdf3.4 "3.4.0-alpha.1" ;; to be automatically updated by make bump-version
+  #-asdf3.4 :version #-asdf3.4 "3.4.0" ;; to be automatically updated by make bump-version
   :depends-on ()
   :components ((:module "build" :components ((:file "asdf"))))
   . #-asdf3 () #+asdf3
