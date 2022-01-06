@@ -186,12 +186,6 @@
   (with-open-file (output name :direction :output :if-exists :supersede)
     (format output string)))
 
-;; Skips the test if terminate-process cannot be called
-(defun my-terminate-process (&rest rest)
-  #+ecl (unless (find-symbol* '#:terminate-process :ext nil)
-          (error 'test-skipped :reason "ext:terminate-process missing"))
-  (apply #'terminate-process rest))
-
 (defmacro expected-unimplemented ((impl-or-impl-list &key test-designator)
                                   &body body)
   (let* ((impl-list (if (listp impl-or-impl-list)
@@ -205,6 +199,7 @@
                    (handler-bind
                        ((not-implemented-error
                           #'(lambda (x)
+                              (declare (ignore x))
                               (when ,non-implementing-implementation
                                 (format t "~&This behavior is expected to be unimplemented on this lisp.~%"))
                               (throw 'unimplemented t))))
@@ -213,6 +208,27 @@
                      ))
                  :implemented))
        (error 'unexpected-test-success :test-designator ,test-designator))))
+
+
+(defun cpu-time-s ()
+  (/ (get-internal-real-time) internal-time-units-per-second))
+
+(defmacro wait-for (msg timeout-s test)
+  "Waits for a T value from evaluating `test'
+If `timeout-s' was exceeded `handle-result' is called with `msg'.
+
+The received function MUST NOT BLOCK FOREVER as it runs on the same thread.
+Ideally it runs instantaneously."
+  (let ((t0 (gensym "t0-"))
+        (output (gensym "output-"))
+        (concrete-timeout-s (gensym "concrete-timeout-s-")))
+    `(loop with ,t0 = (cpu-time-s) and ,output = nil and ,concrete-timeout-s = ,timeout-s
+           until (> (- (cpu-time-s) ,t0)
+                    ,concrete-timeout-s)
+           do (setf ,output ,test)
+           when ,output
+             return ,output
+           finally (handle-result ,msg nil))))
 
 
 ;;; The actual tests
@@ -597,7 +613,7 @@
     (let ((process-info (launch-program "./sleeper.sh 12 2")))
       (handle-result "alive?"
                      (process-alive-p process-info))
-      (my-terminate-process process-info :urgent t)
+      (terminate-process process-info :urgent t)
       (sleep 1)
       (handle-result "dead?"
                      (not (process-alive-p process-info)))
@@ -608,9 +624,12 @@
     (let ((process-info (launch-program "./sleeper.sh 12 3")))
       (handle-result "alive?"
                      (process-alive-p process-info))
-      (my-terminate-process process-info :urgent t)
+      (terminate-process process-info :urgent t)
       (sleep 1)
-      (my-terminate-process process-info :urgent t)
+      (handler-case
+          (terminate-process process-info :urgent t)
+        ;; The program is likely dead already. Ignore signal errors:
+        (signal-error ()))
       (sleep 1)
       (handle-result "dead?"
                      (not (process-alive-p process-info)))
@@ -637,6 +656,67 @@
       (handle-result "#2 dead?"
                      (not (process-alive-p
                            process-info2)))))
+
+
+(defun count-processes (cmd)
+  "Count processes matching a given command pattern."
+  (parse-integer (uiop:run-program (format nil "ps -eo pid,pgid,args | grep '~A' | grep -v grep | wc -l" cmd) :output :string)))
+
+(defparameter *process-start-timeout* 3
+  "How long to wait for a process to start. CI environments can be slower.")
+
+(defparameter *kill-wait* 3
+  "How long to wait for the launch/kill of sleeper.sh.
+
+On the CI tests, `terminate-process` can take a little longer
+on some implementations, as it spawns another process to run the Unix
+`kill` utility. Not waiting long enough can result in test failures.
+")
+
+(defmacro define-terminate-test (test-name &body body)
+  "Defines the cmd (string), launches the process p and waits for it to start."
+  `(define-test ,test-name
+       (let* ((cmd "sh ./sleeper.sh 12 15"))
+         (wait-for "Clean test env: Prior processes running." 30 (zerop (count-processes cmd)))
+         (let ((p (launch-program cmd)))
+           (wait-for "Process started" *process-start-timeout*
+                     (plusp (count-processes cmd)))
+           ,@body
+           (wait-process p)))))
+
+
+(define-terminate-test ":terminate-process/target (kill all children)"
+    (terminate-process p :target :process-group)
+  (wait-for "Children killed" *kill-wait* (zerop (count-processes cmd))))
+
+
+(define-terminate-test ":terminate-process/target (kill spawned children, not others)"
+    (let* ((starting-processes (count-processes cmd))
+           (p2 (launch-program cmd)))
+      (wait-for "Process 2 started" *process-start-timeout*
+                (> (count-processes cmd)
+                   starting-processes))
+
+      (terminate-process p2 :target :process-group)
+      (wait-for "Only process 2 children killed" *kill-wait*
+                (= (count-processes cmd) starting-processes))
+
+      (terminate-process p :target :process-group)
+      (wait-for "Process 1 children killed" *kill-wait*
+                (zerop (count-processes cmd)))))
+
+
+(define-terminate-test ":terminate-process/target (backwards-compatible kill-children behaviour)"
+    ;; To maintain backwards-compatibility kill children on Mac but not on Linux:
+    (let ((kill-children (os-macosx-p)))
+      (terminate-process p)  ;; Use default kill-children value.
+      (sleep *kill-wait*)
+
+      (handle-result "process didn't die" (not (uiop:process-alive-p p)))
+      (if kill-children
+          (handle-result "children were not killed" (zerop (count-processes cmd)))
+          (handle-result "children were killed" (plusp (count-processes cmd))))))
+
 
 (new-test-suite "%process-status / terminate-process")
 
@@ -702,7 +782,7 @@
     (let* ((process-info (launch-program "./sleeper.sh 12 2"))
            (status (process-status process-info)))
       (handle-result "running?" (equal :running status))
-      (my-terminate-process process-info :urgent t)
+      (terminate-process process-info :urgent t)
       (sleep 1)
       (multiple-value-bind (status code)
           (process-status process-info)

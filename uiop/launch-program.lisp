@@ -4,7 +4,7 @@
 (uiop/package:define-package :uiop/launch-program
   (:use :uiop/common-lisp :uiop/package :uiop/utility
    :uiop/pathname :uiop/os :uiop/filesystem :uiop/stream
-   :uiop/version)
+   :uiop/version :uiop/posix-signals)
   (:export
    ;;; Escaping the command invocation madness
    #:easy-sh-character-p #:escape-sh-token #:escape-sh-command
@@ -15,8 +15,36 @@
    ;;; launch-program
    #:launch-program
    #:close-streams #:process-alive-p #:terminate-process #:wait-process
-   #:process-info-error-output #:process-info-input #:process-info-output #:process-info-pid))
+   #:process-info-error-output #:process-info-input #:process-info-output #:process-info-pid
+
+   ;;; Error Conditions
+   #:os-error #:signal-error #:error-message #:error-code
+   #:subprocess-error
+   #:subprocess-error-code #:subprocess-error-command #:subprocess-error-process))
 (in-package :uiop/launch-program)
+
+;;;; ----- Error conditions -----
+(with-upgradability ()
+
+  (define-condition subprocess-error (error)
+    ((code :initform nil :initarg :code :reader subprocess-error-code)
+     (command :initform nil :initarg :command :reader subprocess-error-command)
+     (process :initform nil :initarg :process :reader subprocess-error-process))
+    (:report (lambda (condition stream)
+               (format stream "Subprocess ~@[~S~% ~]~@[with command ~S~% ~]exited with error~@[ code ~D~]"
+                       (subprocess-error-process condition)
+                       (subprocess-error-command condition)
+                       (subprocess-error-code condition)))))
+
+  (define-condition os-error (error)
+    ((message :initform "OS Error." :initarg :message :reader error-message)
+     (error-code :initform nil :initarg :error-code :reader error-code))
+    (:report (lambda (condition stream)
+               (format stream "~A~@[ error-code = ~A~]" (error-message condition) (error-code condition)))))
+
+  (define-condition signal-error (os-error)
+    ((message :initform "Error sending signal."))))
+
 
 ;;;; ----- Escaping strings for the shell -----
 (with-upgradability ()
@@ -402,49 +430,165 @@ might otherwise be irrevocably lost."
                 (progn (setf (slot-value process-info 'exit-code) exit-code)
                        exit-code)))))))
 
-  ;; WARNING: For signals other than SIGTERM and SIGKILL this may not
-  ;; do what you expect it to. Sending SIGSTOP to a process spawned
-  ;; via LAUNCH-PROGRAM, e.g., will stop the shell /bin/sh that is used
-  ;; to run the command (via `sh -c command`) but not the actual
-  ;; command.
+  ;; Unix Signalling: Process groups
+  ;;
+  ;; On Unix, sending signals to a process will not signal
+  ;; its children.
+  ;;
+  ;; This means that if the process is a shell (case of spawning
+  ;; processes via LAUNCH-PROGRAM with `sh -c command`), sending
+  ;; a SIGSTOP will only kill the shell, and no children
+  ;; subprocesses spawned by it. These will keep running even after
+  ;; the parent shell dies, and even after your Lisp process terminates.
+  ;;
+  ;; However, Unix has a solution to this: process groups.  A shell
+  ;; process spawns its children subprocesses with a process group
+  ;; matching itself. For a newly started shell this is the same as
+  ;; the pid.
+  ;;
+  ;; Hence, to signal all the processes in a given process group
+  ;; use :process-group instead of the default :pid
+  ;; as the target parameter value.
+  ;;
+  ;; When sending a SIGSTOP, or other killing signals to a shell,
+  ;; that will ensure the shell and all the processes launched therein
+  ;; will also be closed.
+  ;;
+  ;; Errors
+  ;; ------
+  ;; If the signal can't be sent 'signal-error is raised.
   #+os-unix
-  (defun %posix-send-signal (process-info signal)
-    #+allegro (excl.osi:kill (slot-value process-info 'process) signal)
-    #+clozure (ccl:signal-external-process (slot-value process-info 'process)
-                                           signal :error-if-exited nil)
-    #+(or cmucl scl) (ext:process-kill (slot-value process-info 'process) signal)
-    #+sbcl (sb-ext:process-kill (slot-value process-info 'process) signal)
-    #-(or allegro clozure cmucl sbcl scl)
-    (if-let (pid (process-info-pid process-info))
-      (symbol-call :uiop :run-program
-                   (format nil "kill -~a ~a" signal pid) :ignore-error-status t)))
+  (defun %posix-send-signal (process-info signal &key (target :pid))
+    ;; `process` might not be the pid in some implementations:
+    (let ((process (slot-value process-info 'process))
+          (pid-target-p (ecase target
+                          (:pid t)
+                          (:process-group nil))))
+      (declare (ignorable process pid-target-p))
+
+      #+(or ecl allegro abcl)
+      (when (eq target :process-group)
+        (not-implemented-error 'target
+                               "= ~A, because process leaders spawn with PGID!=PID." target))
+
+      ;;; Option 1. Use the lighter `kill` system call if possible. ;;;
+
+      #+(or cmucl sbcl)
+      (multiple-value-bind (success error-code)
+          #+cmucl   (ext:process-kill process signal target)
+          #+sbcl (sb-ext:process-kill process signal target)
+        (unless success
+          (error 'signal-error :error-code error-code)))
+
+      ;; Closed source-code. Used this as reference:
+      ;;  https://franz.com/support/documentation/9.0/doc/os-interface.htm#kill-op-bookmarkxx
+      #+allegro
+      (handler-case
+          (excl.osi:kill (if pid-target-p process (- process)) signal)
+        (excl.osi:syscall-error (e)
+          (error 'signal-error :error-code (excl.osi:syscall-error-errno e))))
+
+
+      ;;; Option 2. Fallback to `kill` utility (launches process) ;;;
+
+      #-(or allegro cmucl sbcl)
+      (if-let (pid (process-info-pid process-info))
+        (handler-case
+            (symbol-call :uiop :run-program (list "kill"
+                                                  (format nil "~D" (- signal))
+                                                  "--"
+                                                  (format nil "~D" (if pid-target-p pid (- pid)))))
+          (subprocess-error (e)
+            (error 'signal-error :error-code (subprocess-error-code e)))))))
 
   ;;; this function never gets called on Windows, but the compiler cannot tell
   ;;; that. [2016/09/25:rpg]
   #+os-windows
-  (defun %posix-send-signal (process-info signal)
-    (declare (ignore process-info signal))
+  (defun %posix-send-signal (process-info signal &key (target :pid))
+    (declare (ignore process-info signal target))
     (values))
 
-  (defun terminate-process (process-info &key urgent)
-    "Cause the process to exit. To that end, the process may or may
-not be sent a signal, which it will find harder (or even impossible)
-to ignore if URGENT is T. On some platforms, it may also be subject to
-race conditions."
-    (declare (ignorable urgent))
-    #+abcl (sys:process-kill (slot-value process-info 'process))
-    ;; On ECL, this will only work on versions later than 2016-09-06,
-    ;; but we still want to compile on earlier versions, so we use symbol-call
-    #+ecl (symbol-call :ext :terminate-process (slot-value process-info 'process) urgent)
-    #+lispworks7+ (sys:pipe-kill-process (slot-value process-info 'process))
-    #+mkcl (mk-ext:terminate-process (slot-value process-info 'process)
-                                     :force urgent)
-    #-(or abcl ecl lispworks7+ mkcl)
+  (declaim (ftype (function (process-info
+                             &key (:urgent t)
+                             (:target (member :pid :process-group)))
+                            (values))
+                  terminate-process))
+
+  (defun terminate-process (process-info &key urgent (target :pid))
+    "Cause the process to exit by sending a signal.  This call is
+non-blocking, and does not wait for the process to exit.
+
+  If URGENT is non-NIL, use a signal that the process will find hard
+(or even impossible) to ignore. On some platforms, this function
+may be subject to race conditions.
+
+  TARGET may be either :pid (the default) or :process-group.
+
+  In most OSes and implementations, a launched process has a process group id (PGID)
+that matches its process id (PID) and its PGID will be inherited by subprocesses (children)
+spawned by the launched process.
+
+  If TARGET is :process-group, the processes in the process group
+(children) are signalled for termination together with the
+parent. Otherwise, only the target process is signalled, which often
+leaves its children running forever, even after Lisp itself
+terminates.
+
+
+Errors
+------
+
+If the termination request fails, a SIGNAL-ERROR is raised.
+
+Limitations
+-----------
+- ABCL and LispWorks7+ don't signal on failure when target is :pid.
+- Allegro, ECL and ABCL don't support :target :process-group as they don't spawn
+  process leaders with PGID=PID.
+- The return value is not specified. This might change in the future.
+
+Implementation notes
+--------------------
+
+Tries to use the `kill` system call if possible. Otherwise
+it spawns a process to use the `kill` utility, or `taskkill` in Windows.
+"
+    (declare (ignorable urgent target))
+    (check-type target (member :pid :process-group))
+
+    ;;; Attempt to use Lisp implementation kill specialization (faster).
+    #+(or ecl mkcl abcl lispworks7+)
+    (block lisp-kill-specializations
+      (when (eq target :pid)
+        (return-from terminate-process
+          (handler-case
+              (let ((process (slot-value process-info 'process)))
+
+                #+ecl (if (find-symbol* '#:terminate-process :ext nil) ; ECL added it on 2016/09/06.
+                          (symbol-call :ext :terminate-process process urgent)
+                          (return-from lisp-kill-specializations))
+
+                #+mkcl (mk-ext:terminate-process process :force urgent)
+
+                ;; Only returns nil. Can't know if signal was sent.
+                #+abcl (sys:process-kill process)
+
+                ;; Closed-source. API Reference:
+                ;;  http://www.lispworks.com/documentation/lw71/LW/html/lw-1420.htm#pgfId-1667163
+                #+lispworks7+ (sys:pipe-kill-process process))
+
+            (error () (error 'signal-error :message "Could not terminate process."))))))
+
+
+    ;;; OS-based handling. %posix-send-signal also has Lisp implementation specializations.
     (os-cond
-     ((os-unix-p) (%posix-send-signal process-info (if urgent 9 15)))
+     ((os-unix-p) (%posix-send-signal process-info
+                                      (if urgent +SIGKILL+ +SIGTERM+)
+                                      :target target))
      ((os-windows-p) (if-let (pid (process-info-pid process-info))
                        (symbol-call :uiop :run-program
-                                    (format nil "taskkill ~:[~;/f ~]/pid ~a" urgent pid)
+                                    (format nil "taskkill ~@[/F~*~] ~@[/T~*~] /pid ~a"
+                                            urgent (eq target :process-group) pid)
                                     :ignore-error-status t)))
      (t (not-implemented-error 'terminate-process))))
 

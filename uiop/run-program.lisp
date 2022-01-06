@@ -199,16 +199,6 @@ Programmers are encouraged to define their own methods for this generic function
 
 ;;;; Run-program: synchronously run a program in a subprocess, handling input, output and error-output.
 (with-upgradability ()
-  (define-condition subprocess-error (error)
-    ((code :initform nil :initarg :code :reader subprocess-error-code)
-     (command :initform nil :initarg :command :reader subprocess-error-command)
-     (process :initform nil :initarg :process :reader subprocess-error-process))
-    (:report (lambda (condition stream)
-               (format stream "Subprocess ~@[~S~% ~]~@[with command ~S~% ~]exited with error~@[ code ~D~]"
-                       (subprocess-error-process condition)
-                       (subprocess-error-command condition)
-                       (subprocess-error-code condition)))))
-
   (defun %check-result (exit-code &key command process ignore-error-status)
     (unless ignore-error-status
       (unless (eql exit-code 0)
