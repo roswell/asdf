@@ -408,6 +408,11 @@ or when loading the package is optional."
 
 ;;; ensure-package, define-package
 (eval-when (:load-toplevel :compile-toplevel :execute)
+  ;; We already have UIOP:SIMPLE-STYLE-WARNING, but it comes from a later
+  ;; package.
+  (define-condition define-package-style-warning
+      #+sbcl (sb-int:simple-style-warning) #-sbcl (simple-condition style-warning)
+      ())
   (defun ensure-shadowing-import (name to-package from-package shadowed imported)
     (check-type name string)
     (check-type to-package package)
@@ -760,7 +765,12 @@ or when loading the package is optional."
               (do-external-symbols (sym pp) (ensure-mix (symbol-name sym) sym package pp shadowed imported inherited)))
       ;; handle import-from packages
       (loop :for (p . syms) :in import-from
-            :for pp = (find-package* p) :do
+            :for pp = (find-package* p syms) :do
+              (when (null pp)
+                ;; TODO: ASDF 3.4 Change to a full warning.
+                (warn 'define-package-style-warning
+                      :format-control "Package ~A does not exist. This will become a full warning in ASDF 3.4."
+                      :format-arguments (list p)))
               (dolist (sym syms) (ensure-import (symbol-name sym) package pp shadowed imported)))
       ;; handle use-list and mix
       (dolist (p (append use mix))
@@ -868,5 +878,7 @@ MIX directives, and reexport their contents as per the REEXPORT directive."
   (:use-reexport :uiop/package
                  #+package-local-nicknames :uiop/package-local-nicknames)
   (:import-from :uiop/package
+                #:define-package-style-warning
                 #:no-such-package-error)
-  (:export #:no-such-package-error))
+  (:export #:define-package-style-warning
+           #:no-such-package-error))

@@ -275,7 +275,8 @@
     ;; restart
     asdf/session:clear-configuration-and-retry
     ;; condition
-    uiop/package:no-such-package-error
+    uiop/package*:no-such-package-error
+    uiop/package*:define-package-style-warning
     ))
 
 (defun defined-symbol-p (symbol)
@@ -650,3 +651,13 @@
        (:import-from ,import-package-name
                      #:with-gensyms #:shuffle #:when-let #:define-constant)
        (:export #:amb #:amb-failure #:amb-failure-stack #:+empty-stack+)))))
+
+(DBG "Test style-warning in DEFINE-PACKAGE. Upgrade to warning in 3.4")
+(signals uiop:define-package-style-warning
+  (let ((package-name (gentemp "IMPORTER"))
+        (import-package-name (gentemp "IMPORT-FROM")))
+   (eval
+    `(uiop:define-package ,package-name
+       (:use #:cl)
+       (:shadow #:require)
+       (:import-from ,import-package-name)))))
