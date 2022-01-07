@@ -49,7 +49,6 @@
    #:package-names #:packages-from-names #:fresh-package-name #:rename-package-away
    #:package-definition-form #:parse-define-package-form
    #:ensure-package #:define-package
-   #:no-such-package-error
    ))
 
 (in-package :uiop/package)
@@ -867,4 +866,7 @@ MIX directives, and reexport their contents as per the REEXPORT directive."
 ;; This package, unlike UIOP/PACKAGE, is allowed to evolve and acquire new symbols or drop old ones.
 (define-package :uiop/package*
   (:use-reexport :uiop/package
-                 #+package-local-nicknames :uiop/package-local-nicknames))
+                 #+package-local-nicknames :uiop/package-local-nicknames)
+  (:import-from :uiop/package
+                #:no-such-package-error)
+  (:export #:no-such-package-error))
