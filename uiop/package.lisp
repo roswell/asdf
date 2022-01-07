@@ -769,8 +769,8 @@ or when loading the package is optional."
               (when (null pp)
                 ;; TODO: ASDF 3.4 Change to a full warning.
                 (warn 'define-package-style-warning
-                      :format-control "Package ~A does not exist. This will become a full warning in ASDF 3.4."
-                      :format-arguments (list p)))
+                      :format-control "When defining package ~a, attempting to import-from non-existent package ~a. This is deprecated behavior and will be removed from UIOP in the future."
+                      :format-arguments (list name p)))
               (dolist (sym syms) (ensure-import (symbol-name sym) package pp shadowed imported)))
       ;; handle use-list and mix
       (dolist (p (append use mix))
