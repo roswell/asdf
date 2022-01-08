@@ -765,6 +765,9 @@ or when loading the package is optional."
               (do-external-symbols (sym pp) (ensure-mix (symbol-name sym) sym package pp shadowed imported inherited)))
       ;; handle import-from packages
       (loop :for (p . syms) :in import-from
+            ;; FOR NOW suppress errors in the case where the :import-from
+            ;; symbol list is empty (used only to establish a dependency by
+            ;; package-inferred-system users).
             :for pp = (find-package* p syms) :do
               (when (null pp)
                 ;; TODO: ASDF 3.4 Change to a full warning.
