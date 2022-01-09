@@ -670,7 +670,7 @@
                      #'(lambda (c)
                          (assert-equal non-existent-package-name (uiop:package-designator c))
                          (assert-equal non-existent-package-name (type-error-datum c))
-                         (assert-equal '(satisfies find-package) (type-error-expected-type c))
+                         (assert-equal 'package-designator (type-error-expected-type c))
                          (throw 'no-such-package-error t))))
       (find-package* non-existent-package-name)))))
 
