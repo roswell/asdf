@@ -89,10 +89,10 @@
 ;;;; General purpose package utilities
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
+  (deftype package-designator () '(and (or package character string symbol) (satisfies find-package)))
   (define-condition no-such-package-error (type-error)
     ()
-    ;; the following is intended to capture "package-designator"
-    (:default-initargs :expected-type '(satisfies find-package))
+    (:default-initargs :expected-type 'package-designator)
     (:report (lambda (c s)
               (format s "No package named ~a" (string (type-error-datum c))))))
 
