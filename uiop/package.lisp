@@ -1,5 +1,5 @@
 ;;;; ---------------------------------------------------------------------------
-;;;; Handle ASDF package upgrade, including implementation-dependent magic.
+;;;; ASDF package upgrade, including implementation-dependent magic.
 ;;
 ;; See https://bugs.launchpad.net/asdf/+bug/485687
 ;;
@@ -89,13 +89,15 @@
 ;;;; General purpose package utilities
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
-  (define-condition no-such-package-error (error)
-    ((package-designator
-      :initarg :package-designator
-      :reader package-designator
-      ))
+  (define-condition no-such-package-error (type-error)
+    ()
+    ;; the following is intended to capture "package-designator"
+    (:default-initargs :expected-type '(satisfies find-package))
     (:report (lambda (c s)
-              (format s "No package named ~a" (string (slot-value c 'package-designator))))))
+              (format s "No package named ~a" (string (type-error-datum c))))))
+
+  (defmethod package-designator ((c no-such-package-error))
+    (type-error-datum c))
 
   (defun find-package* (package-designator &optional (errorp t))
     "Like CL:FIND-PACKAGE, but by default raises a UIOP:NO-SUCH-PACKAGE-ERROR if the
@@ -103,7 +105,7 @@
     (let ((package (find-package package-designator)))
       (cond
         (package package)
-        (errorp (error 'no-such-package-error :package-designator package-designator))
+        (errorp (error 'no-such-package-error :datum package-designator))
         (t nil))))
 
   (defun find-symbol* (name package-designator &optional (error t))
@@ -882,6 +884,8 @@ MIX directives, and reexport their contents as per the REEXPORT directive."
                  #+package-local-nicknames :uiop/package-local-nicknames)
   (:import-from :uiop/package
                 #:define-package-style-warning
-                #:no-such-package-error)
+                #:no-such-package-error
+                #:package-designator)
   (:export #:define-package-style-warning
-           #:no-such-package-error))
+           #:no-such-package-error
+           #:package-designator))

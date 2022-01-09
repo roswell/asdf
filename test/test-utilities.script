@@ -662,6 +662,22 @@
        (:shadow #:require)
        (:import-from ,import-package-name)))))
 
+(DBG "Test errors in FIND-PACKAGE*.")
+(let ((non-existent-package-name (gentemp (symbol-name '#:pack))))
+ (assert
+  (catch 'no-such-package-error
+    (handler-bind ((uiop:no-such-package-error
+                     #'(lambda (c)
+                         (assert-equal non-existent-package-name (uiop:package-designator c))
+                         (assert-equal non-existent-package-name (type-error-datum c))
+                         (assert-equal '(satisfies find-package) (type-error-expected-type c))
+                         (throw 'no-such-package-error t))))
+      (find-package* non-existent-package-name)))))
+
+(let ((non-existent-package-name (gentemp (symbol-name '#:pack))))
+  (assert (null
+           (find-package* non-existent-package-name nil))))
+
 (defun collect-external-non-cl-symbols (package)
   (loop :with package := (find-package package)
         :for s :being :the :symbols :of package
