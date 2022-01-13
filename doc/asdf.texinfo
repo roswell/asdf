@@ -260,6 +260,7 @@ Issues with using and extending ASDF to define systems
 * How do I work with readtables?::
 * How can I capture ASDF's output?::
 * LOAD-PATHNAME has a weird value::
+* How can I produce a binary at a specific path from sources at a specific path?::
 
 ASDF development FAQs
 
@@ -6182,6 +6183,7 @@ interpretation of its source configuration as it happens.
 * How do I work with readtables?::
 * How can I capture ASDF's output?::
 * LOAD-PATHNAME has a weird value::
+* How can I produce a binary at a specific path from sources at a specific path?::
 @end menu
 
 @node How can I cater for unit-testing in my system?, How can I cater for documentation generation in my system?, Issues with using and extending ASDF to define systems, Issues with using and extending ASDF to define systems
@@ -6472,7 +6474,7 @@ Output from ASDF and ASDF extensions are sent to the CL stream
 @code{*standard-output*}, so rebinding that stream around calls to
 @code{asdf:operate} should redirect all output from ASDF operations.
 
-@node LOAD-PATHNAME has a weird value,  , How can I capture ASDF's output?, Issues with using and extending ASDF to define systems
+@node LOAD-PATHNAME has a weird value, How can I produce a binary at a specific path from sources at a specific path?, How can I capture ASDF's output?, Issues with using and extending ASDF to define systems
 @subsection *LOAD-PATHNAME* and *LOAD-TRUENAME* have weird values, help!
 @vindex *LOAD-PATHNAME*
 @vindex *LOAD-TRUENAME*
@@ -6502,6 +6504,43 @@ capture the value of @code{(or *compile-file-pathname* *load-truename*)}
 in a macro expansion or other compile-time evaluated context.
 
 @end enumerate
+
+@node How can I produce a binary at a specific path from sources at a specific path?,  , LOAD-PATHNAME has a weird value, Issues with using and extending ASDF to define systems
+@subsection How can I produce a binary at a specific path from sources at a specific path?
+
+Especially when integrating with outside build systems, it's useful to have
+fine-grained control over where ASDF puts output files. The following is an
+example of a build script that takes the directory to find the source and the
+path to put the resulting binary at, and compiles a system there.
+
+@example
+(in-package :cl-user)
+
+;; Tell ASDF where to find your source files. This may not be necessary if
+;; you've already configured this elsewhere.
+(asdf:initialize-source-registry
+  `(:source-registry
+     :inherit-configuration
+     (:directory ,(uiop:getenv-absolute-directory "SRC"))))
+
+;; Don't translate pathnames in the output directory. Without this, the binary
+;; will end up somewhere under ~/.cache, most likely.
+(let* ((out (uiop:getenv-pathname "OUT"))
+       (out-dir (uiop:pathname-directory-pathname out)))
+  (asdf:initialize-output-translations
+    `(:output-translations
+       :inherit-configuration
+       (,out-dir nil))))
+
+;; Set the output pathname when building the system.
+(defmethod asdf:output-files ((o asdf:image-op) (system (eql (asdf:find-system @var{foo}))))
+  (declare (ignorable system))
+  (list (uiop:getenv-pathname "OUT")))
+
+;; Build the system.
+(asdf:operate 'asdf:program-op @var{foo})
+(uiop:quit)
+@end example
 
 @node ASDF development FAQs,  , Issues with using and extending ASDF to define systems, FAQ
 @section ASDF development FAQs
