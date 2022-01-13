@@ -4335,7 +4335,7 @@ Here is the grammar of the SEXP DSL
 for @code{asdf-output-translations} configuration:
 
 @verbatim
-;; A configuration is single SEXP starting with keyword :source-registry
+;; A configuration is single SEXP starting with keyword :output-translations
 ;; followed by a list of directives.
 CONFIGURATION := (:output-translations DIRECTIVE ...)
 
