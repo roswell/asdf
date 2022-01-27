@@ -26,7 +26,15 @@
 (defparameter *asdf* (find-system :asdf))
 (assert-equal nil (system-source-directory *asdf*))
 (DBG "Check that the fallback system bears the current asdf version")
-(assert-equal (asdf-version) (component-version *asdf*))
+;; Ensure that COMPONENT-VERSION returns only the non-pre-release version string.
+(assert-equal (version-string
+               (let ((version (make-version (asdf-version))))
+                 (if (version-pre-release-p version)
+                     (version-pre-release-for version)
+                     version)))
+              (component-version *asdf*))
+;; Ensure pre-release info (if any) isn't lost.
+(assert-equal (asdf-version) (version-string (component-version* *asdf*)))
 
 (def-test-system :unversioned-system
   :pathname #.*test-directory*)

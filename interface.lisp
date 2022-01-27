@@ -68,6 +68,7 @@
    #:component-relative-pathname
    #:component-name
    #:component-version
+   #:component-version*
    #:component-parent
    #:component-system
    #:component-encoding
@@ -79,6 +80,7 @@
    #:system-license
    #:system-licence
    #:system-version
+   #:system-version*
    #:system-source-file
    #:system-source-directory
    #:system-relative-pathname

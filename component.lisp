@@ -18,7 +18,7 @@
    #:component-in-order-to #:component-sideway-dependencies
    #:component-if-feature #:around-compile-hook
    #:component-description #:component-long-description
-   #:component-version #:version-satisfies
+   #:component-version #:component-version* #:version-satisfies
    #:component-inline-methods ;; backward-compatibility only. DO NOT USE!
    #:component-operation-times ;; For internal use only.
    ;; portable ASDF encoding and implementation-specific external-format
@@ -65,9 +65,15 @@ Use asdf-encodings to support more encodings."))
     (:documentation "Check whether a COMPONENT satisfies the constraint of being at least as recent
 as the specified VERSION, which must be a string of dot-separated natural numbers, or NIL."))
   (defgeneric component-version (component)
-    (:documentation "Return the version of a COMPONENT in two VALUES. The first
-value is a string that specifies the version, or NIL. The second value is the
-VERSION-OBJECT instance that is suitable for use with UIOP:VERSION<, or NIL."))
+    (:documentation "Return the version of a COMPONENT, which must be a string
+of dot-separated natural numbers, or NIL. If the component is a pre-release,
+returns the version which it is a pre-release for.
+
+This function is kept for backward compatibility. New code should prefer to use
+COMPONENT-VERSION*."))
+  (defgeneric component-version* (component)
+    (:documentation "Return the version of a COMPONENT. The returned version is
+version object suitable for use with VERSION< and friends (or NIL)."))
   (defgeneric (setf component-version) (new-version component)
     (:documentation "Updates the version of a COMPONENT."))
   (defgeneric component-version-class (component)
@@ -166,21 +172,21 @@ The return value is a list of component NAMES; a list of strings."
       component))
 
   (defmethod component-version ((component component))
-    "The VERSION slot of COMPONENT may be NIL, unbound, a string, or a
-VERSION-OBJECT. If it's a string, update it to be a VERSION-OBJECT and return
-it. If it's a VERSION-OBJECT object, return it. Else, return NIL."
+    ;; The VERSION slot of COMPONENT may be NIL, unbound, or a
+    ;; VERSION-OBJECT. It should not be a string (due to the
+    ;; *post-upgrade-cleanup-hook*).
     (if-let (raw-version (and (slot-boundp component 'version)
                               (slot-value component 'version)))
-      (typecase raw-version
-        (string
-         ;; If we're upgrading ASDF and some systems have already been loaded,
-         ;; they likely have the old representation of the version (plain
-         ;; string) stored.
-         (let ((new-version (make-version raw-version)))
-           (setf (slot-value component 'version) new-version)
-           (values (version-string new-version) new-version)))
-        (version-object
-         (values (version-string raw-version) raw-version)))))
+      (progn
+        ;; This ensures that all pre-release info is stripped.
+        (when (version-pre-release-p raw-version)
+          (setf raw-version (version-pre-release-for raw-version)))
+        ;; Ensure that it parses as a series of dot-separated integers.
+        (ignore-errors (version-string (make-version (version-string raw-version)))))))
+  (defmethod component-version* ((component component))
+    (if-let (raw-version (and (slot-boundp component 'version)
+                              (slot-value component 'version)))
+      raw-version))
 
   (defmethod (setf component-version) ((value string) (component component))
     "Set the VERSION slot of component."
@@ -345,7 +351,7 @@ this compilation, or check its results, etc."))
   (defmethod version-satisfies :around ((c t) (version null))
     t)
   (defmethod version-satisfies ((c component) version)
-    (let ((component-version (component-version c)))
+    (let ((component-version (component-version* c)))
       (unless (and version component-version)
         (when version
           (warn "Requested version ~S but ~S has no version" version c))

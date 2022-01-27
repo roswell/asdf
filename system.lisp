@@ -9,7 +9,7 @@
    #:system-source-file #:system-source-directory #:system-relative-pathname
    #:system-description #:system-long-description
    #:system-author #:system-maintainer #:system-licence #:system-license
-   #:system-version #:system-compatible-versions
+   #:system-version #:system-version* #:system-compatible-versions
    #:definition-dependency-list #:definition-dependency-set #:system-defsystem-depends-on
    #:system-depends-on #:system-weakly-depends-on
    #:component-build-pathname #:build-pathname
@@ -202,14 +202,25 @@ the primary one."
   (defun system-license (system)
     (system-virtual-slot-value system 'licence))
   ;; ASDF4: Move this back into *system-virtual-slots*. We can't return the
-  ;; slot directly as we want to mimic the result of COMPONENT-VERSION which
-  ;; now returns two VALUES.
+  ;; slot directly as we want to mimic the result of COMPONENT-VERSION.
   (defun system-version (system)
-    (let ((direct-version (multiple-value-list (component-version system))))
-      (if (first direct-version)
-          (values-list direct-version)
-          (unless (primary-system-p system)
-            (component-version (find-system (primary-system-name system))))))))
+    "Return the version of SYSTEM, which must be a string of dot-separated
+natural numbers, or NIL. If the system is a pre-release, returns the version
+which it is a pre-release for.
+
+This function is kept for backward compatibility. New code should prefer to use
+SYSTEM-VERSION*."
+    (if-let (direct-version (component-version system))
+      direct-version
+      (unless (primary-system-p system)
+        (component-version (find-system (primary-system-name system))))))
+  (defun system-version* (system)
+    "Return the version of SYSTEM. The returned version is version object
+suitable for use with VERSION< and friends (or NIL)."
+    (if-let (direct-version (component-version* system))
+      direct-version
+      (unless (primary-system-p system)
+        (component-version* (find-system (primary-system-name system)))))))
 
 
 ;;;; Pathnames
@@ -268,7 +279,7 @@ return the absolute pathname of a corresponding file under that system's source 
 ;;;; version-satisfies
 (with-upgradability ()
   (defmethod version-satisfies ((c system) version)
-    (let ((component-version (nth-value 1 (component-version c))))
+    (let ((component-version (component-version* c)))
       (unless (and version component-version)
         (when version
           (warn "Requested version ~S but ~S has no version" version c))

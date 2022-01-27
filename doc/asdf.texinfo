@@ -3793,12 +3793,22 @@ the @code{:version-string} initarg.
 @end deffn
 
 @deffn {Generic Function} asdf:component-version @var{component}
-Returns the version of @code{component}. Returns two values.
+Returns the version of @code{component}.
 
-For backwards compatibility, the first value is the string
-representation of the version, or NIL (if no version is specified or
-it is invalid). The second value is the object that is a subclass of
-@code{uiop:version-object}.
+This function is kept for backward compatibility. New code should prefer
+@code{component-version*}.
+
+The version is a string of dot-separated natural numbers, or NIL. If the
+component is a pre-release, returns the version which it is a
+pre-release for.
+
+@end deffn
+
+@deffn {Generic Function} asdf:component-version* @var{component}
+Returns the version of @code{component}.
+
+The returned version is version object suitable for use with
+@code{uiop:version<} and friends (or NIL).
 
 @end deffn
 
