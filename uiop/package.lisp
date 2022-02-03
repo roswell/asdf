@@ -844,9 +844,10 @@ or when loading the package is optional."
 DEFINE-PACKAGE supports the following keywords:
 SHADOW, SHADOWING-IMPORT-FROM, IMPORT-FROM, EXPORT, INTERN, NICKNAMES,
 DOCUMENTATION -- as per CL:DEFPACKAGE.
-USE -- as per CL:DEFPACKAGE, but if neither USE, USE-REEXPORT, nor MIX is supplied,
-then it is equivalent to specifying (:USE :COMMON-LISP). This is unlike CL:DEFPACKAGE
-for which the behavior of a form without USE is implementation-dependent.
+USE -- as per CL:DEFPACKAGE, but if neither USE, USE-REEXPORT, nor MIX-REEXPORT
+is supplied, then it is equivalent to specifying (:USE :COMMON-LISP). This is
+unlike CL:DEFPACKAGE for which the behavior of a form without USE is
+implementation-dependent.
 RECYCLE -- Recycle the package's exported symbols from the specified packages,
 in order.  For every symbol scheduled to be exported by the DEFINE-PACKAGE,
 either through an :EXPORT option or a :REEXPORT option, if the symbol exists in
