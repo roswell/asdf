@@ -813,7 +813,7 @@ or when loading the package is optional."
       :when (eq kw :export) :append args :into export :else
       :when (eq kw :intern) :append args :into intern :else
       :when (eq kw :recycle) :append args :into recycle :and :do (setf recycle-p t) :else
-      :when (eq kw :mix) :append args :into mix :else
+      :when (eq kw :mix) :append args :into mix :and :do (setf use-p t) :else
       :when (eq kw :reexport) :append args :into reexport :else
       :when (eq kw :use-reexport) :append args :into use :and :append args :into reexport
         :and :do (setf use-p t) :else
