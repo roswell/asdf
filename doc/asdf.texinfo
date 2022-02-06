@@ -6529,7 +6529,7 @@ path to put the resulting binary at, and compiles a system there.
   (values (list (uiop:getenv-pathname "OUT")) t))
 
 ;; Build the system.
-(asdf:operate 'asdf:program-op @var{foo})
+(asdf:operate-on-system 'asdf:program-op @var{foo})
 (uiop:quit)
 @end example
 
