@@ -6535,7 +6535,7 @@ path to put the resulting binary at, and compiles a system there.
 ;; Set the output pathname when building the system.
 (defmethod asdf:output-files ((o asdf:image-op) (system (eql (asdf:find-system @var{foo}))))
   (declare (ignorable system))
-  (list (uiop:getenv-pathname "OUT")))
+  (values (list (uiop:getenv-pathname "OUT")) t))
 
 ;; Build the system.
 (asdf:operate 'asdf:program-op @var{foo})
