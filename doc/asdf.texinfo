@@ -995,7 +995,7 @@ for defining @emph{operations} on @emph{components},
 it also provides a generic function @code{operate},
 so you may arbitrarily operate on your systems beyond the default operations.
 (At the interactive REPL, users often use its shorter alias @code{oos},
-which stands for operate-on-system, a name inherited from @code{mk-defsystem}.)
+which stands for @code{operate-on-system}, a name inherited from @code{mk-defsystem}.)
 You'll use @code{operate} whenever you want to do something beyond
 compiling, loading and testing.
 
@@ -6522,15 +6522,6 @@ path to put the resulting binary at, and compiles a system there.
   `(:source-registry
      :inherit-configuration
      (:directory ,(uiop:getenv-absolute-directory "SRC"))))
-
-;; Don't translate pathnames in the output directory. Without this, the binary
-;; will end up somewhere under ~/.cache, most likely.
-(let* ((out (uiop:getenv-pathname "OUT"))
-       (out-dir (uiop:pathname-directory-pathname out)))
-  (asdf:initialize-output-translations
-    `(:output-translations
-       :inherit-configuration
-       (,out-dir nil))))
 
 ;; Set the output pathname when building the system.
 (defmethod asdf:output-files ((o asdf:image-op) (system (eql (asdf:find-system @var{foo}))))
