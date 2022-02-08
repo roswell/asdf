@@ -12,7 +12,8 @@
    #:*post-upgrade-cleanup-hook* #:cleanup-upgraded-asdf
    ;; There will be no symbol left behind!
    #:with-asdf-deprecation
-   #:intern*)
+   #:intern*
+   #:asdf-install-warning)
   (:import-from :uiop/package #:intern* #:find-symbol*))
 (in-package :asdf/upgrade)
 
@@ -172,6 +173,19 @@ previously-loaded version of ASDF."
           (unless (version<= *oldest-forward-compatible-asdf-version* old-version)
             (call-functions (reverse *post-upgrade-cleanup-hook*)))
           t))))
+
+  (define-condition asdf-install-warning (simple-condition warning)
+    ((format-control
+      :initarg :format-control)
+     (format-arguments
+      :initarg :format-arguments
+      :initform nil))
+    (:documentation "Warning class for issues related to upgrading or loading ASDF.")
+    (:report (lambda (c s)
+               (format s "WARNING: ~?"
+                       (slot-value c 'format-control)
+                       (slot-value c 'format-arguments)))))
+
 
   (defun upgrade-asdf ()
     "Try to upgrade of ASDF. If a different version was used, return T.
