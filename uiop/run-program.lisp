@@ -424,15 +424,16 @@ or whether it's already taken care of by the implementation's underlying run-pro
                        'run-program :stream))
     #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
     (let (#+(or abcl ecl mkcl)
-            (version (parse-version
-                      #-abcl
-                      (lisp-implementation-version)
-                      #+abcl
-                      (second (split-string (implementation-identifier) :separator '(#\-))))))
+          (version (ignore-errors
+                    (make-version
+                     #-abcl
+                     (lisp-implementation-version)
+                     #+abcl
+                     (second (split-string (implementation-identifier) :separator '(#\-)))))))
       (nest
-       #+abcl (unless (lexicographic< '< version '(1 4 0)))
-       #+ecl (unless (lexicographic<= '< version '(16 0 0)))
-       #+mkcl (unless (lexicographic<= '< version '(1 1 9)))
+       #+abcl (unless (version< version "1.4.0"))
+       #+ecl (unless (version<= version "16.0.0"))
+       #+mkcl (unless (version<= version "1.1.9"))
        (return-from %system
          (wait-process
           (apply 'launch-program (%normalize-system-command command) keys)))))
@@ -570,8 +571,8 @@ or an indication of failure via the EXIT-CODE of the process"
                             #-(or allegro clisp clozure sbcl) (os-cond ((os-windows-p) t))))
                    #+(or clasp clisp cormanlisp gcl (and lispworks os-windows) mcl xcl) t
                    ;; A race condition in ECL <= 16.0.0 prevents using ext:run-program
-                   #+ecl #.(if-let (ver (parse-version (lisp-implementation-version)))
-                                   (lexicographic<= '< ver '(16 0 0)))
+                   #+ecl #.(if-let (ver (ignore-errors (make-version (lisp-implementation-version))))
+                             (version<= ver "16.0.0"))
                    #+(and lispworks os-unix) (%interactivep input output error-output))
                '%use-system '%use-launch-program)
            command keys)))

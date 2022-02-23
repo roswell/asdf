@@ -444,7 +444,7 @@ or of opaque libraries shipped along the source code."))
            (library (second inputs))
            (asd (output-file o s))
            (name (if (and fasl asd) (pathname-name asd) (return-from perform)))
-           (version (component-version s))
+           (version (component-version* s))
            (dependencies
              (if (operation-monolithic-p o)
                  ;; We want only dependencies, and we use basic-load-op rather than load-op so that
@@ -481,9 +481,9 @@ which is probably not what you want; you probably need to tweak your output tran
         (let ((*package* (find-package :asdf-user)))
           (pprint `(defsystem ,name
                      :class prebuilt-system
-                     :version ,version
                      :depends-on ,depends-on
                      :components ((:compiled-file ,(pathname-name fasl)))
+                     ,@(when version `(:version ,(version-string version)))
                      ,@(when library `(:lib ,(file-namestring library))))
                   s)
           (terpri s)))))

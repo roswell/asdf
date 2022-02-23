@@ -30,12 +30,12 @@
 ;;;; data from the file system that we want to preserve instead of blasting
 ;;;; away and replacing with a blank preloaded system.
 (with-upgradability ()
-  (unless (equal (system-version (registered-system "asdf")) (asdf-version))
+  (unless (version= (system-version* (registered-system "asdf")) (asdf-version))
     (clear-system "asdf"))
   ;; 3.1.2 is the last version where asdf-package-system was a separate system.
-  (when (version< "3.1.2" (system-version (registered-system "asdf-package-system")))
+  (when (version< "3.1.2" (system-version* (registered-system "asdf-package-system")))
     (clear-system "asdf-package-system"))
-  (unless (equal (system-version (registered-system "uiop")) *uiop-version*)
+  (unless (version= (system-version* (registered-system "uiop")) *uiop-version*)
     (clear-system "uiop")))
 
 ;;;; Hook ASDF into the implementation's REQUIRE and other entry points.
@@ -83,7 +83,7 @@
     (setf excl:*warn-on-nested-reader-conditionals* uiop/common-lisp::*acl-warn-save*))
 
   ;; Advertise the features we provide.
-  (dolist (f '(:asdf :asdf2 :asdf3 :asdf3.1 :asdf3.2 :asdf3.3)) (pushnew f *features*))
+  (dolist (f '(:asdf :asdf2 :asdf3 :asdf3.1 :asdf3.2 :asdf3.3 :asdf3.4)) (pushnew f *features*))
 
   ;; Provide both lowercase and uppercase, to satisfy more people, especially LispWorks users.
   (provide "asdf") (provide "ASDF")

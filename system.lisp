@@ -9,7 +9,7 @@
    #:system-source-file #:system-source-directory #:system-relative-pathname
    #:system-description #:system-long-description
    #:system-author #:system-maintainer #:system-licence #:system-license
-   #:system-version
+   #:system-version #:system-version* #:system-compatible-versions
    #:definition-dependency-list #:definition-dependency-set #:system-defsystem-depends-on
    #:system-depends-on #:system-weakly-depends-on
    #:component-build-pathname #:build-pathname
@@ -104,7 +104,10 @@ a SYSTEM is redefined and its class is modified."))
                            :initform nil)
      ;; these two are specially set in parse-component-form, so have no :INITARGs.
      (depends-on :reader system-depends-on :initform nil)
-     (weakly-depends-on :reader system-weakly-depends-on :initform nil))
+     (weakly-depends-on :reader system-weakly-depends-on :initform nil)
+     ;; This slot added in ASDF 3.4
+     (compatible-versions :reader system-compatible-versions :initarg :compatible-versions
+                          :initform nil))
     (:documentation "SYSTEM is the base class for top-level components that users may request
 ASDF to build."))
 
@@ -172,10 +175,10 @@ NB: The onus is unhappily on the user to avoid clashes."
 
 ;;; System virtual slot readers, recursing to the primary system if needed.
 (with-upgradability ()
-  (defvar *system-virtual-slots* '(long-name description long-description
-                                   author maintainer mailto
-                                   homepage source-control
-                                   licence version bug-tracker)
+  (defparameter *system-virtual-slots* '(long-name description long-description
+                                         author maintainer mailto
+                                         homepage source-control
+                                         licence bug-tracker)
     "The list of system virtual slot names.")
   (defun system-virtual-slot-value (system slot-name)
     "Return SYSTEM's virtual SLOT-NAME value.
@@ -197,7 +200,27 @@ the primary one."
                 *system-virtual-slots*)))
   (define-system-virtual-slot-readers)
   (defun system-license (system)
-    (system-virtual-slot-value system 'licence)))
+    (system-virtual-slot-value system 'licence))
+  ;; ASDF4: Move this back into *system-virtual-slots*. We can't return the
+  ;; slot directly as we want to mimic the result of COMPONENT-VERSION.
+  (defun system-version (system)
+    "Return the version of SYSTEM, which must be a string of dot-separated
+natural numbers, or NIL. If the system is a pre-release, returns the version
+which it is a pre-release for.
+
+This function is kept for backward compatibility. New code should prefer to use
+SYSTEM-VERSION*."
+    (if-let (direct-version (component-version system))
+      direct-version
+      (unless (primary-system-p system)
+        (component-version (find-system (primary-system-name system))))))
+  (defun system-version* (system)
+    "Return the version of SYSTEM. The returned version is version object
+suitable for use with VERSION< and friends (or NIL)."
+    (if-let (direct-version (component-version* system))
+      direct-version
+      (unless (primary-system-p system)
+        (component-version* (find-system (primary-system-name system)))))))
 
 
 ;;;; Pathnames
@@ -253,3 +276,13 @@ return the absolute pathname of a corresponding file under that system's source 
   (defmethod component-build-pathname ((c component))
     nil))
 
+;;;; version-satisfies
+(with-upgradability ()
+  (defmethod version-satisfies ((c system) version)
+    (let ((component-version (component-version* c)))
+      (unless (and version component-version)
+        (when version
+          (warn "Requested version ~S but ~S has no version" version c))
+        (return-from version-satisfies nil))
+      (version-constraint-satisfied-p component-version version
+                                      :compatible-versions (system-compatible-versions c)))))

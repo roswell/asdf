@@ -63,6 +63,7 @@ If major versions differ, it's not compatible.
 If they are equal, then any later version is compatible,
 with later being determined by a lexicographical comparison of minor numbers.
 DEPRECATED."
+    (declare (notinline parse-version))
     (let ((x (parse-version provided-version nil))
           (y (parse-version required-version nil)))
       (and x y (= (car x) (car y)) (lexicographic<= '< (cdr y) (cdr x)))))))

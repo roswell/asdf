@@ -1,7 +1,22 @@
 ;;; -*- Lisp -*-
 
+(DBG "Check version parsing and precedence operations")
+(assert (version< "1.0.0" "2.0.0"))
+(assert (version< "2.0.0" "2.1.0"))
+(assert (version< "2.1.0" "2.1.1"))
+
+(assert (version< "1.0.0-alpha" "1.0.0"))
+
+(assert (version< "1.0.0-alpha" "1.0.0-alpha.1"))
+(assert (version< "1.0.0-alpha.1" (make-version "1.0.0-alpha.beta" :class 'semantic-version)))
+(assert (version< (make-version "1.0.0-alpha.beta" :class 'semantic-version) "1.0.0-beta"))
+(assert (version< "1.0.0-beta" "1.0.0-beta.2"))
+(assert (version< "1.0.0-beta.2" "1.0.0-beta.11"))
+(assert (version< "1.0.0-beta.11" "1.0.0-rc.1"))
+(assert (version< "1.0.0-rc.1" "1.0.0"))
+
 (DBG "Check that there is an ASDF version that correctly parses to a non-empty list")
-(assert (consp (parse-version (asdf-version) 'error)))
+(assert (not (null (make-version (asdf-version)))))
 (DBG "Check that ASDF is newer than 1.234")
 (assert-compare (version<= "1.234" (asdf-version)))
 (DBG "Check that ASDF is not a compatible replacement for 1.234")
@@ -11,7 +26,15 @@
 (defparameter *asdf* (find-system :asdf))
 (assert-equal nil (system-source-directory *asdf*))
 (DBG "Check that the fallback system bears the current asdf version")
-(assert-equal (asdf-version) (component-version *asdf*))
+;; Ensure that COMPONENT-VERSION returns only the non-pre-release version string.
+(assert-equal (version-string
+               (let ((version (make-version (asdf-version))))
+                 (if (version-pre-release-p version)
+                     (version-pre-release-for version)
+                     version)))
+              (component-version *asdf*))
+;; Ensure pre-release info (if any) isn't lost.
+(assert-equal (asdf-version) (version-string (component-version* *asdf*)))
 
 (def-test-system :unversioned-system
   :pathname #.*test-directory*)
@@ -29,6 +52,11 @@
   :pathname #.*test-directory*
   :version "1.2")
 
+(def-test-system :versioned-system-4
+  :pathname #.*test-directory*
+  :version "2.1"
+  :compatible-versions (:>= "2.0"))
+
 (def-test-system :versioned-system-file-form
   :defsystem-depends-on ((:version :test-asdf/2 "2.1"))
   :pathname #.*test-directory*
@@ -45,7 +73,14 @@
 
 (vtest :versioned-system-1 "1.0")
 (vtest :versioned-system-2 "1.0")
+(vtest :versioned-system-2 '(:and "1.0" (:< "2")))
+(vtest :versioned-system-3 '(:= "1.2"))
+(vtest :versioned-system-3 '(:<= "1.2"))
+(vtest :versioned-system-3 '(:< "1.3"))
+(vtest :versioned-system-3 '(:> "1.1"))
 (vtest :versioned-system-3 "2.0" nil)
+(vtest :versioned-system-4 "2.0")
+(vtest :versioned-system-4 '(:or "1.0" "2.0"))
 (vtest :versioned-system-file-form "1.0")
 (vtest :versioned-system-file-line "1.0")
 ;; version UNmatching
@@ -54,7 +89,10 @@
 (vtest :versioned-system-2 "1.1" t)
 (vtest :versioned-system-2 "1.1.1" nil)
 (vtest :versioned-system-2 "1.2" nil)
+(vtest :versioned-system-2 '(:and "1.2" (:< "2")) nil)
 (vtest :versioned-system-3 "1.2")
 (vtest :versioned-system-3 "1.1")
 (vtest :versioned-system-3 "1.1.1")
-
+(vtest :versioned-system-3 '(:/= "1.2") nil)
+(vtest :versioned-system-4 "1.2" nil)
+(vtest :versioned-system-4 "2.3" nil)

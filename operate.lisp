@@ -92,7 +92,7 @@ But do NOT depend on it, for this is deprecated behavior."))
   (defmethod operate :before ((operation operation) (component component)
                               &key version)
     (unless (version-satisfies component version)
-      (error 'missing-component-of-version :requires component :version version))
+      (cerror "Continue anyways" 'missing-component-of-version :requires component :version version))
     (record-dependency nil operation component))
 
   (defmethod operate ((operation operation) (component component)

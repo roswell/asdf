@@ -77,7 +77,7 @@
 (defun asdf-defsystem-files ()
   "list files in asdf/defsystem"
   (list* "build/asdf.lisp" ;; for bootstrap purposes
-         "asdf.asd" "version.lisp-expr" "header.lisp"
+         "asdf.asd" "full-version.lisp-expr" "header.lisp"
          (system-source-files "asdf/defsystem")))
 (defun asdf-defsystem-name ()
   (format nil "asdf-defsystem-~A" (version-from-file)))
@@ -197,7 +197,7 @@
   (break) ;; for each function, offer to do it or not (?)
   (with-asdf-dir ()
     (let ((log (newlogfile "release" "all"))
-          (releasep (= (length (parse-version new-version)) 3)))
+          (releasep (not (uiop:version-pre-release-p (make-version new-version)))))
       (when releasep
         (let ((debian-version (debian-version-from-file)))
           (unless (equal new-version (parse-debian-version debian-version))

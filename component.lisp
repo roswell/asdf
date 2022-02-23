@@ -18,7 +18,7 @@
    #:component-in-order-to #:component-sideway-dependencies
    #:component-if-feature #:around-compile-hook
    #:component-description #:component-long-description
-   #:component-version #:version-satisfies
+   #:component-version #:component-version* #:version-satisfies
    #:component-inline-methods ;; backward-compatibility only. DO NOT USE!
    #:component-operation-times ;; For internal use only.
    ;; portable ASDF encoding and implementation-specific external-format
@@ -65,11 +65,20 @@ Use asdf-encodings to support more encodings."))
     (:documentation "Check whether a COMPONENT satisfies the constraint of being at least as recent
 as the specified VERSION, which must be a string of dot-separated natural numbers, or NIL."))
   (defgeneric component-version (component)
-    (:documentation "Return the version of a COMPONENT, which must be a string of dot-separated
-natural numbers, or NIL."))
+    (:documentation "Return the version of a COMPONENT, which must be a string
+of dot-separated natural numbers, or NIL. If the component is a pre-release,
+returns the version which it is a pre-release for.
+
+This function is kept for backward compatibility. New code should prefer to use
+COMPONENT-VERSION*."))
+  (defgeneric component-version* (component)
+    (:documentation "Return the version of a COMPONENT. The returned version is
+version object suitable for use with VERSION< and friends (or NIL)."))
   (defgeneric (setf component-version) (new-version component)
-    (:documentation "Updates the version of a COMPONENT, which must be a string of dot-separated
-natural numbers, or NIL."))
+    (:documentation "Updates the version of a COMPONENT."))
+  (defgeneric component-version-class (component)
+    (:documentation "Return the class COMPONENT uses to represent its
+versions."))
   (defgeneric component-parent (component)
     (:documentation "The parent of a child COMPONENT,
 or NIL for top-level components (a.k.a. systems)"))
@@ -92,10 +101,8 @@ or NIL for top-level components (a.k.a. systems)"))
   (defclass component ()
     ((name :accessor component-name :initarg :name :type string :documentation
            "Component name: designator for a string composed of portable pathname characters")
-     ;; We might want to constrain version with
-     ;; :type (and string (satisfies parse-version))
-     ;; but we cannot until we fix all systems that don't use it correctly!
-     (version :accessor component-version :initarg :version :initform nil)
+     (version :initarg :version :initform nil)
+     (version-class :reader component-version-class :initarg :version-class :initform 'uiop:default-version)
      (description :accessor component-description :initarg :description :initform nil)
      (long-description :accessor component-long-description :initarg :long-description :initform nil)
      (sideway-dependencies :accessor component-sideway-dependencies :initform nil)
@@ -162,7 +169,38 @@ The return value is a list of component NAMES; a list of strings."
   (defmethod component-system ((component component))
     (if-let (system (component-parent component))
       (component-system system)
-      component)))
+      component))
+
+  (defmethod component-version ((component component))
+    ;; The VERSION slot of COMPONENT may be NIL, unbound, or a
+    ;; VERSION-OBJECT. It should not be a string (due to the
+    ;; *post-upgrade-cleanup-hook*).
+    (if-let (raw-version (and (slot-boundp component 'version)
+                              (slot-value component 'version)))
+      (progn
+        ;; This ensures that all pre-release info is stripped.
+        (when (version-pre-release-p raw-version)
+          (setf raw-version (version-pre-release-for raw-version)))
+        ;; Ensure that it parses as a series of dot-separated integers.
+        (ignore-errors (version-string (make-version (version-string raw-version)))))))
+  (defmethod component-version* ((component component))
+    (if-let (raw-version (and (slot-boundp component 'version)
+                              (slot-value component 'version)))
+      raw-version))
+
+  (defmethod (setf component-version) ((value string) (component component))
+    "Set the VERSION slot of component."
+    (setf (slot-value component 'version)
+          (make-version value :class (component-version-class component)))
+    ;; It's tempting to return (VALUES VALUE VALUE-AS-VERSION) here, but that
+    ;; does not seem to be allowed under 5.1.2.9 of the spec.
+    value)
+  (defmethod (setf component-version) ((value null) (component component))
+    (setf (slot-value component 'version) nil)
+    value)
+  (defmethod (setf component-version) ((value version-object) (component component))
+    (setf (slot-value component 'version) value)
+    value))
 
 
 ;;;; Component hierarchy within a system
@@ -313,14 +351,18 @@ this compilation, or check its results, etc."))
   (defmethod version-satisfies :around ((c t) (version null))
     t)
   (defmethod version-satisfies ((c component) version)
-    (unless (and version (slot-boundp c 'version) (component-version c))
-      (when version
-        (warn "Requested version ~S but ~S has no version" version c))
-      (return-from version-satisfies nil))
-    (version-satisfies (component-version c) version))
+    (let ((component-version (component-version* c)))
+      (unless (and version component-version)
+        (when version
+          (warn "Requested version ~S but ~S has no version" version c))
+        (return-from version-satisfies nil))
+      (version-satisfies component-version version)))
+
+  (defmethod version-satisfies ((cver version-object) version-constraint)
+    (version-constraint-satisfied-p cver version-constraint))
 
   (defmethod version-satisfies ((cver string) version)
-    (version<= version cver)))
+    (version-satisfies (make-version cver) version)))
 
 
 ;;; all sub-components (of a given type)
