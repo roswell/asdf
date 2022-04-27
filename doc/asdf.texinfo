@@ -2730,12 +2730,10 @@ An operation @emph{may} provide methods for the following generic functions:
 
 @item @code{input-files}
 @findex input-files
-A method for this function is often not needed,
-since ASDF has a pretty clever default @code{input-files} mechanism.
-You only need create a method if there are multiple ultimate input
+You only need create a method for @code{input-files} if there are multiple input
 files.
 Most operations inherit from @code{selfward-operation}, which
-appropriately sets the input-files to include the source file itself.
+appropriately sets the @code{input-files} to include the source file itself.
 
 @c FIXME: Add documentation of built-in operation types.
 
