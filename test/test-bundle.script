@@ -13,6 +13,10 @@
 #+(and os-macosx ecl)
 (leave-test "Bundle test doesn't work on Mac on this lisp." 0)
 
+;;; FIXME: Do we really need to keep the following two around?
+;;; Now that we are almost at 1.9, I'd like to remove this as noise.
+;;; [2022/05/09:rpg]
+
 #+abcl
 (when (and (member :abcl *features*)
            (os-macosx-p)

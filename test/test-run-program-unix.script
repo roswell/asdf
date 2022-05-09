@@ -3,6 +3,7 @@
 
 (chdir *test-directory*)
 
+;;; FIXME: Another check for very old ABCL version.
 #+abcl
 (unless (version-satisfies
          (second (split-string (implementation-identifier) :separator '(#\-)))
@@ -215,6 +216,10 @@
                  :implemented))
        (error 'unexpected-test-success :test-designator ,test-designator))))
 
+#+abcl
+(when (asdf:version-satisfies (lisp-implementation-version) "1.8")
+  (push :old-abcl *features*))
+
 
 ;;; The actual tests
 
@@ -242,16 +247,20 @@
 
 (define-test
     "launch-program :output t"
-    (expected-unimplemented ((:lispworks :abcl) :test-designator "launch-program :output t")
-       (launch-program (list "echo" "echoing output")
-                       :output t)))
+    (expected-unimplemented ((:lispworks :old-abcl) :test-designator "launch-program :output t")
+       (progn
+         (launch-program (list "echo" "echoing output")
+                         :output t)
+         t)))
 
 (define-test
     "launch-program :error-output t"
-    (expected-unimplemented ((:lispworks :abcl) :test-designator "launch-program :error-output t")
-       (uiop:wait-process
-        (launch-program (format nil "./exiter.sh 0 ~a" output-string)
-                        :error-output t))))
+    (expected-unimplemented ((:lispworks :old-abcl) :test-designator "launch-program :error-output t")
+  (progn
+    (uiop:wait-process
+     (launch-program (format nil "./exiter.sh 0 ~a" output-string)
+                     :error-output t))
+    t)))
 
 (define-test
     ":output <file> (file e.)"
