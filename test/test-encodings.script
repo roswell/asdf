@@ -6,6 +6,8 @@
 
 (defparameter *lambda-string* nil)
 
+(DBG "ASDF-UNICODE = " (member :asdf-unicode *features*))
+
 (defun string-char-codes (s)
   (loop :for c :across s :collect (char-code c)))
 
@@ -117,8 +119,7 @@
   (def-test-system :test-system-encoding-l1
     :encoding :latin-1
     :components ((:file "lambda"))))
-#-ecl-bytecmp
-(with-expected-failure ()
+(with-expected-failure (:ecl-bytecmp)
   (with-encoding-test (:latin-1 :op load-op)
     (def-test-system :test-system-encoding-l1-load-op
         :encoding :latin-1
