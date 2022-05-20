@@ -464,6 +464,38 @@ or :error-output."
                             (slot-value process-info 'output-stream)))))
       (when stream (close stream))))
 
+  #+cmucl
+  (defun splice-env-alist (additional-environment)
+    "CMUCL helper to create the complete environment for the child process."
+    (let ((env ext:*environment-list*))
+      (flet ((remove-var (name)
+               (setf env (remove name env :key #'car))))
+        (dolist (pair additional-environment)
+          (let ((name (intern (car pair) :keyword))
+                (value (coerce (cdr pair) 'simple-string)))
+            (remove-var name)
+            (push (cons name value) env))))))
+
+  #+(or sbcl ecl)
+  (defun splice-posix-env (additional-environment)
+    "Return a POSIX environment (list of strings of the form \"NAME=VALUE\") that
+logically represents the ADDITIONAL-ENVIRONMENT being added to the current
+environment. This is not a simple APPEND operation, as we want do not want to
+have competing assignments to the same name."
+    (let ((env #+ecl (ext:environ) #+sbcl (sb-ext:posix-environ)))
+      (flet ((remove-var (name)
+               (setf env (remove name env
+                                 :test #'equal
+                                 :key (lambda (assignment)
+                                        (first (split-string assignment :max 2 :separator '(#\=))))))))
+        (dolist (pair (reverse additional-environment))
+          (let ((name (car pair))
+                (value (cdr pair)))
+            (remove-var name)
+            (unless (null value)
+              (push (format nil "~A=~A" name value) env)))))
+      env))
+
   (defun launch-program (command &rest keys
                          &key
                            input (if-input-does-not-exist :error)
@@ -473,6 +505,7 @@ or :error-output."
                                          #+clozure 'character)
                            (external-format *utf-8-external-format*)
                            directory
+                           additional-environment
                            #+allegro separate-streams
                            &allow-other-keys)
     "Launch program specified by COMMAND,
@@ -517,6 +550,12 @@ IF-DOES-NOT-EXIST parameter to OPEN with :DIRECTION :INPUT.
 ELEMENT-TYPE and EXTERNAL-FORMAT are passed on to your Lisp
 implementation, when applicable, for creation of the output stream.
 
+ADDITIONAL-ENVIRONMENT specifies additional environment variables to add to the
+new process. It must be an alist, where the keys and values are strings. Note
+that on CMUCL, the child environment is augmented with respect to the state of
+the current process's environment as of when it started. Currently supported on
+ABCL, Allegro, Clozure, CMUCL, ECL, Lispworks, and SBCL.
+
 LAUNCH-PROGRAM returns a PROCESS-INFO object.
 
 LAUNCH-PROGRAM currently does not smooth over all the differences between
@@ -529,7 +568,8 @@ periodically read from the child process and sent to the stream, the child
 could block because its output buffers are full."
     #-(or abcl allegro clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
     (progn command keys input output error-output directory element-type external-format
-           if-input-does-not-exist if-output-exists if-error-output-exists ;; ignore
+           if-input-does-not-exist if-output-exists if-error-output-exists
+           additional-environment ;; ignore
            (not-implemented-error 'launch-program))
     #+allegro
     (when (some #'(lambda (stream)
@@ -554,6 +594,24 @@ could block because its output buffers are full."
                      (list input output error-output)))
       (parameter-error "~S: Streams passed as I/O parameters need to be (synonymous with) file streams on this lisp"
                        'launch-program))
+    #+(or mkcl scl)
+    (unless (null additional-environment)
+      (parameter-error "~S: This lisp does not support ADDITIONAL-ENVIRONMENT" 'launch-program))
+    (unless (every (lambda (pair) (and (consp pair) (stringp (car pair)) (stringp (cdr pair))))
+                   additional-environment)
+      (parameter-error "~S: ADDITIONAL-ENVIRONMENT must be an alist with strings as keys and values"
+                       'launch-program))
+    #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) sbcl)
+    (unless (null additional-environment)
+      (setf keys (append
+                  #+abcl (list :environment additional-environment)
+                  #+allegro (list :environment additional-environment)
+                  #+clozure (list :env additional-environment)
+                  #+cmucl (list :env (splice-env-alist additional-environment))
+                  #+ecl (list :environ (splice-posix-env additional-environment))
+                  #+lispworks (list :environment additional-environment)
+                  #+sbcl (list :environment (splice-posix-env additional-environment))
+                  keys)))
     #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
     (nest
      (progn ;; see comments for these functions
