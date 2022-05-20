@@ -474,7 +474,8 @@ or :error-output."
           (let ((name (intern (car pair) :keyword))
                 (value (coerce (cdr pair) 'simple-string)))
             (remove-var name)
-            (push (cons name value) env))))))
+            (push (cons name value) env))))
+      env))
 
   #+(or sbcl ecl)
   (defun splice-posix-env (additional-environment)
