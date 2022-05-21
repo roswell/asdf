@@ -558,6 +558,12 @@ and with priority being given to output processing.
 Other streams are completely produced or consumed
 before or after the subprocess is spawned, using temporary files.
 
+ADDITIONAL-ENVIRONMENT specifies additional environment variables to add to the
+new process. It must be an alist, where the keys and values are strings. Note
+that on CMUCL, the child environment is augmented with respect to the state of
+the current process's environment as of when it started. Currently supported on
+ABCL, Allegro, Clozure, CMUCL, ECL, Lispworks, and SBCL.
+
 RUN-PROGRAM returns 3 values:
 0- the result of the OUTPUT slurping if any, or NIL
 1- the result of the ERROR-OUTPUT slurping if any, or NIL
