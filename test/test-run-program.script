@@ -281,9 +281,9 @@
                             :output :lines :ignore-error-status t))))
 
   #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) sbcl)
-  ;; This check assumes that
-  ;; <https://gitlab.com/embeddable-common-lisp/ecl/-/merge_requests/272> is
-  ;; merged before the next ECL release.
+  ;; We need a version of ECL with
+  ;; <https://gitlab.com/embeddable-common-lisp/ecl/-/merge_requests/272>
+  ;; merged.
   (unless (and (uiop:featurep :ecl) (uiop:version<= (lisp-implementation-version) "21.2.1"))
     (DBG "Test that run-program environment is augmented (assumes PATH is set in current environment).")
     (assert-equal (list (uiop:getenv "PATH"))
