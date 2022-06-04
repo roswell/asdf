@@ -281,17 +281,20 @@
                             :output :lines :ignore-error-status t))))
 
   #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) sbcl)
-  ;; We need a version of ECL with
+  ;; Versions of ECL without
   ;; <https://gitlab.com/embeddable-common-lisp/ecl/-/merge_requests/272>
-  ;; merged.
-  (unless (and (uiop:featurep :ecl) (uiop:version<= (lisp-implementation-version) "21.2.1"))
+  ;; merged need to force a shell so that the shell can do PATH lookups for us.
+  (let ((old-ecl-p (and (uiop:featurep :ecl)
+                        (uiop:version<= (lisp-implementation-version) "21.2.1"))))
     (DBG "Test that run-program environment is augmented (assumes PATH is set in current environment).")
     (assert-equal (list (uiop:getenv "PATH"))
                   (run-program '("printenv" "PATH")
+                               :force-shell old-ecl-p
                                :output :lines
                                :additional-environment '(("ASDF_TEST_VAR" . "test-val"))))
     (assert-equal (list "test-val")
                   (run-program '("printenv" "ASDF_TEST_VAR")
+                               :force-shell old-ecl-p
                                :output :lines
                                :additional-environment '(("ASDF_TEST_VAR" . "test-val")))))
 

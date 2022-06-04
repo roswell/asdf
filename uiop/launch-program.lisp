@@ -595,6 +595,15 @@ could block because its output buffers are full."
                      (list input output error-output)))
       (parameter-error "~S: Streams passed as I/O parameters need to be (synonymous with) file streams on this lisp"
                        'launch-program))
+    #+ecl
+    (when (and (not (null additional-environment))
+               (version<= (lisp-implementation-version) "21.2.1")
+               ;; String commands will be shuttled through the shell, which
+               ;; will search the PATH for us.
+               (listp command)
+               (null (pathname-directory (parse-native-namestring (first command)))))
+      (warn "~S: This lisp does not search the PATH for executables if ADDITIONAL-ENVIRONMENT is provided"
+            'launch-program))
     #+(or mkcl scl)
     (unless (null additional-environment)
       (parameter-error "~S: This lisp does not support ADDITIONAL-ENVIRONMENT" 'launch-program))
