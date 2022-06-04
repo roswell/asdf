@@ -317,7 +317,7 @@
                                :output :lines
                                :additional-environment '(("ASDF_TEST_VAR" . "test-val"))))
     (assert-equal (list "test-val")
-                  (run-program '("cmd" "/c" "echo" "%PATH%" "%ASDF_TEST_VAR%")
+                  (run-program '("cmd" "/c" "echo" "%ASDF_TEST_VAR%")
                                :output :lines
                                :additional-environment '(("ASDF_TEST_VAR" . "test-val")))))
   t)
