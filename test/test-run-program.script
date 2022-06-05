@@ -279,6 +279,25 @@
     ;; Test that we can suppress the error on run-program
     (is (null (run-program '("false")
                             :output :lines :ignore-error-status t))))
+
+  #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) sbcl)
+  ;; Versions of ECL without
+  ;; <https://gitlab.com/embeddable-common-lisp/ecl/-/merge_requests/272>
+  ;; merged need to force a shell so that the shell can do PATH lookups for us.
+  (let ((old-ecl-p (and (uiop:featurep :ecl)
+                        (uiop:version<= (lisp-implementation-version) "21.2.1"))))
+    (DBG "Test that run-program environment is augmented (assumes PATH is set in current environment).")
+    (assert-equal (list (uiop:getenv "PATH"))
+                  (run-program '("printenv" "PATH")
+                               :force-shell old-ecl-p
+                               :output :lines
+                               :additional-environment '(("ASDF_TEST_VAR" . "test-val"))))
+    (assert-equal (list "test-val")
+                  (run-program '("printenv" "ASDF_TEST_VAR")
+                               :force-shell old-ecl-p
+                               :output :lines
+                               :additional-environment '(("ASDF_TEST_VAR" . "test-val")))))
+
   t)
 
 (defun windows-only-test/run-program ()
@@ -289,6 +308,18 @@
   (assert-equal "ok 1" (dewindowize (run-program "echo ok 1" :output :line)))
   ;; clozure: beware http://trac.clozure.com/ccl/ticket/1118
 
+  ;; This is untested on an actual Windows machine
+  #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) sbcl)
+  (progn
+    (DBG "Test that run-program environment is augmented (assumes PATH is set in current environment).")
+    (assert-equal (list (uiop:getenv "PATH"))
+                  (run-program '("cmd" "/c" "echo" "%PATH%")
+                               :output :lines
+                               :additional-environment '(("ASDF_TEST_VAR" . "test-val"))))
+    (assert-equal (list "test-val")
+                  (run-program '("cmd" "/c" "echo" "%ASDF_TEST_VAR%")
+                               :output :lines
+                               :additional-environment '(("ASDF_TEST_VAR" . "test-val")))))
   t)
 
 (deftest test/run-program ()

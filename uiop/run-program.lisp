@@ -415,10 +415,12 @@ or whether it's already taken care of by the implementation's underlying run-pro
                                        input (if-input-does-not-exist :error)
                                        output (if-output-exists :supersede)
                                        error-output (if-error-output-exists :supersede)
+                                       additional-environment
                                        &allow-other-keys)
     "A portable abstraction of a low-level call to libc's system()."
     (declare (ignorable keys directory input if-input-does-not-exist output
-                        if-output-exists error-output if-error-output-exists))
+                        if-output-exists error-output if-error-output-exists
+                        additional-environment))
     (when (member :stream (list input output error-output))
       (parameter-error "~S: ~S is not allowed as synchronous I/O redirection argument"
                        'run-program :stream))
@@ -438,6 +440,8 @@ or whether it's already taken care of by the implementation's underlying run-pro
           (apply 'launch-program (%normalize-system-command command) keys)))))
     #+(or abcl clasp clisp cormanlisp ecl gcl genera (and lispworks os-windows) mkcl xcl)
     (let ((%command (%redirected-system-command command input output error-output directory)))
+      (unless (null additional-environment)
+        (parameter-error "~S: This Lisp does not support ADDITIONAL-ENVIRONMENT" 'run-program))
       ;; see comments for these functions
       (%handle-if-does-not-exist input if-input-does-not-exist)
       (%handle-if-exists output if-output-exists)
@@ -490,6 +494,7 @@ or whether it's already taken care of by the implementation's underlying run-pro
                          error-output (if-error-output-exists :supersede)
                          (element-type #-clozure *default-stream-element-type* #+clozure 'character)
                          (external-format *utf-8-external-format*)
+                         additional-environment
                        &allow-other-keys)
     "Run program specified by COMMAND,
 either a list of strings specifying a program and list of arguments,
@@ -553,13 +558,20 @@ and with priority being given to output processing.
 Other streams are completely produced or consumed
 before or after the subprocess is spawned, using temporary files.
 
+ADDITIONAL-ENVIRONMENT specifies additional environment variables to add to the
+new process. It must be an alist, where the keys and values are strings. Note
+that on CMUCL, the child environment is augmented with respect to the state of
+the current process's environment as of when it started. Currently supported on
+ABCL, Allegro, Clozure, CMUCL, ECL, Lispworks, and SBCL.
+
 RUN-PROGRAM returns 3 values:
 0- the result of the OUTPUT slurping if any, or NIL
 1- the result of the ERROR-OUTPUT slurping if any, or NIL
 2- either 0 if the subprocess exited with success status,
 or an indication of failure via the EXIT-CODE of the process"
     (declare (ignorable input output error-output if-input-does-not-exist if-output-exists
-                        if-error-output-exists element-type external-format ignore-error-status))
+                        if-error-output-exists element-type external-format ignore-error-status
+                        additional-environment))
     #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl lispworks mcl mkcl sbcl scl xcl)
     (not-implemented-error 'run-program)
     (apply (if (or force-shell
