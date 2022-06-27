@@ -264,8 +264,11 @@ MAKE-INSTANCE. Primarily, it is being made available to enable type-checking."))
       (declare (ignorable process))
       #+abcl (symbol-call :sys :process-pid process)
       #+allegro process
+      #+clasp (if (find-symbol* '#:external-process-pid :ext nil)
+                  (symbol-call :ext '#:external-process-pid process)
+                  (not-implemented-error 'process-info-pid))
       #+clozure (ccl:external-process-id process)
-      #+(or clasp ecl) (ext:external-process-pid process)
+      #+ecl (ext:external-process-pid process)
       #+(or cmucl scl) (ext:process-pid process)
       #+lispworks7+ (sys:pipe-pid process)
       #+(and lispworks (not lispworks7+)) process
@@ -289,6 +292,9 @@ MAKE-INSTANCE. Primarily, it is being made available to enable type-checking."))
                           (sys:reap-os-subprocess :pid process :wait nil)
                         (assert pid)
                         (%code-to-status exit-code signal-code))
+            #+clasp (if (find-symbol* '#:external-process-status :ext nil)
+                        (symbol-call :ext '#:external-process-status process)
+                        (not-implemented-error '%process-status))
             #+clozure (ccl:external-process-status process)
             #+(or cmucl scl) (let ((status (ext:process-status process)))
                                (if (member status '(:exited :signaled))
@@ -297,7 +303,7 @@ MAKE-INSTANCE. Primarily, it is being made available to enable type-checking."))
                                    ;; yields an undefined result
                                    (values status (ext:process-exit-code process))
                                    status))
-            #+(or clasp ecl) (ext:external-process-status process)
+            #+ecl (ext:external-process-status process)
             #+lispworks
             ;; a signal is only returned on LispWorks 7+
             (multiple-value-bind (exit-code signal-code)
@@ -370,6 +376,13 @@ might otherwise be irrevocably lost."
                               (sys:reap-os-subprocess :pid process :wait t)
                             (assert pid)
                             (values exit-code signal))
+                #+clasp (if (find-symbol* '#:external-process-wait :ext nil)
+                            (multiple-value-bind (status code)
+                                (symbol-call :ext '#:external-process-wait process t)
+                              (if (eq status :signaled)
+                                  (values nil code)
+                                  code))
+                            (not-implemented-error 'wait-process))
                 #+clozure (multiple-value-bind (status code)
                               (ccl:external-process-status process)
                             (if (eq status :signaled)
@@ -380,7 +393,7 @@ might otherwise be irrevocably lost."
                                    (if (eq status :signaled)
                                        (values nil code)
                                        code))
-                #+(or clasp ecl) (multiple-value-bind (status code)
+                #+ecl (multiple-value-bind (status code)
                           (ext:external-process-wait process t)
                         (if (eq status :signaled)
                             (values nil code)
@@ -547,7 +560,7 @@ could block because its output buffers are full."
       (parameter-error "~S: The only admissible value for ~S is ~S on this lisp"
                        'launch-program :error-output :interactive))
     #+(or clasp ecl)
-    (when (and (version< (lisp-implementation-version) "20.4.24")
+    (when (and #+ecl (version< (lisp-implementation-version) "20.4.24")
                (some #'(lambda (stream)
                          (and (streamp stream)
                               (not (file-or-synonym-stream-p stream))))
@@ -619,8 +632,12 @@ could block because its output buffers are full."
            #+allegro ,@'('excl:run-shell-command
                          #+os-unix (coerce (cons program command) 'vector)
                          #+os-windows command)
+           #+clasp (if (find-symbol* '#:run-program :ext nil)
+                       (find-symbol* '#:run-program :ext nil)
+                       (not-implemented-error 'launch-program))
            #+clozure 'ccl:run-program
-           #+(or clasp cmucl ecl scl) 'ext:run-program
+           #+(or cmucl ecl scl) 'ext:run-program
+           
            #+lispworks ,@'('system:run-shell-command `("/usr/bin/env" ,@command)) ; full path needed
            #+mkcl 'mk-ext:run-program
            #+sbcl 'sb-ext:run-program
@@ -689,7 +706,7 @@ could block because its output buffers are full."
            (prop (case mode (1 'input-stream) (2 'output-stream) (3 'bidir-stream)) stream))
          (when (eq error-output :stream)
            (prop 'error-output-stream
-                 (if (version< (lisp-implementation-version) "16.0.0")
+                 (if (and #+clasp nil #-clasp t (version< (lisp-implementation-version) "16.0.0"))
                      (symbol-call :ext :external-process-error process)
                      (symbol-call :ext :external-process-error-stream process))))
          (prop 'process process))
