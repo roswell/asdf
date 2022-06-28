@@ -2730,10 +2730,17 @@ An operation @emph{may} provide methods for the following generic functions:
 
 @item @code{input-files}
 @findex input-files
-You only need create a method for @code{input-files} if there are multiple input
-files.
-Most operations inherit from @code{selfward-operation}, which
-appropriately sets the @code{input-files} to include the source file itself.
+@code{(input-files @var{operation} @var{component})} should return a
+list of the files taken as input when applying @var{operation} to
+@var{component}. ASDF will inspect the file modification timestamps on
+these files to decide whether to re-run an action. A return value of @code{nil}
+denotes an action which takes no files as input.
+
+Operations which subclass @code{selfward-operation} will usually not need to define a method on @code{input-files}, as a method on @code{selfward-operation} collects the @code{output-files} of all the selfward dependencies.
+
+Operations which take no files as input need not define a method, as a default method returns @code{nil}.
+
+Operations which are not selfward and read files as input should define methods on this function.
 
 @c FIXME: Add documentation of built-in operation types.
 
