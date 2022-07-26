@@ -635,7 +635,7 @@ is bound, write a message and exit on an error.  If
              :ignore-inherited-configuration))
 
     (let ((fasl-dir (resolve-output "asdf/test/")))
-      (when (probe-file fasl-dir)
+      (when (acall (list '#:directory-exists-p :uiop) fasl-dir)
         (format t "Removing old fasls from directory ~a.~%" fasl-dir)
         (funcall (asym '#:delete-directory-tree :uiop t)
                  fasl-dir
