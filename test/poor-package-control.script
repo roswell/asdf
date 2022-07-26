@@ -4,6 +4,10 @@
 ;;; If *PACKAGE* is bound to the package named foobar in the context in which
 ;;; file1.lisp is compiled, that will cause an error (defpackage not found).
 
+;;; ABCL does not issue the errors we expect.
+(when (member :abcl *features*)
+  (leave-test "This test does not function properly on ABCL." 0))
+
 (defpackage foobar
   (:use))
 
