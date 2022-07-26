@@ -19,10 +19,10 @@
 
 (with-expected-failure ("Value of *PACKAGE* not controlled")
   (let ((*package* (find-package :foobar))
-        (asdf:*compile-file-warnings-behaviour* :error))
-    (asdf:compile-system "test-bad-package-discipline" :force t)))
+          (asdf:*compile-file-warnings-behaviour* :error))
+      (asdf:compile-system "test-bad-package-discipline" :force t))
 
 (with-expected-failure ("Value of *PACKAGE* not controlled")
   (in-package :foobar)
-  (let ((asdf:*compile-file-warnings-behaviour* :error))
-    (asdf:compile-system "test-bad-package-discipline" :force cl:t)))
+  (cl:let ((asdf:*compile-file-warnings-behaviour* :error))
+    (asdf:compile-system "test-bad-package-discipline" :force cl:t))
