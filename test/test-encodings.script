@@ -117,6 +117,7 @@
   (def-test-system :test-system-encoding-l1
     :encoding :latin-1
     :components ((:file "lambda"))))
+(delete-file-if-exists (first (output-files (make-operation 'compile-op) (find-component (find-system "test-system-encoding-l1") "lambda"))))
 (with-expected-failure ((and (featurep :ecl-bytecmp) :ecl-bytecmp))
   (with-encoding-test (:latin-1 :op load-op)
     (def-test-system :test-system-encoding-l1-load-op
