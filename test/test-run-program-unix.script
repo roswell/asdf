@@ -3,14 +3,6 @@
 
 (chdir *test-directory*)
 
-;;; FIXME: Another check for very old ABCL version.
-#+abcl
-(unless (version-satisfies
-         (second (split-string (implementation-identifier) :separator '(#\-)))
-         "1.4")
-  (leave-test
-   "This test is not meant to be run on versions of ABCL that predate 1.4" 0))
-
 #+clasp
 (unless (find-symbol* '#:run-program :ext nil)
   (leave-test "This clasp does not have a run-program function" 0))
