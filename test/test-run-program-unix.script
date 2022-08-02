@@ -209,8 +209,11 @@
        (error 'unexpected-test-success :test-designator ,test-designator))))
 
 #+abcl
-(when (asdf:version-satisfies (lisp-implementation-version) "1.8")
-  (push :old-abcl *features*))
+(let* ((raw-version (uiop:lisp-version-string))
+       (version
+         (subseq raw-version 0 (position #\- raw-version))))
+  (when (not (asdf:version-satisfies version "1.8"))
+    (push :old-abcl *features*)))
 
 
 ;;; The actual tests
