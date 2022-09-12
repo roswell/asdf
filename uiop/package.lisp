@@ -808,7 +808,7 @@ or when loading the package is optional."
   (defun check-local-nicknames (nickname-list)
     (let ((bad-element (find-if-not #'(lambda (x) (and (listp x) (= (length x) 2))) nickname-list)))
       (when bad-element
-        (error "Elements of local nicknames list should be lists of length 2, a package name and a local nickname ~s is not."
+        (error "Elements of local nicknames list should be lists of length 2, a package name and a local nickname. ~s is not of that type."
                bad-element)))
     (dolist (sublist nickname-list)
       (destructuring-bind (nickname package-name) sublist
