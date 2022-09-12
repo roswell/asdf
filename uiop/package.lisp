@@ -96,6 +96,14 @@
     (:report (lambda (c s)
               (format s "No package named ~a" (string (type-error-datum c))))))
 
+  (define-condition no-such-package-for-package-nickname-error (no-such-package-error)
+    ((nickname
+      :reader package-nickname
+      :initarg :nickname))
+    (:report (lambda (c s)
+               (format s "Trying to assign local-nickname ~s to package ~s, which does not exist."
+                       (package-nickname c) (type-error-datum c)))))
+
   (defmethod package-designator ((c no-such-package-error))
     (type-error-datum c))
 
@@ -795,6 +803,20 @@ or when loading the package is optional."
 
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
+  ;;; ill-formed local nicknames cause confusing error messages when passed to the underlying implementation,
+  ;;; so we check these arguments in UIOP instead of delegating that.
+  (defun check-local-nicknames (nickname-list)
+    (let ((bad-element (find-if-not #'(lambda (x) (and (listp x) (= (length x) 2))) nickname-list)))
+      (when bad-element
+        (error "Elements of local nicknames list should be lists of length 2, a package name and a local nickname ~s is not."
+               bad-element)))
+    (dolist (sublist nickname-list)
+      (destructuring-bind (nickname package-name) sublist
+        (unless (find-package* package-name nil)
+          (error 'no-such-package-for-package-nickname-error
+                 :nickname nickname
+                 :datum package-name)))))
+
   (defun parse-define-package-form (package clauses)
     (loop
       :with use-p = nil :with recycle-p = nil
@@ -828,15 +850,17 @@ or when loading the package is optional."
         :end
       :else
         :do (error "unrecognized define-package keyword ~S" kw)
-      :finally (return `(',package
-                         :nicknames ',nicknames :documentation ',documentation
-                         :use ',(if use-p use '(:common-lisp))
-                         :shadow ',shadow :shadowing-import-from ',shadowing-import-from
-                         :import-from ',import-from :export ',export :intern ',intern
-                         :recycle ',(if recycle-p recycle (cons package nicknames))
-                         :mix ',mix :reexport ',reexport :unintern ',unintern
-                         ,@(when local-nicknames
-                             `(:local-nicknames ',local-nicknames)))))))
+      :finally (progn
+                 (check-local-nicknames local-nicknames)
+                 (return `(',package
+                           :nicknames ',nicknames :documentation ',documentation
+                           :use ',(if use-p use '(:common-lisp))
+                           :shadow ',shadow :shadowing-import-from ',shadowing-import-from
+                           :import-from ',import-from :export ',export :intern ',intern
+                           :recycle ',(if recycle-p recycle (cons package nicknames))
+                           :mix ',mix :reexport ',reexport :unintern ',unintern
+                           ,@(when local-nicknames
+                               `(:local-nicknames ',local-nicknames))))))))
 
 (defmacro define-package (package &rest clauses)
   "DEFINE-PACKAGE takes a PACKAGE and a number of CLAUSES, of the form
@@ -870,8 +894,8 @@ when *redefining* a previously-existing package in the current image (e.g., when
 upgrading ASDF).  Most programmers will have no use for this option.
 LOCAL-NICKNAMES -- If the host implementation supports package local nicknames
 \(check for the :PACKAGE-LOCAL-NICKNAMES feature\), then this should be a list of
-nickname and package name pairs.  Using this option will cause an error if the
-host CL implementation does not support it.
+nickname and package name pairs \(a list of two-element lists, *not* an ALIST\).
+Using this option will cause an error if the host CL implementation does not support it.
 USE-REEXPORT, MIX-REEXPORT -- Use or mix the specified packages as per the USE or
 MIX directives, and reexport their contents as per the REEXPORT directive."
   (let ((ensure-form
@@ -891,7 +915,9 @@ MIX directives, and reexport their contents as per the REEXPORT directive."
   (:import-from :uiop/package
                 #:define-package-style-warning
                 #:no-such-package-error
-                #:package-designator)
+                #:package-designator
+                #:no-such-package-for-package-nickname-error)
   (:export #:define-package-style-warning
            #:no-such-package-error
-           #:package-designator))
+           #:package-designator
+           #:no-such-package-for-package-nickname-error))
