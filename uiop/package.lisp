@@ -668,6 +668,7 @@ or when loading the package is optional."
     (find-package* (second x) t)
     (mapcar #'string x))
 
+  #+package-local-nicknames
   (defun install-package-local-nicknames (destination-package new-nicknames)
     (let ((new-nicknames (mapcar (lambda (x)
                                    (validate-nickname-pair x (package-name destination-package)))
