@@ -766,7 +766,7 @@ it will filter them appropriately."
              #+clasp
              (progn
                ;;; the following 4 rename-file-overwriting-target better be atomic, but we can't implement this right now
-               #+:target-os-darwin
+               #+darwin
                (let ((temp-dwarf (pathname (strcat (namestring output-truename) ".dwarf")))
                      (target-dwarf (pathname (strcat (namestring physical-output-file) ".dwarf"))))
                  (when (probe-file temp-dwarf)
