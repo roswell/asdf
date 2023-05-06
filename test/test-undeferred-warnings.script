@@ -27,16 +27,16 @@
 ;; GCL fails to warn; CMUCL, SBCL and presumably SCL defer warning to end of compilation unit;
 ;; SCL and XCL not actually tested
 (format t "Check for proper errors on warning.~%")
-(errors #+(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp)) clasp lispworks mkcl xcl) compile-file-error
-        #+(or cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
+(errors #+(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp)) (and clasp (not bytecode)) lispworks mkcl xcl) compile-file-error
+        #+(or cmucl (and ecl ecl-bytecmp) (and clasp bytecode) gcl sbcl scl) null
         ;;; need to cover the other cases, or will produce a compile error
         #-(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp))
               clasp lispworks mkcl xcl cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
         (let ((*compile-file-warnings-behaviour* :error))
           (load-system :undefined-variables :force t)))
 (format t  "Check for proper warnings on warning.~%")
-(errors #+(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp)) clasp lispworks mkcl xcl) compile-file-error
-        #+(or cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
+(errors #+(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp)) (and clasp (not bytecode)) lispworks mkcl xcl) compile-file-error
+        #+(or cmucl (and ecl ecl-bytecmp) (and clasp bytecode) gcl sbcl scl) null
         ;;; need to cover the other cases, or will produce a compile error
         #-(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp))
               clasp lispworks mkcl xcl cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
