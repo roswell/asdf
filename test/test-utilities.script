@@ -750,12 +750,31 @@
   (uiop:run-program (format nil "rm -rf '~a'" dirname)))
 
 (DBG :test-star-dirname-construction)
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname "foo.bar")
+ (make-pathname :directory '(:relative "foo.bar")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname (uiop:ensure-pathname "foo.bar"))
+ (make-pathname :directory '(:relative "foo.bar")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname "foo")
+ (make-pathname :directory '(:relative "foo")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname (uiop:ensure-pathname "foo"))
+ (make-pathname :directory '(:relative "foo")))
+
 (assert-equal
  (namestring (uiop:ensure-directory-pathname (uiop:ensure-pathname "*")))
  (namestring (make-pathname :directory '(:relative "*"))))
+
 (assert-pathname-equal
  (uiop:ensure-directory-pathname (uiop:ensure-pathname "*"))
  (make-pathname :directory '(:relative "*")))
+
+
 
 (DBG :test-star-dirname)
 (let ((temp-dir (uiop:ensure-directory-pathname
@@ -764,9 +783,7 @@
   (unwind-protect
        (let* ((path (uiop:ensure-pathname (format nil "~a*" (namestring temp-dir))))
               (dirpath (uiop:ensure-directory-pathname path)))
-         (uiop:run-program (format nil "mkdir '~a'" (namestring dirpath)))
-         (assert
-          (uiop:directory-exists-p (namestring path)))
+         (uiop:run-program (format nil "mkdir ~a" dirpath))
          (assert
           (uiop:directory-exists-p dirpath)))
     (uiop:run-program (format nil "rm -rf '~a'" (namestring temp-dir)))))
