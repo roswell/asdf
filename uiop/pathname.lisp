@@ -330,7 +330,14 @@ actually-existing directory."
            (make-pathname :directory (append (or (normalize-pathname-directory-component
                                                   (pathname-directory pathspec))
                                                  (list :relative))
-                                             (list #-genera (file-namestring pathspec)
+                                             (list #-genera
+                                                   (if (member (pathname-type pathspec) '(nil :unspecific "") :test 'equal)
+                                                       ;; take name only
+                                                       (pathname-name pathspec)
+                                                       ;; there's a type, too
+                                                       (concatenate 'string (pathname-name pathspec)
+                                                                    "."
+                                                                    (pathname-type pathspec)))
                                                    ;; On Genera's native filesystem (LMFS),
                                                    ;; directories have a type and version
                                                    ;; which must be ignored when converting
