@@ -509,7 +509,7 @@
             (loop :for q :in '(speed space safety debug) :do
                   #+mkcl (DBG :os i q s (assoc q s))
                (assert-equal i (second (assoc q s))))))
-        ;;; The order does not seem to be significant, should better test that all values are the same  
+        ;;; The order does not seem to be significant, should better test that all values are the same
         (assert-equal (get-optimization-settings) settings))
 
 (DBG :standard-case-symbol-name)
@@ -727,3 +727,46 @@
  #+(or clasp abcl ecl) '(ext:remove-package-local-nickname ext:package-local-nicknames ext:add-package-local-nickname)
  #+ccl '(ccl:remove-package-local-nickname ccl:package-local-nicknames ccl:add-package-local-nickname)
  #+lispworks '(hcl:remove-package-local-nickname hcl:package-local-nicknames hcl:add-package-local-nickname))
+
+
+;;; Issue 140 https://gitlab.common-lisp.net/asdf/asdf/-/issues/140
+;;; does a pathname with a star in it behave correctly?
+(DBG :test-star-pathname-construction)
+(assert-pathname-equal
+  (uiop:ensure-pathname "*")
+  (make-pathname :name "*" :type :unspecific))
+
+(DBG :test-star-pathname)
+(let* ((dir (temporary-directory))
+       (dirname (concatenate 'string (namestring dir) "test-star-pathname"))
+       star-pathname)
+  (uiop:run-program (format nil "mkdir -p '~a'" dirname))
+  (setf star-pathname (uiop:ensure-pathname (format nil "~a/*" dirname)))
+  (unwind-protect
+       (progn
+        (uiop:ensure-pathname (concatenate 'string dirname "/*"))
+        (uiop:run-program (format nil "touch '~a/*'" dirname))
+        (assert (probe-file star-pathname))))
+  (uiop:run-program (format nil "rm -rf '~a'" dirname)))
+
+(DBG :test-star-dirname-construction)
+(assert-equal
+ (namestring (uiop:ensure-directory-pathname (uiop:ensure-pathname "*")))
+ (namestring (make-pathname :directory '(:relative "*"))))
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname (uiop:ensure-pathname "*"))
+ (make-pathname :directory '(:relative "*")))
+
+(DBG :test-star-dirname)
+(let ((temp-dir (uiop:ensure-directory-pathname
+                 (format nil "~a/test-star-pathname" (temporary-directory)))))
+  (uiop:run-program (format nil "mkdir '~a'" temp-dir))
+  (unwind-protect
+       (let* ((path (uiop:ensure-pathname (format nil "~a*" (namestring temp-dir))))
+              (dirpath (uiop:ensure-directory-pathname path)))
+         (uiop:run-program (format nil "mkdir '~a'" (namestring dirpath)))
+         (assert
+          (uiop:directory-exists-p (namestring path)))
+         (assert
+          (uiop:directory-exists-p dirpath)))
+    (uiop:run-program (format nil "rm -rf '~a'" (namestring temp-dir)))))
