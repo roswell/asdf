@@ -414,10 +414,9 @@
  (make-pathname :directory '(:relative ".bar")))
 
 (errors
- 'error
- (uiop:ensure-directory-pathname ""))
-
-
+ error
+ (uiop:ensure-directory-pathname "")
+ :strict nil)
 
 (DBG :test-star-dirname)
 (let ((temp-dir (uiop:ensure-directory-pathname
