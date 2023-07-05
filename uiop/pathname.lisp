@@ -319,6 +319,7 @@ actually-existing directory."
         (flet ((check-one (x)
                  (member x '(nil :unspecific) :test 'equal)))
           (and (not (wild-pathname-p pathname))
+               (not (check-one (pathname-directory pathname)))
                (check-one (pathname-name pathname))
                (check-one (pathname-type pathname))
                t)))))
