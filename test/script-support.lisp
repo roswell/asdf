@@ -143,12 +143,19 @@ Some constraints:
          (error "~&Condition signaled: ~S~%" ,x))
        (:no-error (&rest ,x)
          t))))
-(defmacro errors (condition sexp &aux (x (gensym)))
+(defmacro errors (condition sexp &key (strict t) &aux (x (gensym)))
+  "Asserts that SEXP raises an exception of type CONDITION.
+
+If STRICT is true, then the exception's type must exactly match
+CONDITION, otherwise it's sufficient that the exception be of that
+type (so could be more specific)."
   `(progn
      (format *error-output* "~&Checking whether ~S signals error ~S~%" ',sexp ',condition)
      (finish-output *error-output*)
      (let ((,x (nth-value 1 (ignore-errors ,sexp))))
-       (assert-equal ',condition (type-of ,x))
+       ,(if strict
+            `(assert-equal ',condition (type-of ,x))
+            `(assert (typep ,x ',condition)))
        ,x)))
 (defmacro with-expected-failure ((&optional condition) &body body)
   "If CONDITION is non-NIL, then the BODY is expected to fail, and an error will be
