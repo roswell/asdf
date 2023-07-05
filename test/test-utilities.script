@@ -41,6 +41,8 @@
              (assert-pathname-equal dir (getcwd))
              #-(and sbcl os-windows)
              (assert-pathname-equal dir (getcwd-from-run-program)))
+           ;; check that dir is the same as default-pathname-defaults and that
+           ;; the current working directory is that directory.
            (check-true-dpd (dir)
              (assert-pathname-equal dir (get-pathname-defaults))
              (assert-pathname-equal dir (simplify-pathname-directory (truename #p"./")))
@@ -60,7 +62,9 @@
              (assert-equal nil (probe-file file)))
            (check-directory-exists (file &optional true)
              (setf file (parse-unix-namestring file))
-             (let ((dir (truename (ensure-directory-pathname file))))
+             (let* ((rawpath (or (ensure-directory-pathname file)
+                                 (error "Can't translate ~a into a directory pathname." file)))
+                    (dir (or (truename rawpath) (error "Can't get truename for ~a" rawpath))))
                (if true
                    (assert-pathname-equal true dir)
                    (setf true dir)))
@@ -80,10 +84,15 @@
              (check-true-dpd asdf-directory)
              (check-file-exists "asdf.asd")
              (check-file-exists "test/test-utilities.script")
+             (DBG "check tools/ exists")
              (check-directory-exists "tools/")
+             (DBG "check tools exists")
              (check-directory-exists "tools")
+             (DBG "check \"test-utilities.script\" does not exist")
              (check-file-doesnt-exist "test-utilities.script")
-             (check-directory-doesnt-exist "stamp-propagation/"))
+             (DBG "check \"stamp-propagation/\" does not exist")
+             (check-directory-doesnt-exist "stamp-propagation/")
+             (DBG "Done with check-true-dpd-asdf"))
            (check-true-dpd-test ()
              (check-true-dpd test-directory)
              (check-file-exists "test-utilities.script")
@@ -347,6 +356,81 @@
 ;; (assert-equal nil (uiop:subdirectories oddball-namestring))
 (with-expected-failure (#+(or sbcl cmucl) t)
     (assert-equal nil (uiop:subdirectories "/[foo")))
+
+;;; Issue 140 https://gitlab.common-lisp.net/asdf/asdf/-/issues/140
+;;; does a pathname with a star in it behave correctly?
+;;; so ... more oddball pathnames
+(DBG "Test oddball pathnames with *")
+(DBG :test-star-pathname-construction)
+(assert-pathname-equal
+  (uiop:ensure-pathname "*")
+  (make-pathname :name "*" :type :unspecific))
+
+(DBG :test-star-pathname)
+(let* ((dir (temporary-directory))
+       (dirname (concatenate 'string (namestring dir) "test-star-pathname"))
+       star-pathname)
+  (uiop:run-program (format nil "mkdir -p ~a" (uiop:native-namestring dirname)))
+  (setf star-pathname (uiop:ensure-pathname (format nil "~a/*" dirname)))
+  (unwind-protect
+       (progn
+        (uiop:ensure-pathname (concatenate 'string dirname "/*"))
+        (uiop:run-program (format nil "touch '~a/*'" dirname))
+        (assert (probe-file star-pathname))))
+  (uiop:run-program (format nil "rm -rf '~a'" dirname)))
+
+(DBG :test-star-dirname-construction)
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname "foo.bar")
+ (make-pathname :directory '(:relative "foo.bar")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname (uiop:ensure-pathname "foo.bar"))
+ (make-pathname :directory '(:relative "foo.bar")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname "foo")
+ (make-pathname :directory '(:relative "foo")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname (uiop:ensure-pathname "foo"))
+ (make-pathname :directory '(:relative "foo")))
+
+(assert-equal
+ (namestring (uiop:ensure-directory-pathname (uiop:ensure-pathname "*")))
+ (namestring (make-pathname :directory '(:relative "*"))))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname (uiop:ensure-pathname "*"))
+ (make-pathname :directory '(:relative "*")))
+
+;;; I believe that this is the expected behavior [2023/07/04:rpg]
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname "foo.bar")
+ (make-pathname :directory '(:relative "foo.bar")))
+
+(assert-pathname-equal
+ (uiop:ensure-directory-pathname ".bar")
+ (make-pathname :directory '(:relative ".bar")))
+
+(errors
+ 'error
+ (uiop:ensure-directory-pathname ""))
+
+
+
+(DBG :test-star-dirname)
+(let ((temp-dir (uiop:ensure-directory-pathname
+                 (format nil "~a/test-star-pathname" (temporary-directory)))))
+  (uiop:run-program (format nil "mkdir '~a'" temp-dir))
+  (unwind-protect
+       (let* ((path (uiop:ensure-pathname (format nil "~a*" (uiop:native-namestring temp-dir))))
+              (dirpath (uiop:ensure-directory-pathname path)))
+         (uiop:run-program (format nil "mkdir ~a" dirpath))
+         (assert
+          (uiop:directory-exists-p dirpath)))
+    (uiop:run-program (format nil "rm -rf ~a" (uiop:native-namestring temp-dir)))))
+
 
 (DBG "check to make sure WITH-CURRENT-DIRECTORY checks its parameter for directory pathname")
 (let ((directory-a-no-slash (subpathname *build-directory* "deleteme/a"))
@@ -727,63 +811,3 @@
  #+(or clasp abcl ecl) '(ext:remove-package-local-nickname ext:package-local-nicknames ext:add-package-local-nickname)
  #+ccl '(ccl:remove-package-local-nickname ccl:package-local-nicknames ccl:add-package-local-nickname)
  #+lispworks '(hcl:remove-package-local-nickname hcl:package-local-nicknames hcl:add-package-local-nickname))
-
-
-;;; Issue 140 https://gitlab.common-lisp.net/asdf/asdf/-/issues/140
-;;; does a pathname with a star in it behave correctly?
-(DBG :test-star-pathname-construction)
-(assert-pathname-equal
-  (uiop:ensure-pathname "*")
-  (make-pathname :name "*" :type :unspecific))
-
-(DBG :test-star-pathname)
-(let* ((dir (temporary-directory))
-       (dirname (concatenate 'string (namestring dir) "test-star-pathname"))
-       star-pathname)
-  (uiop:run-program (format nil "mkdir -p '~a'" dirname))
-  (setf star-pathname (uiop:ensure-pathname (format nil "~a/*" dirname)))
-  (unwind-protect
-       (progn
-        (uiop:ensure-pathname (concatenate 'string dirname "/*"))
-        (uiop:run-program (format nil "touch '~a/*'" dirname))
-        (assert (probe-file star-pathname))))
-  (uiop:run-program (format nil "rm -rf '~a'" dirname)))
-
-(DBG :test-star-dirname-construction)
-(assert-pathname-equal
- (uiop:ensure-directory-pathname "foo.bar")
- (make-pathname :directory '(:relative "foo.bar")))
-
-(assert-pathname-equal
- (uiop:ensure-directory-pathname (uiop:ensure-pathname "foo.bar"))
- (make-pathname :directory '(:relative "foo.bar")))
-
-(assert-pathname-equal
- (uiop:ensure-directory-pathname "foo")
- (make-pathname :directory '(:relative "foo")))
-
-(assert-pathname-equal
- (uiop:ensure-directory-pathname (uiop:ensure-pathname "foo"))
- (make-pathname :directory '(:relative "foo")))
-
-(assert-equal
- (namestring (uiop:ensure-directory-pathname (uiop:ensure-pathname "*")))
- (namestring (make-pathname :directory '(:relative "*"))))
-
-(assert-pathname-equal
- (uiop:ensure-directory-pathname (uiop:ensure-pathname "*"))
- (make-pathname :directory '(:relative "*")))
-
-
-
-(DBG :test-star-dirname)
-(let ((temp-dir (uiop:ensure-directory-pathname
-                 (format nil "~a/test-star-pathname" (temporary-directory)))))
-  (uiop:run-program (format nil "mkdir '~a'" temp-dir))
-  (unwind-protect
-       (let* ((path (uiop:ensure-pathname (format nil "~a*" (namestring temp-dir))))
-              (dirpath (uiop:ensure-directory-pathname path)))
-         (uiop:run-program (format nil "mkdir ~a" dirpath))
-         (assert
-          (uiop:directory-exists-p dirpath)))
-    (uiop:run-program (format nil "rm -rf '~a'" (namestring temp-dir)))))
