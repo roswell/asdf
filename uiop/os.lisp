@@ -217,7 +217,7 @@ then returning the non-empty string value of the variable"
                 ;; Note if not using International ACL
                 ;; see http://www.franz.com/support/documentation/8.1/doc/operators/excl/ics-target-case.htm
                 (excl:ics-target-case (:-ics "8"))
-                (and (member :smp *features*) "S"))
+                (and (member :smp *features*) "SBT"))
         #+armedbear (format nil "~a-fasl~a" s system::*fasl-version*)
         #+clisp
         (subseq s 0 (position #\space s)) ; strip build information (date, etc.)
