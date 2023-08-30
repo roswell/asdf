@@ -139,3 +139,15 @@
    (eq (find-package :asdf)
        (let ((*package* (find-package '#:foo)))
          (find-package '#:u)))))
+
+(define-test test-package-local-nicknames-nonexistent-package
+  (reset-test-packages)
+  (errors uiop/package::no-such-package-error
+   (uiop:define-package #:foo
+     (:local-nicknames (#:d #:doesnt-exist)))))
+
+(define-test test-package-local-nicknames-malformed
+  (reset-test-packages)
+  (errors uiop/package::malformed-package-nickname-error
+   (uiop:define-package #:foo
+     (:local-nicknames #:this #:is #:invalid #:syntax))))

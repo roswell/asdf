@@ -99,6 +99,14 @@
   (defmethod package-designator ((c no-such-package-error))
     (type-error-datum c))
 
+  (define-condition malformed-package-nickname-error (type-error)
+    ((package-context :accessor package-context :initarg :package-context :initform nil))
+    (:default-initargs :expected-type 'list)
+    (:report (lambda (c s)
+               (format s "~@[In definition of package ~A: ~]~a does not specify a valid local package nickname. ~%~
+                          It should be a two-element list of (NICKNAME TARGET-PACKAGE)"
+                       (package-context c) (type-error-datum c)))))
+
   (defun find-package* (package-designator &optional (errorp t))
     "Like CL:FIND-PACKAGE, but by default raises a UIOP:NO-SUCH-PACKAGE-ERROR if the
   package is not found."
@@ -652,17 +660,30 @@ or when loading the package is optional."
         (ensure-exported name symbol from-package recycle))))
 
   #+package-local-nicknames
+  (defun validate-nickname-pair (x &optional destination-package)
+    (unless (and (listp x)
+                 (= (length x) 2))
+      (error 'malformed-package-nickname-error
+             :datum x :package-context destination-package))
+    (find-package* (second x) t)
+    (mapcar #'string x))
+
+  #+package-local-nicknames
   (defun install-package-local-nicknames (destination-package new-nicknames)
+    (let ((new-nicknames (mapcar (lambda (x)
+                                   (validate-nickname-pair x (package-name destination-package)))
+                                 new-nicknames)))
     ;; First, remove all package-local nicknames. (We'll reinstall any desired ones later.)
     (dolist (pair-to-remove (uiop/package-local-nicknames:package-local-nicknames destination-package))
       (uiop/package-local-nicknames:remove-package-local-nickname
        (string (car pair-to-remove)) destination-package))
+    ;; Validate that nicknames are all well-formed and refer to known packages
     ;; Then, install all desired nicknames.
     (loop :for (nickname package) :in new-nicknames
           :do (uiop/package-local-nicknames:add-package-local-nickname
                (string nickname)
-               (find-package package)
-               destination-package)))
+               (find-package* package)
+               destination-package))))
 
   (defun ensure-package (name &key
                                 nicknames documentation use
@@ -686,7 +707,6 @@ or when loading the package is optional."
            (export (mapcar 'string export))
            (intern (mapcar 'string intern))
            (unintern (mapcar 'string unintern))
-           (local-nicknames (mapcar #'(lambda (pair) (mapcar 'string pair)) local-nicknames))
            (shadowed (make-hash-table :test 'equal)) ; string to bool
            (imported (make-hash-table :test 'equal)) ; string to bool
            (exported (make-hash-table :test 'equal)) ; string to bool
