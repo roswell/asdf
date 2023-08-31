@@ -274,6 +274,15 @@ Returns the (parsed) PATHNAME when true"
                      (member (pathname-type pathname) '(nil :unspecific "") :test 'equal))
           pathname)))))
 
+;;; debugging
+#+nil
+(defmacro rpg-debug (format-string &rest args)
+  `(when *debug*
+     (format t ,format-string ,@args)
+     (terpri)))
+(defmacro rpg-debug (format-string &rest args)
+  (declare (ignore format-string args))
+  (values))
 
 ;;; Directory pathnames
 (with-upgradability ()
@@ -310,36 +319,63 @@ actually-existing directory."
         (flet ((check-one (x)
                  (member x '(nil :unspecific) :test 'equal)))
           (and (not (wild-pathname-p pathname))
+               (not (check-one (pathname-directory pathname)))
                (check-one (pathname-name pathname))
                (check-one (pathname-type pathname))
                t)))))
+  (defvar *debug* nil)
 
   (defun ensure-directory-pathname (pathspec &optional (on-error 'error))
     "Converts the non-wild pathname designator PATHSPEC to directory form."
-    (cond
-      ((stringp pathspec)
-       (ensure-directory-pathname (pathname pathspec)))
-      ((not (pathnamep pathspec))
-       (call-function on-error (compatfmt "~@<Invalid pathname designator ~S~@:>") pathspec))
-      ((wild-pathname-p pathspec)
-       (call-function on-error (compatfmt "~@<Can't reliably convert wild pathname ~3i~_~S~@:>") pathspec))
-      ((directory-pathname-p pathspec)
-       pathspec)
-      (t
-       (handler-case
-           (make-pathname :directory (append (or (normalize-pathname-directory-component
-                                                  (pathname-directory pathspec))
-                                                 (list :relative))
-                                             (list #-genera (file-namestring pathspec)
-                                                   ;; On Genera's native filesystem (LMFS),
-                                                   ;; directories have a type and version
-                                                   ;; which must be ignored when converting
-                                                   ;; to a directory pathname
-                                                   #+genera (if (typep pathspec 'fs:lmfs-pathname)
-                                                                (pathname-name pathspec)
-                                                                (file-namestring pathspec))))
-                          :name nil :type nil :version nil :defaults pathspec)
-         (error (c) (call-function on-error (compatfmt "~@<error while trying to create a directory pathname for ~S: ~A~@:>") pathspec c)))))))
+    (macrolet ((undefined-component (comp)
+                 `(member ,comp '(nil :unspecific "" :newest) :test 'equal)))
+      (cond
+        ((stringp pathspec)
+         (rpg-debug "Translating string to pathname.")
+         (ensure-directory-pathname (pathname pathspec)))
+        ((not (pathnamep pathspec))
+         (rpg-debug "Not a pathname.")
+         (call-function on-error (compatfmt "~@<Invalid pathname designator ~S~@:>") pathspec))
+        ((wild-pathname-p pathspec)
+         (rpg-debug "wild-pathname")
+         (call-function on-error (compatfmt "~@<Can't reliably convert wild pathname ~3i~_~S~@:>") pathspec))
+        ((directory-pathname-p pathspec)
+         (rpg-debug "directory-pathname")
+         pathspec)
+        (t
+         (rpg-debug "default branch")
+         ;; this isn't a directory pathname, so we need to translate something out of
+         ;; name and/or type
+         (when (and (undefined-component (pathname-name pathspec))
+                    (undefined-component (pathname-type pathspec)))
+           (call-function on-error
+                          (compatfmt "~@~<Can't make a directory pathname with neither DIRECTORY, NAME, nor TYPE: ~a~@:>") pathspec))
+         (rpg-debug "building dir-component")
+         (handler-case
+             (let ((dir-component
+                     (append (or (normalize-pathname-directory-component
+                                  (pathname-directory pathspec))
+                                 (list :relative))
+                             (list #-genera
+                                   (apply #'concatenate 'string
+                                          (if (undefined-component (pathname-name pathspec))
+                                              ""
+                                              (pathname-name pathspec))
+                                          (if (undefined-component (pathname-type pathspec))
+                                              (list "")
+                                              ;; there's a type -- it goes in the directory name, too.
+                                              (list "." (pathname-type pathspec))))
+                                   ;; On Genera's native filesystem (LMFS),
+                                   ;; directories have a type and version
+                                   ;; which must be ignored when converting
+                                   ;; to a directory pathname
+                                   #+genera (if (typep pathspec 'fs:lmfs-pathname)
+                                                (pathname-name pathspec)
+                                                (file-namestring pathspec))))))
+               (rpg-debug "dir-component is ~s" dir-component)
+               (make-pathname :directory dir-component
+                              :name nil :type nil :version nil :defaults pathspec))
+           (error (c) (call-function on-error (compatfmt "~@<error while trying to create a directory pathname for ~S: ~A~@:>") pathspec c))))))))
 
 
 ;;; Parsing filenames
