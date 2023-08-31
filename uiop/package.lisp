@@ -825,7 +825,10 @@ or when loading the package is optional."
           :append args :into local-nicknames
         :else
           :do (error ":LOCAL-NICKAMES option is not supported on this lisp implementation.")
-        :end
+      :end :else
+      :when (eq kw :import-from-reexport)
+        :collect args :into import-from
+        :and :append (rest args) :into export
       :else
         :do (error "unrecognized define-package keyword ~S" kw)
       :finally (return `(',package
@@ -873,7 +876,10 @@ LOCAL-NICKNAMES -- If the host implementation supports package local nicknames
 nickname and package name pairs.  Using this option will cause an error if the
 host CL implementation does not support it.
 USE-REEXPORT, MIX-REEXPORT -- Use or mix the specified packages as per the USE or
-MIX directives, and reexport their contents as per the REEXPORT directive."
+MIX directives, and reexport their contents as per the REEXPORT directive.
+IMPORT-FROM-REEXPORT -- behaves like :IMPORT-FROM, but also reexports the
+imported symbols. Unlike :REEXPORT, does not export any symbols except those
+imported by this clause."
   (let ((ensure-form
          `(prog1
               (funcall 'ensure-package ,@(parse-define-package-form package clauses))
