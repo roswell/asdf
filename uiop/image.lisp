@@ -361,7 +361,7 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
       (not-implemented-error 'dump-image "dumping an executable"))
     #+allegro
     (progn
-      (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
+      (sys:resize-areas :old :no-change :global-gc t :pack-heap t :sift-old-areas t :tenure t) ; :new 5000000
       (excl:dumplisp :name filename :suppress-allegro-cl-banner t))
     #+clisp
     (apply #'ext:saveinitmem filename
