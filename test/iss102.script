@@ -1,0 +1,43 @@
+;;; -*- Lisp -*-
+
+(in-package :asdf-test)
+
+(DBG "Test to verify gitlab.common-lisp.net issue 102")
+
+;;; from alexandria
+(defun hash-table-alist (table)
+  "Returns an association list containing the keys and values of hash table
+TABLE."
+  (let ((alist nil))
+    (maphash (lambda (k v)
+               (push (cons k v) alist))
+             table)
+    alist))
+
+
+(asdf:initialize-source-registry
+  `(:source-registry
+    (:tree ,(merge-pathnames (make-pathname :directory '(:relative "asdf102")) *test-directory*))
+     :inherit-configuration))
+
+(DBG asdf:*source-registry-parameter*)
+(DBG (hash-table-alist asdf/source-registry::*source-registry*))
+
+(DBG (trace asdf/source-registry::process-source-registry
+            asdf/source-registry::process-source-registry-directive
+            asdf/source-registry::inherit-source-registry
+            asdf/source-registry::initialize-source-registry))
+
+(asdf:initialize-source-registry
+  '(:source-registry
+     :inherit-configuration))
+
+(DBG asdf:*source-registry-parameter*)
+(DBG (hash-table-alist asdf/source-registry::*source-registry*))
+(with-expected-failure (t)
+  (assert (asdf:find-system "foo")))
+
+
+;; Local Variables:
+;; mode: lisp
+;; End:
