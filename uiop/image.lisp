@@ -433,8 +433,8 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
     ;; Is it meaningful to run these in the current environment?
     ;; only if we also track the object files that constitute the "current" image,
     ;; and otherwise simulate dump-image, including quitting at the end.
-    #-(or clasp ecl mkcl) (not-implemented-error 'create-image)
-    #+(or clasp ecl mkcl)
+    #-(or ecl mkcl) (not-implemented-error 'create-image)
+    #+(or ecl mkcl)
     (let ((epilogue-code
            (if no-uiop
                epilogue-code
@@ -456,8 +456,7 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
                  (when forms `(progn ,@forms))))))
       (check-type kind (member :dll :shared-library :lib :static-library
                                :fasl :fasb :program))
-      (apply #+clasp 'cmp:builder #+clasp kind
-             #+(or ecl mkcl)
+      (apply #+(or ecl mkcl)
              (ecase kind
                ((:dll :shared-library)
                 #+ecl 'c::build-shared-library #+mkcl 'compiler:build-shared-library)
@@ -469,7 +468,7 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
                ((:program)
                 #+ecl 'c::build-program #+mkcl 'compiler:build-program))
              (pathname destination)
-             #+(or clasp ecl) :lisp-files #+mkcl :lisp-object-files
+             #+ecl :lisp-files #+mkcl :lisp-object-files
              (append lisp-object-files #+(or clasp ecl) extra-object-files)
              #+ecl :init-name
              #+ecl (getf build-args :init-name)
