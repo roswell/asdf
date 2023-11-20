@@ -111,7 +111,7 @@ This can help you produce more deterministic output for FASLs."))
            (proclaim `(optimize ,@,reset-settings)))))
     #-(or allegro clasp clisp)
     `(let ,(loop :for v :in +optimization-variables+ :collect `(,v ,v))
-       ,@(when settings `((proclaim `(optimize ,@,settings))))
+       ,@(when settings `((proclaim '(optimize ,@settings))))
        ,@body)))
 
 
