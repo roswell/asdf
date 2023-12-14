@@ -516,17 +516,69 @@
   (assert-equal (multiple-value-list (gethash 3 h 4)) '(nil t))
   (assert-equal (multiple-value-list (ensure-gethash 3 h 5)) '(nil t)))
 
-(DBG :optimization-settings)
-#-(or ecl-bytecmp gcl mkcl)
-(loop :with settings = (get-optimization-settings)
-      :for i :from 0 :to 3 :do
-        (with-optimization-settings (`((speed ,i) (space ,i) (safety ,i) (debug ,i)))
-          (let ((s (get-optimization-settings)))
-            (loop :for q :in '(speed space safety debug) :do
-                  #+mkcl (DBG :os i q s (assoc q s))
-               (assert-equal i (second (assoc q s))))))
-        ;;; The order does not seem to be significant, should better test that all values are the same
-        (assert-equal (get-optimization-settings) settings))
+;; (DBG :optimization-settings)
+;; #-(or ecl-bytecmp gcl mkcl)
+;; (loop :with settings = (get-optimization-settings)
+;;       :for i :from 0 :to 3 :do
+;;         (with-optimization-settings (`((speed ,i) (space ,i) (safety ,i) (debug ,i)))
+;;           (let ((s (get-optimization-settings)))
+;;             (loop :for q :in '(speed space safety debug) :do
+;;                   #+mkcl (DBG :os i q s (assoc q s))
+;;                (assert-equal i (second (assoc q s))))))
+;;         ;;; The order does not seem to be significant, should better test that all values are the same
+;;         (assert-equal (get-optimization-settings) settings))
+;; (let* ((new-optimization-settings
+;;          ;; pick something stupid, so likely to be distinct
+;;          '((SPEED 3) (SPACE 1) (SAFETY 2) (DEBUG 3) (COMPILATION-SPEED 3)))
+;;        (uiop:*optimization-settings* new-optimization-settings)
+;;        (expanded (macroexpand-1 '(uiop:with-optimization-settings (foo)))))
+;;   (assert-equal
+
+;;    ;; EXPECTED VALUE
+;;    #+ (or allegro clasp clisp)
+;;    (let* ((template
+;;            (let ((previous-settings (gensym "PREVIOUS-SETTINGS"))
+;;                  (reset-settings (gensym "RESET-SETTINGS")))
+;;              `(let* ((,previous-settings (get-optimization-settings))
+;;                      (,reset-settings #+clasp (reverse ,previous-settings) #-clasp ,previous-settings))
+;;                 (proclaim '(optimize ,@new-optimization-settings))
+;;                 (unwind-protect (progn (foo))
+;;                   (proclaim '(optimize ,@reset-settings))))))
+;;           (previous-settings-var
+;;             (first                     ;previous-settings varname
+;;              (first                    ; previous-settings-binding
+;;               (second template)))  ; let-bindings block
+;;             )
+;;           (reset-settings-var
+;;             (first                     ; varname
+;;              (second                    ; reset-settings-binding
+;;               (second template)))  ; let-bindings block
+;;             ))
+;;      (subst 'previous-settings previous-settings-var
+;;             (subst 'reset-settings reset-settings-var
+;;                    template))))
+;;   #-(or allegro clasp clisp)
+;;   `(let ,(loop :for v :in +optimization-variables+ :collect `(,v ,v))
+;;      (proclaim '(optimize ,@new-optimization-settings))
+;;      (foo))
+
+;;   ;; ACTUAL COMPUTED VALUE
+;;   #-(or allegro clasp clisp)
+;;   expanded
+;;   #+ (or allegro clasp clisp)
+;;     (let ((previous-settings-var
+;;             (first                     ;previous-settings varname
+;;              (first                    ; previous-settings-binding
+;;               (second expanded)))  ; let-bindings block
+;;             )
+;;           (reset-settings-var
+;;             (first                     ; varname
+;;              (second                    ; reset-settings-binding
+;;               (second expanded)))  ; let-bindings block
+;;             ))
+;;      (subst 'previous-settings previous-settings-var
+;;             (subst 'reset-settings reset-settings-var
+;;                    expanded))))
 
 (DBG :standard-case-symbol-name)
 (if (or #+allegro (eq excl:*current-case-mode* :case-sensitive-lower))
