@@ -9,7 +9,8 @@
    ;; Variables
    #:*compile-file-warnings-behaviour* #:*compile-file-failure-behaviour*
    #:*output-translation-function*
-   #:*optimization-settings* #:*previous-optimization-settings*
+   ;; the following dropped because unnecessary.
+   ;; #:*optimization-settings* #:*previous-optimization-settings*
    #:*base-build-directory*
    #:compile-condition #:compile-file-error #:compile-warned-error #:compile-failed-error
    #:compile-warned-warning #:compile-failed-warning
@@ -19,7 +20,10 @@
    ;; Types
    #+sbcl #:sb-grovel-unknown-constant-condition
    ;; Functions & Macros
-   #:get-optimization-settings #:proclaim-optimization-settings #:with-optimization-settings
+   ;; the following three removed from UIOP because they have bugs, it's
+   ;; easier to remove tham than to fix them, and they could never have been
+   ;; used successfully in the wild. [2023/12/11:rpg]
+   ;; #:get-optimization-settings #:proclaim-optimization-settings #:with-optimization-settings
    #:call-with-muffled-compiler-conditions #:with-muffled-compiler-conditions
    #:call-with-muffled-loader-conditions #:with-muffled-loader-conditions
    #:reify-simple-sexp #:unreify-simple-sexp
@@ -54,6 +58,7 @@ what more while the input-file is shortened if possible to ENOUGH-PATHNAME relat
 This can help you produce more deterministic output for FASLs."))
 
 ;;; Optimization settings
+#+ignore
 (with-upgradability ()
   (defvar *optimization-settings* nil
     "Optimization settings to be used by PROCLAIM-OPTIMIZATION-SETTINGS")
@@ -111,7 +116,7 @@ This can help you produce more deterministic output for FASLs."))
            (proclaim `(optimize ,@,reset-settings)))))
     #-(or allegro clasp clisp)
     `(let ,(loop :for v :in +optimization-variables+ :collect `(,v ,v))
-       ,@(when settings `((proclaim `(optimize ,@,settings))))
+       ,@(when settings `((proclaim '(optimize ,@settings))))
        ,@body)))
 
 
