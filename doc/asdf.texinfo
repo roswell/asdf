@@ -141,6 +141,14 @@ Defining systems with defsystem
 * Other code in .asd files::
 * The package-inferred-system extension::
 
+The package-inferred-system extension
+
+* Files within a package-inferred-system::
+* Reexport packages::
+* Mismatched package and system names::
+* FEATURE REQUIRE and VERSION dependencies::
+* The define-file-package grammar::
+
 The Object model of ASDF
 
 * Operations::
@@ -1809,6 +1817,7 @@ where significant API incompatibilities are signaled by an increased major numbe
 
 @subsection Require
 @cindex :require dependencies
+@anchor{Require}
 
 Use the implementation's own @code{require} to load the @var{module-name}.
 
@@ -2047,11 +2056,18 @@ of output from ASDF operations.
 
 @node The package-inferred-system extension,  , Other code in .asd files, Defining systems with defsystem
 @section The package-inferred-system extension
-@codequoteundirected on
 @cindex Package inferred systems
 @cindex Packages, inferring dependencies from
 @findex package-inferred-system
 @cindex One package per file systems
+
+@menu
+* Files within a package-inferred-system::
+* Reexport packages::
+* Mismatched package and system names::
+* FEATURE REQUIRE and VERSION dependencies::
+* The define-file-package grammar::
+@end menu
 
 Starting with release 3.1.2,
 ASDF supports a one-package-per-file style of programming,
@@ -2078,25 +2094,162 @@ and a few other libraries.
 To use this style, choose a toplevel system name, e.g. @code{my-lib},
 and create a file @file{my-lib.asd}.
 Define @code{my-lib}
-using the @code{:class :package-inferred-system} option in its @code{defsystem}.
-For instance:
-@example
-;; This example is based on lil.asd of LISP-INTERFACE-LIBRARY.
+using the @code{:class :package-inferred-system} option in its @code{defsystem}
+A very simple system definition is:
 
-#-asdf3.1 (error "MY-LIB requires ASDF 3.1 or later.")
+@c{FIXME Release version for define-file-package}
+@example
+#-asdf3.4
+(error "DEFINE-FILE-PACKAGE was first introduced in ASDF 3.4.")
 (defsystem "my-lib"
   :class :package-inferred-system
-  :depends-on ("my-lib/interface/all"
-                        "my-lib/src/all"
-                        "my-lib/extras/all")
-  :in-order-to ((test-op (load-op "my-lib/test/all")))
-  :perform (test-op (o c) (symbol-call :my-lib/test/all :test-suite)))
+  :depends-on ("my-lib/package")
+  :in-order-to ((test-op (load-op "my-lib/test"))))
 
-(defsystem "my-lib/test" :depends-on ("my-lib/test/all"))
+(defsystem "my-lib/test"
+  :class :package-inferred-system
+  :depends-on ("my-lib/test/package"))
+@end example
 
-(register-system-packages "my-lib/interface/all" '(:my-lib-interface))
-(register-system-packages "my-lib/src/all" '(:my-lib-implementation))
-(register-system-packages "my-lib/test/all" '(:my-lib-test))
+@noindent
+In the code above, the first form checks that we are using ASDF 3.4 @c{FIXME Release version define-file-package}
+or later, which provides @code{asdf:define-file-package}. If your Lisp implementation does not
+provide ASDF 3.4, you can replace uses of @code{asdf:define-file-package} with @code{uiop:define-package},
+but see @ref{Mismatched package and system names}.
+
+@node Files within a package-inferred-system, Reexport packages, The package-inferred-system extension, The package-inferred-system extension
+@subsection Files within a package-inferred-system
+
+Each file under the @code{my-lib} hierarchy will start with a
+package definition.
+@findex define-package
+@findex uiop:define-package
+@findex define-file-package
+Starting with ASDF 3.4, @c{FIXME Correct release version for define-file-package}
+the form @code{asdf:define-file-package} provides extensions to @code{defpackage}
+for this purpose. @xref{The define-file-package grammar}
+The form @code{uiop:define-package} is supported as well.
+ASDF will compute dependencies from the
+@code{:use}, @code{:mix}, @code{:import-from} and other importation clauses of this package definition.
+In our example, the file @file{interface/order.lisp} begins:
+
+@example
+(asdf:define-file-package :my-lib/interface/order
+  (:depends-on :bordeaux-threads)
+  (:use
+   :my-lib/interface/definition
+   :my-lib/interface/base
+   :cl)
+  (:import-from :alexandria
+   #:once-only #:with-gensyms)
+  (:export #:foo #:bar #:baz))
+@end example
+
+ASDF can tell that this file/system depends on system @code{bordeaux-threads}
+(though it does not import any symbols from that package),
+@code{my-lib/interface/definition}, @code{my-lib/interface/base}, and @code{alexandria}.
+
+Note that starting with ASDF 3.1.5.6 only, ASDF will look for source files under
+the @code{component-pathname} (specified via the @code{:pathname} option),
+whereas earlier versions ignore this option and use the @code{system-source-directory}
+where the @file{.asd} file resides.
+
+@node Reexport packages, Mismatched package and system names, Files within a package-inferred-system, The package-inferred-system extension
+@subsection Reexport packages
+@cindex Reexport packages in package-inferred-systems
+
+How can ASDF find the file @file{interface/order.lisp} from the
+toplevel system @code{my-lib}, however? In our example,
+@file{package.lisp} defines a package @code{my-lib/package} which reexports the symbols
+forming the public interface of the library. That package is nicknamed @code{my-lib},
+so users may write package definition forms like @code{(:import-from :my-lib #:foo)}.
+
+In complex package-inferred-systems, it is common to place multiple related files into a
+subdirectory, such as @file{interface/} in our example, and
+give that subdirectory its own reexporting file, such as @file{interface/package.lisp}
+which defines the package @code{my-lib/interface/package}.
+
+Reexporting packages can be easily defined using the @code{:use-reexport} or @code{:mix-reexport}
+arguments to @code{asdf:define-file-package} or @code{uiop:define-package}, though it is sometimes
+necessary to write an @code{:import-from} clause for each child package along with a single
+@code{:reexport} clause in order to reexport only some of the child packages' symbols.
+
+For example:
+
+@example
+(uiop:define-package :my-lib/interface/package
+  (:mix-reexport
+   :my-lib/interface/definition
+   :my-lib/interface/base
+   :my-lib/interface/order
+   :my-lib/interface/monad/continuation)
+ (:import-from :my-lib/interface/http
+  #:start-http-server #:end-http-server)
+ (:import-from :my-lib/interface/ssh
+  #:start-ssh-server #:end-ssh-server)
+ (:reexport
+  :my-lib/interface/http
+  :my-lib/interface/ssh))
+@end example
+
+In this example, @code{my-lib/interface/package} will depend on the six listed packages.
+It will reexport all of the exported symbols of the first four.
+From the two packages listed in the @code{:import-from} and @code{:reexport} clauses, it
+will reexport only the symbols listed in the @code{:import-from} clauses.
+
+Then the top level system @code{my-lib/package} need only depend on the reexport systems like
+@code{my-lib/interface/package} because ASDF detects
+@file{interface/order.lisp} and all other dependencies from @code{package}
+systems' @code{:use-reexport} clauses, which effectively
+allow for ``inheritance'' of symbols being exported.
+
+@node Mismatched package and system names, FEATURE REQUIRE and VERSION dependencies, Reexport packages, The package-inferred-system extension
+@subsection Mismatched package and system names
+
+Many Common Lisp libraries define packages whose names are not the same as the ASDF system names
+which provide them. For example, the @code{closer-mop} library is often accessed through its package
+@code{closer-common-lisp}. If a package-inferred-system tries to @code{(:use :closer-common-lisp)}
+without further intervention, ASDF will attempt to load a system named @code{"closer-common-lisp"}
+(and fail because no such system exists).
+
+@findex define-file-package
+@c{FIXME Correct version number for `define-file-package` macro}
+Starting in ASDF 3.4, these dependencies can be declared using
+@code{asdf:define-file-package}, which extends the syntax of
+@code{defpackage} to allow package-system designators of the form
+@code{(SYSTEM-DESIGNATOR PACKAGE-DESIGNATOR)}. A system designator may
+be any form suitable to appear in a @code{defsystem} @code{:depends-on}.
+
+For example:
+
+@example
+(asdf:define-file-package :my-lib/mop
+  (:use
+   ("closer-mop" :closer-common-lisp)
+   :alexandria))
+@end example
+
+@xref{The define-file-package grammar}.
+
+@findex register-system-packages
+Prior to ASDF 3.4 @c{FIXME release version for define-file-package},
+the function @code{register-system-packages} must be called to register packages with mismatched
+system names. Most frequently, this call will appear in the @code{asd} file of the
+package-inferred-system which wishes to depend on the mismatched system. For example, a system
+which must support versions of ASDF prior to 3.4 might write:
+
+@c{@codequoteundirected on}
+@example
+#-asdf3.1
+(error "PACKAGE-INFERRED-SYSTEM was first introduced in ASDF 3.1")
+(defsystem "older-lib"
+  :class :package-inferred-system
+  :depends-on ("older-lib/package")
+  :in-order-to ((test-op (load-op "older-lib/test"))))
+
+(defsystem "older-lib/test"
+  :class :package-inferred-system
+  :depends-on ("older-lib/test/package"))
 
 (register-system-packages
  "closer-mop"
@@ -2106,96 +2259,80 @@ For instance:
    :closer-common-lisp-user
    :c2cl-user))
 @end example
+@c{@codequoteundirected off}
 
-@noindent
-In the code above, the first form checks that we are using ASDF 3.1 or
-later, which provides @code{package-inferred-system}.  This is probably
-no longer necessary, since none of the major lisp implementations
-provides an older version of ASDF.
+@node FEATURE REQUIRE and VERSION dependencies, The define-file-package grammar, Mismatched package and system names, The package-inferred-system extension
+@subsection :feature, :require and :version dependencies
 
-@findex register-system-packages
-The function @code{register-system-packages} must be called to register
-packages used or provided by your system
-when the name of the system/file that provides the package
-is not the same as the package name (converted to lower case).
+@c FIXME release version for define-file-package
+As of ASDF 3.4, package-inferred-systems may introduce @code{:version},
+@code{:feature} and @code{:require} dependencies as system-designators
+within @code{asdf:define-file-package}.
 
-Each file under the @code{my-lib} hierarchy will start with a
-package definition.
-@findex define-package
-@findex uiop:define-package
-The form @code{uiop:define-package} is supported as well as
-@code{defpackage}.
-ASDF will compute dependencies from the
-@code{:use}, @code{:mix}, and other importation clauses of this package definition. Take the file
-@file{interface/order.lisp} as an example:
+These use the same syntax as in @code{defsystem} @code{:depends-on}
+lists. @xref{The defsystem grammar}.
+
+Note that @code{:version}, @code{:feature} and @code{:require}
+dependencies in @code{define-file-package} forms must use the extended
+package-system designator form described in @ref{Mismatched package and
+system names}.
+
+For example, a package-inferred-system may depend on and use at least version
+@code{"3.4"} of a system @code{"need-minimum-version"} which defines a
+package @code{:need-minimum-version} by writing:
+
+@c{FIXME releasee version for define-file-package}
+@example
+(asdf:define-file-package :my-lib/interface/base
+  (:use ((:version "need-minimum-version" "3.4") :need-minimum-version)))
+@end example
+@c{@codequoteundirected off}
+
+@xref{Version specifiers}, @ref{Require}, @ref{Feature dependencies},
+and @ref{The define-file-package grammar}.
+
+@node The define-file-package grammar,  , FEATURE REQUIRE and VERSION dependencies, The package-inferred-system extension
+@subsection The define-file-package grammar
 
 @example
-(uiop:define-package :my-lib/interface/order
-  (:use :closer-common-lisp
-   :my-lib/interface/definition
-   :my-lib/interface/base)
-  (:mix :fare-utils :uiop :alexandria)
-  (:export ...))
+@defrule{file-package-definition} ( define-file-package @refrule{package-name} @refrule{file-package-option}* )
+
+@defrule{package-name} @var{keyword}
+
+@defrule{symbol-name} @var{uninterned symbol}
+
+@defrule{system-name} @var{string}
+
+@defrule{package-system-designator} @refrule{package-name}
+                           | ( @refrule{dependency-def} @refrule{package-name} )
+
+@defrule{file-package-option} ( :depends-on @refrule{package-system-designator}* )
+                     | ( :use @refrule{package-system-designator}* )
+                     | ( :mix @refrule{package-system-designator}* )
+                     | ( :reexport @refrule{package-system-designator}* )
+                     | ( :use-reexport @refrule{package-system-designator}* )
+                     | ( :mix-reexport @refrule{package-system-designator}* )
+                     | ( :recycle @refrule{package-system-designator}* )
+                     | ( :import-from @refrule{package-system-designator} @refrule{symbol-name}* )
+                     | ( :shadowing-import-from @refrule{package-system-designator} @refrule{symbol-name}* )
+                     | ( :intern @refrule{symbol-name}* )
+                     | ( :unintern @refrule{symbol-name}* )
+                     | ( :shadow @refrule{symbol-name}* )
+                     | ( :export @refrule{symbol-name}* )
+                     | ( :documentation @var{string} )
+                     | ( :nicknames @refrule{package-name}* )
+
 @end example
 
-ASDF can tell that this file/system depends on system @code{closer-mop} (registered above),
-@code{my-lib/interface/definition}, and @code{my-lib/interface/base}.
-
-How can ASDF find the file @file{interface/order.lisp} from the
-toplevel system @code{my-lib}, however? In the example above,
-@file{interface/all.lisp} (and other @file{all.lisp}) reexport
-all the symbols exported from the packages at the same or lower levels
-of the hierarchy. This can be easily done with
-@code{uiop:define-package}, which has many options that prove useful in this
-context.  For example:
-
-@example
-(uiop:define-package :my-lib/interface/all
-  (:nicknames :my-lib-interface)
-  (:use :closer-common-lisp)
-  (:mix :fare-utils :uiop :alexandria)
-  (:use-reexport
-   :my-lib/interface/definition
-   :my-lib/interface/base
-   :my-lib/interface/order
-   :my-lib/interface/monad/continuation))
-@end example
-
-Thus the top level system need only depend on the @code{my-lib/.../all} systems
-because ASDF detects
-@file{interface/order.lisp} and all other dependencies from @code{all}
-systems' @code{:use-reexport} clauses, which effectively
-allow for ``inheritance'' of symbols being exported.
-
-ASDF also detects dependencies from @code{:import-from} clauses.
-You may thus import a well-defined set of symbols from an existing
-package, and ASDF will know to load the system that provides that
-package.  In the following example, ASDF will infer that the current
-system depends on @code{foo/baz} from the first @code{:import-from}.
-If you prefer to use any such symbol fully qualified by a package prefix,
-you may declare a dependency on such a package and its corresponding system
-via an @code{:import-from} clause with an empty list of symbols.  For
-example, if we preferred to use the name `foo/quux:bletch`, the second,
-empty, @code{:import-from} form would cause ASDF to load
-@code{foo/quux}.
-
-@example
-(defpackage :foo/bar
-  (:use :cl)
-  (:import-from :foo/baz #:sym1 #:sym2)
-  (:import-from :foo/quux)
-  (:export ...))
-@end example
-
-Note that starting with ASDF 3.1.5.6 only, ASDF will look for source files under
-the @code{component-pathname} (specified via the @code{:pathname} option),
-whereas earlier versions ignore this option and use the @code{system-source-directory}
-where the @file{.asd} file resides.
+Note that the implementation is somewhat more permissive than the grammar
+listed above, in particular allowing both package names and symbol names
+to be any string designators. Users are strongly encouraged to obey the
+grammar described by the manual by using only kewords as package names
+and only uninterned symbols as symbol names. Users are similarly
+encouraged to use strings as symbol names.
 
 @c See this blog post about it:
 @c @url{http://davazp.net/2014/11/26/modern-library-with-asdf-and-package-inferred-system.html}
-
-@codequoteundirected off
 
 @node The object model of ASDF, Controlling where ASDF searches for systems, Defining systems with defsystem, Top
 @comment  node-name,  next,  previous,  up
