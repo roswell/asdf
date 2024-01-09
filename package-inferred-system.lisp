@@ -11,7 +11,9 @@
    #:package-inferred-system #:sysdef-package-inferred-system-search
    #:package-system ;; backward compatibility only. To be removed.
    #:register-system-packages
-   #:*defpackage-forms* #:*package-inferred-systems* #:package-inferred-system-missing-package-error))
+   #:*defpackage-forms* #:*package-inferred-systems*
+   #:package-inferred-system-missing-package-error
+   #:package-inferred-system-unknown-defpackage-option-error))
 (in-package :asdf/package-inferred-system)
 
 (with-upgradability ()
@@ -62,15 +64,34 @@ every such file"))
                                      trying to define package-inferred-system ~A from file ~A~>")
                        (error-system c) (error-pathname c)))))
 
-  (defun package-dependencies (defpackage-form)
+  (define-condition package-inferred-system-unknown-defpackage-option-error (system-definition-error)
+    ((system :initarg :system :reader error-system)
+     (pathname :initarg :pathname :reader error-pathname)
+     (option :initarg :clause-head :reader error-option)
+     (arguments :initarg :clause-rest :reader error-arguments))
+    (:report (lambda (c s)
+               (format s (compatfmt "~@<Don't know how to infer package dependencies ~
+                                     for non-standard option ~S ~
+                                     while trying to define package-inferred-system ~A ~
+                                     from file ~A~>")
+                       (cons (error-option c)
+                             (error-arguments c))
+                       (error-system c)
+                       (error-pathname c)))))
+
+  (defun package-dependencies (defpackage-form &optional system pathname)
     "Return a list of packages depended on by the package
 defined in DEFPACKAGE-FORM.  A package is depended upon if
-the DEFPACKAGE-FORM uses it or imports a symbol from it."
+the DEFPACKAGE-FORM uses it or imports a symbol from it.
+
+SYSTEM should be the name of the system being defined, and
+PATHNAME should be the file which contains the DEFPACKAGE-FORM.
+These will be used to report errors when encountering an unknown defpackage argument."
     (assert (defpackage-form-p defpackage-form))
     (remove-duplicates
      (while-collecting (dep)
        (loop :for (option . arguments) :in (cddr defpackage-form) :do
-         (ecase option
+         (case option
            ((:use :mix :reexport :use-reexport :mix-reexport)
             (dolist (p arguments) (dep (string p))))
            ((:import-from :shadowing-import-from)
@@ -79,7 +100,37 @@ the DEFPACKAGE-FORM uses it or imports a symbol from it."
            ((:local-nicknames)
             (loop :for (nil actual-package-name) :in arguments :do
               (dep (string actual-package-name))))
-           ((:nicknames :documentation :shadow :export :intern :unintern :recycle)))))
+           ((:nicknames :documentation :shadow :export :intern :unintern :recycle))
+
+           ;;; SBCL extensions to defpackage relating to package locks.
+           ;; See https://www.sbcl.org/manual/#Implementation-Packages .
+           #+(or sbcl ecl) ;; MKCL too?
+           ((:lock)
+            ;; A :LOCK clause introduces no dependencies.
+            nil)
+           #+sbcl
+           ((:implement)
+            ;; A :IMPLEMENT clause introduces dependencies on the listed packages,
+            ;; as it's not meaningful to :IMPLEMENT a package which hasn't yet been defined.
+            (dolist (p arguments) (dep (string p))))
+
+           #+lispworks
+           ((:add-use-defaults) nil)
+
+           #+allegro
+           ((:implementation-packages :alternate-name :flat) nil)
+
+           ;; When encountering an unknown OPTION, signal a continuable error.
+           ;; We cannot in general know whether the unknown clause should introduce any dependencies,
+           ;; so we cannot do anything other than signal an error here,
+           ;; but users may know that certain extensions do not introduce dependencies,
+           ;; and may wish to manually continue building.
+           (otherwise (cerror "Treat the unknown option as introducing no package dependencies"
+                              'package-inferred-system-unknown-defpackage-option-error
+                              :system system
+                              :pathname pathname
+                              :option option
+                              :arguments arguments)))))
      :from-end t :test 'equal))
 
   (defun package-designator-name (package)
