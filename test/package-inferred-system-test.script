@@ -25,3 +25,12 @@
 (progn
   (load-system :package-inferred-system-test/local-nicknames-1)
   (assert-equal "g" (symbol-call :package-inferred-system-test/local-nicknames-1 :f)))
+
+;; Test that SBCL's :lock extension (and the same extension in ECL) successfully infers no dependencies,
+;; and that its :implement extension successfully infers dependencies on the packages to be implemented.
+;; This test may still run on other implementations, as the implementation-specific defpackage options
+;; are behind read-conditionals.
+#+ecl(require '#:package-locks)
+(with-expected-failure (#+ecl "Old ECL bug with defpackage must be fixed.")
+  (load-system :package-inferred-system-test/sbcl-ext-implement)
+  (assert-equal "implemented by other package" (symbol-call :package-inferred-system-test/sbcl-ext-lock :implemented-by-other-package)))
