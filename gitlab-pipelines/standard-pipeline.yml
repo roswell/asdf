@@ -87,6 +87,11 @@ Regression test:
         variant: modern
       - l: abcl
         IMAGE_TAG: 1.7.1-jdk8
+      - l: allegro
+        image: rpgoldman/allegro11express
+      - l: allegro
+        image: rpgoldman/allegro11express
+        variant: modern
 
 ###############################################################################
 # Upgrade tests
@@ -119,6 +124,11 @@ Upgrade test:
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
       - l: allegro
         IMAGE_TAG: latest
+        variant: modern
+      - l: allegro
+        image: rpgoldman/allegro11express
+      - l: allegro
+        image: rpgoldman/allegro11express
         variant: modern
 
 # No more tests are known to fail. But leave commented out in case it needs to
