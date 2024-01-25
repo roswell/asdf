@@ -359,15 +359,16 @@ or COMPRESSION on SBCL, and APPLICATION-TYPE on SBCL/Windows."
     #-(or clisp clozure (and cmucl executable) lispworks sbcl scl)
     (when executable
       (not-implemented-error 'dump-image "dumping an executable"))
-    #+allegro
+    #+allegro ;; revised with help from Franz
     (progn
       #+(and allegro-version>= (version>= 11))
-      (sys:resize-areas ;; these two are wrong, but what the heck is right?
-                        :old :no-change :old-code :no-change
-                        :global-gc t
-                        ;; :pack-heap t :sift-old-areas t
-                        :tenure t)
-      #+(and allegro-version>= (not (version>= 11)))
+      (sys:resize-areas
+       :old :no-change :old-code :no-change
+       :global-gc t
+       :tenure t)
+      #+(and allegro-version>= (version= 10 1))
+      (sys:resize-areas :old 10000000 :global-gc t :pack-heap t :sift-old-areas t :tenure t)
+      #+(and allegro-version>= (not (version>= 10 1)))
       (sys:resize-areas :global-gc t :pack-heap t :sift-old-areas t :tenure t)
       (excl:dumplisp :name filename :suppress-allegro-cl-banner t))
     #+clisp
