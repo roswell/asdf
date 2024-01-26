@@ -82,6 +82,13 @@
   (when (boundp 'excl:*warn-on-nested-reader-conditionals*)
     (setf excl:*warn-on-nested-reader-conditionals* uiop/common-lisp::*acl-warn-save*))
 
+  #+(and allegro allegro-v10.1) ;; check for patch needed for upgradeability
+  (unless (assoc "ma040" (cdr (assoc :lisp sys:*patches*)) :test 'equal)
+    (warn 'asdf-install-warning
+          :format-control "On Allegro Common Lisp 10.1, patch pma040 is ~
+needed for correct ASDF upgrading. Please update your Allegro image ~
+using (SYS:UPDATE-ALLEGRO)."))
+
   ;; Advertise the features we provide.
   (dolist (f '(:asdf :asdf2 :asdf3 :asdf3.1 :asdf3.2 :asdf3.3)) (pushnew f *features*))
 
