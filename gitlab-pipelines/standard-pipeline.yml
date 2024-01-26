@@ -57,9 +57,10 @@ Build docs:
 
 .Regression test template:
   stage: regression
-  image: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
+  image: $IMAGE
   variables:
     IMAGE_TAG: latest
+    IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
   script:
     - export l=$l$variant
     - make
@@ -88,9 +89,9 @@ Regression test:
       - l: abcl
         IMAGE_TAG: 1.7.1-jdk8
       - l: allegro
-        image: rpgoldman/allegro11express
+        IMAGE: rpgoldman/allegro11express
       - l: allegro
-        image: rpgoldman/allegro11express
+        IMAGE: rpgoldman/allegro11express
         variant: modern
 
 ###############################################################################
@@ -99,9 +100,10 @@ Regression test:
 
 .Upgrade test template:
   stage: upgrade
-  image: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
+  image: $IMAGE
   variables:
     IMAGE_TAG: latest
+    IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
   script:
     - export l=$l$variant
     - make
@@ -126,9 +128,9 @@ Upgrade test:
         IMAGE_TAG: latest
         variant: modern
       - l: allegro
-        image: rpgoldman/allegro11express
+        IMAGE: rpgoldman/allegro11express
       - l: allegro
-        image: rpgoldman/allegro11express
+        IMAGE: rpgoldman/allegro11express
         variant: modern
 
 # No more tests are known to fail. But leave commented out in case it needs to
