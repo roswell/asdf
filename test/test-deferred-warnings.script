@@ -2,6 +2,9 @@
 
 (in-package :asdf-test)
 
+#+(and allegro-version>= (version>= 11))
+(uiop:quit 0)
+
 (enable-deferred-warnings-check)
 
 (def-test-system :unintern-foo
