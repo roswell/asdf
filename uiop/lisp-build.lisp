@@ -387,7 +387,16 @@ Simple means made of symbols, numbers, characters, simple-strings, pathnames, co
 using READ within a WITH-SAFE-IO-SYNTAX, that represents the warnings currently deferred by
 WITH-COMPILATION-UNIT. One of three functions required for deferred-warnings support in ASDF."
     #+allegro
-    (list :functions-defined excl::.functions-defined.
+    (list :functions-defined
+          #+(and allegro-version>= (version>= 11))
+          (let (functions-defined)
+            (maphash #'(lambda (k v)
+                         (declare (ignore v))
+                         (push k functions-defined))
+                     excl::.functions-defined.)
+            functions-defined)
+          #+(and allegro-version>= (not (version>= 11)))
+          excl::.functions-defined.
           :functions-called excl::.functions-called.)
     #+clozure
     (mapcar 'reify-deferred-warning
@@ -431,10 +440,18 @@ One of three functions required for deferred-warnings support in ASDF."
     #+allegro
     (destructuring-bind (&key functions-defined functions-called)
         reified-deferred-warnings
-      (setf excl::.functions-defined.
+      (setf #+(and allegro-version>= (not (version>= 11)))
+            excl::.functions-defined.
+            #+(and allegro-version>= (not (version>= 11)))
             (append functions-defined excl::.functions-defined.)
             excl::.functions-called.
-            (append functions-called excl::.functions-called.)))
+            (append functions-called excl::.functions-called.))
+      #+(and allegro-version>= (version>= 11))
+      ;; in ACL >= 11, instead of adding defined functions to a list,
+      ;; we insert them into a no-values hash-table.
+      (mapc #'(lambda (fn)
+                (excl:puthash-key fn excl::.functions-defined.))
+            functions-defined))
     #+clozure
     (let ((dw (or ccl::*outstanding-deferred-warnings*
                   (setf ccl::*outstanding-deferred-warnings* (ccl::%defer-warnings t)))))
@@ -497,7 +514,11 @@ One of three functions required for deferred-warnings support in ASDF."
     "Reset the set of deferred warnings to be handled at the end of the current WITH-COMPILATION-UNIT.
 One of three functions required for deferred-warnings support in ASDF."
     #+allegro
-    (setf excl::.functions-defined. nil
+    (setf excl::.functions-defined.
+          #+(and allegro-version>= (not (version>= 11)))
+          nil
+          #+(and allegro-version>= (version>= 11))
+          (make-hash-table :test #'equal :values nil)
           excl::.functions-called. nil)
     #+clozure
     (if-let (dw ccl::*outstanding-deferred-warnings*)
