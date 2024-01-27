@@ -254,10 +254,20 @@ PREVIOUS-PRIMARY when not null is the primary system for the PREVIOUS system."
   ;; preloaded, with a previous configuration, or before filesystem changes), and
   ;; load a found .asd if appropriate. Finally, update registration table and return results.
   (defmethod find-system ((name string) &optional (error-p t))
+    (when (equalp name "")
+     (if error-p
+       (sysdef-error (compatfmt "~@<The empty string is not a valid system name~@:>"))
+       (return-from find-system nil)))
     (nest
      (with-asdf-session (:key `(find-system ,name)))
      (let ((name-primary-p (primary-system-p name)))
-       (unless name-primary-p (find-system (primary-system-name name) nil)))
+       (unless name-primary-p
+         (let ((name-components (uiop:split-string (coerce-name name) :separator '(#\/))))
+           (cond ((> (length name-components) 2)
+                  (sysdef-error (compatfmt "~@<System names may contain only one slash: ~s is an illegal system name.~@:>" (coerce-name name))))
+                 ((equalp (second name-components) "")
+                  (sysdef-error (compatfmt "~@<Secondary system names may not be empty: ~s is an illegal system name.~@:>" (coerce-name name))))))
+         (find-system (primary-system-name name) nil)))
      (or (and *immutable-systems* (gethash name *immutable-systems*) (registered-system name)))
      (multiple-value-bind (foundp found-system pathname previous previous-time previous-primary)
          (locate-system name)
@@ -269,24 +279,24 @@ PREVIOUS-PRIMARY when not null is the primary system for the PREVIOUS system."
        (when (and system pathname)
          (setf (system-source-file system) pathname))
        (if-let ((stamp (get-file-stamp pathname)))
-         (let ((up-to-date-p
-                (and previous previous-primary
-                     (or (pathname-equal pathname previous-pathname)
-                         (and pathname previous-pathname
-                              (pathname-equal
-                               (physicalize-pathname pathname)
-                               (physicalize-pathname previous-pathname))))
-                     (timestamp<= stamp previous-time)
-                     ;; Check that all previous definition-dependencies are up-to-date,
-                     ;; traversing them without triggering the adding of nodes to the plan.
-                     ;; TODO: actually have a prepare-define-op, extract its timestamp,
-                     ;; and check that it is less than the stamp of the previous define-op ?
-                     (definition-dependencies-up-to-date-p previous-primary))))
-           (unless up-to-date-p
-             (restart-case
-                 (signal 'system-out-of-date :name name)
-               (continue () :report "continue"))
-             (load-asd pathname :name name)))))
+               (let ((up-to-date-p
+                       (and previous previous-primary
+                            (or (pathname-equal pathname previous-pathname)
+                                (and pathname previous-pathname
+                                     (pathname-equal
+                                      (physicalize-pathname pathname)
+                                      (physicalize-pathname previous-pathname))))
+                            (timestamp<= stamp previous-time)
+                            ;; Check that all previous definition-dependencies are up-to-date,
+                            ;; traversing them without triggering the adding of nodes to the plan.
+                            ;; TODO: actually have a prepare-define-op, extract its timestamp,
+                            ;; and check that it is less than the stamp of the previous define-op ?
+                            (definition-dependencies-up-to-date-p previous-primary))))
+                 (unless up-to-date-p
+                   (restart-case
+                       (signal 'system-out-of-date :name name)
+                     (continue () :report "continue"))
+                   (load-asd pathname :name name)))))
      ;; Try again after having loaded from disk if needed
      (or (registered-system name)
          (when error-p (error 'missing-component :requires name)))))
