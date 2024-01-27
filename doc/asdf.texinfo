@@ -2722,9 +2722,9 @@ should include @code{defpackage} and @code{in-package} forms in this file,
 so they will not overwrite each others' extensions.
 Such forms might also help the files behave identically
 if loaded manually with @code{cl:load} for development or debugging,
-though we do not guarantee correct results this way; you should always
-use @code{asdf:load-asd} to load @code{.asd} files, which the
-@code{slime-contrib} also knows about.
+though @emph{we do not guarantee correct results this way}; you should always
+use @code{asdf:load-asd} to load @code{.asd} files.
+Note that both slime and sly have support for @code{load-asd} in their contribs.
 
 The default value of @code{*system-definition-search-functions*}
 is a list of three functions.
