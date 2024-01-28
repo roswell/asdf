@@ -1,3 +1,20 @@
+cl-asdf (2:3.3.7-1) unstable; urgency=low
+* Fix bugs in UIOP:WITH-TEMPORARY-FILE, #142.
+* Fix bug in (SETF UIOP:GETENV).  H/T to Michaël Le Barbier, #146.
+* Remember whether or not an SBCL build is single- or multi-threaded,
+	since the two give incompatible FASLs. H/T to Philipp Marek, #143.
+* Remove unused UIOP:WITH-OPTIMIZATION-SETTINGS. This macro was never
+	used, nor was its coding finished and debugged. H/T Yehouda
+	Harpaz. #148.
+* Fix a number of issues with Allegro 11 compatibility.  Many thanks to
+	Duane Rettig and Kevin Layer. #152, #141
+* Fix DEFPACKAGE code-walker for PACKAGE-INFERRED-SYSTEMs. Thanks to
+	Alexander Fedorov. #147.
+* Thanks to Alexander Fedorov for assistance with the CI infrastructure.
+* Thanks to François-René Rideau for assistance in understanding past
+	versions of ASDF and with miscellaneous repairs.
+-- Robert P. Goldman <rpgoldman@sift.net> Sun Jan 28 11:06:39 CST 2024
+
 cl-asdf (2:3.3.6-1) unstable; urgency=low
 
 * Fix bug loading ASDF system definitions from jar files on ABCL.
