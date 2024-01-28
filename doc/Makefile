@@ -5,7 +5,7 @@ else
 userat := ${user}@
 endif
 website:=${userat}common-lisp.net:/project/asdf/public_html/
-output = asdf.html asdf asdf.pdf asdf.info
+output = asdf.html asdf.pdf asdf.info # asdf
 webfiles = index.html .htaccess style.css cclan.png lisp-logo120x80.png favicon.ico ${output}
 intermediate = asdf.cps asdf.log asdf.vr asdf.aux asdf.fn asdf.toc asdf.vrs \
 		asdf.cp asdf.fns asdf.ky asdf.pg asdf.tp asdf.tps
@@ -36,7 +36,6 @@ asdf.pdf: asdf.texinfo
 
 website: all
 	rsync -lt --no-g ${webfiles} ${website}
-	rsync --recursive --no-g --delete asdf ${website}
 	rsync -lt --no-g Changelog ${website}/changelog
 
 .PHONY: clean intermediate-clean manual-html

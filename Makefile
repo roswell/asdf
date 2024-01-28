@@ -61,6 +61,7 @@ ifneq (,$(findstring CYGWIN,$(sys)))
 CL_SOURCE_REGISTRY := $(shell cygpath -pw "${CL_SOURCE_REGISTRY}")
 endif
 
+CP ?= cp
 
 l ?= sbcl
 UPCASE_L = $(shell echo '$(l)' | tr '[:lower:]' '[:upper:]')
@@ -138,17 +139,17 @@ defsystem-files:
 archive: build/asdf.lisp
 	$(eval UIOPDIR := "uiop-$(version)")
 	mkdir -p build/$(UIOPDIR) 	# UIOP tarball
-	cp -pHux uiop/README.md uiop/uiop.asd uiop/asdf-driver.asd ${driver_lisp} uiop/contrib/debug.lisp build/$(UIOPDIR)
+	${CP} -pHux uiop/README.md uiop/uiop.asd uiop/asdf-driver.asd ${driver_lisp} uiop/contrib/debug.lisp build/$(UIOPDIR)
 	tar zcf "build/uiop-${version}.tar.gz" -C build $(UIOPDIR)
 	rm -r build/$(UIOPDIR)
 	$(eval ASDFDIR := "asdf-$(version)")
 	mkdir -p build/$(ASDFDIR) # asdf-defsystem tarball
-	cp -pHux build/asdf.lisp asdf.asd version.lisp-expr header.lisp README.md ${defsystem_lisp} build/$(ASDFDIR)
+	${CP} -pHux build/asdf.lisp asdf.asd version.lisp-expr header.lisp README.md ${defsystem_lisp} build/$(ASDFDIR)
 	tar zcf "build/asdf-defsystem-${version}.tar.gz" -C build $(ASDFDIR)
 	rm -r build/$(ASDFDIR)
 	git archive --worktree-attributes --prefix="asdf-$(version)/" --format=tar -o "build/asdf-${version}.tar" ${version} #asdf-all tarball
 	gzip "build/asdf-${version}.tar"
-	cp "build/asdf.lisp" "build/asdf-${version}.lisp"
+	${CP} "build/asdf.lisp" "build/asdf-${version}.lisp"
 
 publish-archive:
 	rsync --times --chmod=a+rX,ug+w "build/uiop-${version}.tar.gz" "build/asdf-defsystem-${version}.tar.gz" \
