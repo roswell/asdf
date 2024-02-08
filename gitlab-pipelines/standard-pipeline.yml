@@ -79,13 +79,10 @@ Regression test:
   extends: .Regression test template
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clisp, cmucl, ecl, sbcl]
+      - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
       - l: clasp
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
-      - l: allegro
-        IMAGE_TAG: latest
-        variant: modern
       - l: abcl
         IMAGE_TAG: 1.7.1-jdk8
       - l: allegro
@@ -120,13 +117,10 @@ Upgrade test:
   extends: .Upgrade test template
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clisp, cmucl, ecl, sbcl]
+      - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
       - l: clasp
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
-      - l: allegro
-        IMAGE_TAG: latest
-        variant: modern
       - l: allegro
         IMAGE: rpgoldman/allegro11express
       - l: allegro
@@ -157,11 +151,14 @@ REQUIRE upgrade test:
     ASDF_UPGRADE_TEST_TAGS: REQUIRE
   parallel:
     matrix:
-      - l: [abcl, allegro, ccl, clisp, cmucl, ecl, sbcl]
+      - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
       - l: allegro
-        IMAGE_TAG: latest
+        IMAGE: rpgoldman/allegro11express
+      - l: allegro
+        IMAGE: rpgoldman/allegro11express
         variant: modern
+
 
 # No more tests are known to fail. But leave commented out in case it needs to
 # be resurrected.
