@@ -83,7 +83,8 @@
     (setf excl:*warn-on-nested-reader-conditionals* uiop/common-lisp::*acl-warn-save*))
 
   #+(and allegro allegro-v10.1) ;; check for patch needed for upgradeability
-  (unless (assoc "ma040" (cdr (assoc :lisp sys:*patches*)) :test 'equal)
+  (when (and (not (member :developer excl::.build-mode. :test #'eq))
+             (not (assoc "ma040" (cdr (assoc :lisp sys:*patches*)) :test 'equal)))
     (warn 'asdf-install-warning
           :format-control "On Allegro Common Lisp 10.1, patch pma040 is ~
 needed for correct ASDF upgrading. Please update your Allegro image ~
