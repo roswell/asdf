@@ -21,8 +21,17 @@
                (format s (compatfmt "~@<Error while trying to load definition for system ~A from pathname ~A: ~3i~_~A~@:>")
                        (error-name c) (error-pathname c) (error-condition c)))))
 
+  (declaim (ftype (function (string) (values boolean &optional))
+                  nonempty-string-p))
+  (defparameter +whitespace-chars+
+    '(#\space #\tab #\return #\newline #\Backspace #\Rubout #\Linefeed #\Page))
+  (defun nonempty-string-p (x)
+    (not (equal "" (string-trim +whitespace-chars+ x))))
 
-  ;;; Methods for find-system
+  (deftype nonempty-string ()
+    `(and string (satisfies nonempty-string-p)))
+
+;;; Methods for find-system
 
   ;; Reject NIL as a system designator.
   (defmethod find-system ((name null) &optional (error-p t))
@@ -195,7 +204,29 @@ Do NOT try to load a .asd file directly with CL:LOAD. Always use ASDF:LOAD-ASD."
                         ))))
              nil))))) ;; only issue the warning the first time, but always return nil
 
-  (defun locate-system (name)
+  (defun check-system-name-string (name-designator &optional (error-p t))
+    "Return T if the NAME-DESIGNATOR is a valid ASDF system name.  Otherwise, if ERROR-P is true,
+ raise a system-definition-error, else return NIL."
+    (let* ((name (coerce-name name-designator))
+           (name-primary-p (primary-system-p name)))
+      (unless (typep name 'nonempty-string)
+        (if error-p
+            (sysdef-error (compatfmt "~@<The empty string is not a valid system name~@:>"))
+            (return-from check-system-name-string nil)))
+      (if name-primary-p
+          t
+          (let ((name-components (uiop:split-string (coerce-name name) :separator '(#\/))))
+            (cond ((> (length name-components) 2)
+                   (if error-p
+                       (sysdef-error (compatfmt "~@<System names may contain only one slash: ~s is an illegal system name.~@:>") name)
+                       nil))
+                  ((equalp (second name-components) "")
+                   (if error-p
+                       (sysdef-error (compatfmt "~@<Secondary system names may not be empty: ~s is an illegal system name.~@:>") name)
+                       nil))
+                  (t t))))))
+
+  (defun locate-system (name &optional (error-p t))
     "Given a system NAME designator, try to locate where to load the system from.
 Returns six values: FOUNDP FOUND-SYSTEM PATHNAME PREVIOUS PREVIOUS-TIME PREVIOUS-PRIMARY
 FOUNDP is true when a system was found,
@@ -205,7 +236,12 @@ PATHNAME when not null is a path from which to load the system,
 either associated with FOUND-SYSTEM, or with the PREVIOUS system.
 PREVIOUS when not null is a previously loaded SYSTEM object of same name.
 PREVIOUS-TIME when not null is the time at which the PREVIOUS system was loaded.
-PREVIOUS-PRIMARY when not null is the primary system for the PREVIOUS system."
+PREVIOUS-PRIMARY when not null is the primary system for the PREVIOUS system.
+
+If ERROR-P is non-NIL, then raise a SYSTEM-DEFINITION-ERROR if the NAME is not a valid
+system name."
+    (let ((ok-name (check-system-name-string name error-p)))
+      (unless ok-name (return-from locate-system nil)))
     (with-asdf-session () ;; NB: We don't cache the results. We once used to, but it wasn't useful,
       ;; and keeping a negative cache was a bug (see lp#1335323), which required
       ;; explicit invalidation in clear-system and find-system (when unsucccessful).
@@ -248,19 +284,22 @@ PREVIOUS-PRIMARY when not null is the primary system for the PREVIOUS system."
                                done-p)))))
           (system-out-of-date () nil))))
 
+
   ;; Main method for find-system: first, make sure the computation is memoized in a session cache.
   ;; Unless the system is immutable, use locate-system to find the primary system;
   ;; reconcile the finding (if any) with any previous definition (in a previous session,
   ;; preloaded, with a previous configuration, or before filesystem changes), and
   ;; load a found .asd if appropriate. Finally, update registration table and return results.
   (defmethod find-system ((name string) &optional (error-p t))
+    (unless (check-system-name-string name error-p)
+      ;; error will be signaled by checker if the name is ill-formed, so no need to
+      ;; check here.
+      (return-from find-system nil))
     (nest
      (with-asdf-session (:key `(find-system ,name)))
-     (let ((name-primary-p (primary-system-p name)))
-       (unless name-primary-p (find-system (primary-system-name name) nil)))
      (or (and *immutable-systems* (gethash name *immutable-systems*) (registered-system name)))
      (multiple-value-bind (foundp found-system pathname previous previous-time previous-primary)
-         (locate-system name)
+         (locate-system name nil)       ; already checked name for errors, if necessary
        (assert (eq foundp (and (or found-system pathname previous) t))))
      (let ((previous-pathname (system-source-file previous))
            (system (or previous found-system)))
@@ -269,24 +308,24 @@ PREVIOUS-PRIMARY when not null is the primary system for the PREVIOUS system."
        (when (and system pathname)
          (setf (system-source-file system) pathname))
        (if-let ((stamp (get-file-stamp pathname)))
-         (let ((up-to-date-p
-                (and previous previous-primary
-                     (or (pathname-equal pathname previous-pathname)
-                         (and pathname previous-pathname
-                              (pathname-equal
-                               (physicalize-pathname pathname)
-                               (physicalize-pathname previous-pathname))))
-                     (timestamp<= stamp previous-time)
-                     ;; Check that all previous definition-dependencies are up-to-date,
-                     ;; traversing them without triggering the adding of nodes to the plan.
-                     ;; TODO: actually have a prepare-define-op, extract its timestamp,
-                     ;; and check that it is less than the stamp of the previous define-op ?
-                     (definition-dependencies-up-to-date-p previous-primary))))
-           (unless up-to-date-p
-             (restart-case
-                 (signal 'system-out-of-date :name name)
-               (continue () :report "continue"))
-             (load-asd pathname :name name)))))
+               (let ((up-to-date-p
+                       (and previous previous-primary
+                            (or (pathname-equal pathname previous-pathname)
+                                (and pathname previous-pathname
+                                     (pathname-equal
+                                      (physicalize-pathname pathname)
+                                      (physicalize-pathname previous-pathname))))
+                            (timestamp<= stamp previous-time)
+                            ;; Check that all previous definition-dependencies are up-to-date,
+                            ;; traversing them without triggering the adding of nodes to the plan.
+                            ;; TODO: actually have a prepare-define-op, extract its timestamp,
+                            ;; and check that it is less than the stamp of the previous define-op ?
+                            (definition-dependencies-up-to-date-p previous-primary))))
+                 (unless up-to-date-p
+                   (restart-case
+                       (signal 'system-out-of-date :name name)
+                     (continue () :report "continue"))
+                   (load-asd pathname :name name)))))
      ;; Try again after having loaded from disk if needed
      (or (registered-system name)
          (when error-p (error 'missing-component :requires name)))))
