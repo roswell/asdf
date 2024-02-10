@@ -48,9 +48,9 @@
    a successor to Dan Barlow's ASDF and Francois-Rene Rideau's ASDF2.
    For bootstrap purposes, it comes bundled with UIOP in a single file, asdf.lisp."
   :homepage "http://common-lisp.net/projects/asdf/"
-  :bug-tracker "https://launchpad.net/asdf/"
+  :bug-tracker "https://gitlab.common-lisp.net/asdf/asdf/-/issues"
   :mailto "asdf-devel@common-lisp.net"
-  :source-control (:git "git://common-lisp.net/projects/asdf/asdf.git")
+  :source-control (:git "git@common-lisp.net:asdf/asdf.git")
   :version (:read-file-form "version.lisp-expr")
   :build-operation monolithic-concatenate-source-op
   :build-pathname "build/asdf" ;; our target
@@ -89,7 +89,7 @@
 
 (defsystem "asdf"
   :author ("Daniel Barlow")
-  :maintainer ("Robert Goldman")
+  :maintainer ("Robert P. Goldman")
   :licence "MIT"
   :description "Another System Definition Facility"
   :long-description "ASDF builds Common Lisp software organized into defined systems."
