@@ -2834,8 +2834,9 @@ should include @code{defpackage} and @code{in-package} forms in this file,
 so they will not overwrite each others' extensions.
 Such forms might also help the files behave identically
 if loaded manually with @code{cl:load} for development or debugging,
-though we recommend you use the function @code{asdf::load-asd} instead,
-which the @code{slime-asdf} contrib knows about.
+though @emph{we do not guarantee correct results this way}; you should always
+use @code{asdf:load-asd} to load @code{.asd} files.
+Note that both slime and sly have support for @code{load-asd} in their contribs.
 
 The default value of @code{*system-definition-search-functions*}
 is a list of three functions.
@@ -2875,7 +2876,7 @@ The first component of a system name,
 separated by the slash character, @code{/},
 is called the primary name of a system.
 The primary name may be
-extracted by function @code{asdf::primary-system-name};
+extracted by function @code{asdf:primary-system-name};
 when ASDF 3 is told to find a system whose name has a slash,
 it will first attempt to load the corresponding primary system,
 and will thus see any such definitions, and/or any
@@ -2901,7 +2902,6 @@ though it is currently supported for backward compatibility.
 
 @defun primary-system-name name
 
-Internal (not exported) function, @code{asdf::primary-system-name}.
 Returns the primary system name (the portion before
 the slash, @code{/}, in a secondary system name) from @var{name}.
 
@@ -2913,15 +2913,14 @@ This function should typically @emph{not} be invoked directly.  It is
 exported as part of the API only for programmers who wish to provide
 their own @code{*system-definition-search-functions*}.
 
-Given a system @var{name} designator,
-try to locate where to load the system definition from.
-@c (This does not include the loading of the system definition,
-@c which is done by @code{find-system},
-@c or the loading of the system itself, which is done by @code{load-system};
-@c however, for systems the definition of which has already been loaded,
+Given a system @var{name} designator, this function tries to
+locate where to load the system definition from. This
+@emph{may or may not} involve loading the system definition,
+which is done by @code{find-system}.
+@c However, for systems the definition of which has already been loaded,
 @c @code{locate-system} may return an object of class @code{system}.)
-Returns five values: @var{foundp}, @var{found-system}, @var{pathname},
-@var{previous}, and @var{previous-time}.
+This function returns six values: @var{foundp}, @var{found-system},
+@var{pathname}, @var{previous}, @var{previous-time}, and @code{previous-primary}.
 @var{foundp} is true when a system was found,
 either a new as yet unregistered one, or a previously registered one.
 The @var{found-system} return value
@@ -2933,8 +2932,6 @@ source registry.
 @c themselves, the system objects are not registered until after they are
 @c initially located by sysdef-preloaded-system-search as a fallback when
 @c no source code was found.
-The system definition will @emph{not} be
-loaded if it hasn't been loaded already.
 @var{pathname} when not null is a path from which to load the system,
 either associated with @var{found-system}, or with the @var{previous} system.
 If @var{previous} is not null, it will be a @emph{previously loaded}
@@ -2943,6 +2940,8 @@ If @var{previous} is not null, it will be a @emph{previously loaded}
 @var{previous-time} when not null is
 the timestamp of the previous system definition file, at the
 time when the @var{previous} system definition was loaded.
+@var{previous-primary} when not null is the primary system for
+the @var{previous} system.
 
 For example, if your current registry has @file{foo.asd} in
 @file{/current/path/to/foo.asd},
@@ -2958,10 +2957,12 @@ then @var{locate-system} will return the following values:
 @item
 @var{previous} will be an object of type @code{SYSTEM} with
 @code{system-source-file} slot value of
-@code{#p"/previous/path/to/foo.asd"}
+@code{#p"/previous/path/to/foo.asd"},
 @item
 @var{previous-time} will be the timestamp of
-@code{#p"/previous/path/to/foo.asd"} at the time it was loaded.
+@code{#p"/previous/path/to/foo.asd"} at the time it was loaded,
+@item
+@var{previous-primary} will be the same object as @var{previous}.
 @end enumerate
 @end defun
 
@@ -3720,8 +3721,8 @@ EXCLUSION-PATTERN := a string without wildcards, that will be matched
 
 Pathnames are designated using another DSL,
 shared with the output-translations configuration DSL below.
-The DSL is resolved by the function @code{asdf::resolve-location},
-to be documented and exported at some point in the future.
+The DSL is resolved by the function @code{asdf:resolve-location},
+to be documented in the future.
 
 @example
 ABSOLUTE-COMPONENT-DESIGNATOR :=
@@ -3735,7 +3736,7 @@ ABSOLUTE-COMPONENT-DESIGNATOR :=
     ;; doesn't use this DSL: they are processed as normal namestrings.
     ;; however, you can compute what you put in the *central-registry*
     ;; based on the results of say
-    ;; (asdf::resolve-location "/Users/fare/cl/cl-foo/")
+    ;; (asdf:resolve-location "/Users/fare/cl/cl-foo/")
     PATHNAME |
     ;; pathname (better be an absolute path, or bust)
     ;; In output-translations, unless followed by relative components,
@@ -4468,14 +4469,14 @@ An @code{:inherit-configuration} statement causes the search to recurse with the
 specifications from the next configuration in the bulleted list.
 @xref{Controlling where ASDF saves compiled files,,Configurations}, above.
 
-@vindex asdf::*user-cache*
+@vindex asdf:*user-cache*
 @itemize
 @item
 @code{:enable-user-cache} is the same as @code{(t :user-cache)}.
 @item
 @code{:disable-cache} is the same as @code{(t t)}.
 @item
-@code{:user-cache} uses the contents of variable @code{asdf::*user-cache*}
+@code{:user-cache} uses the contents of variable @code{asdf:*user-cache*}
 which by default is the same as using
 @code{(:home ".cache" "common-lisp" :implementation)}.
 @end itemize
