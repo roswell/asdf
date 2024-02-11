@@ -1,0 +1,24 @@
+;;; -*- Lisp -*-
+(in-package :asdf-test)
+(use-package :uiop :asdf-test)
+
+;;;---------------------------------------------------------------------------
+;;; Test for issue 137:
+;;; UIOP:DEFINE-PACKAGE is defined as handling :import-from arguments the
+;;; same way CL:DEFPACKAGE does, but if one attempts to :IMPORT-FROM a package
+;;; a non-existent symbol, then DEFPACKAGE raises an error, and
+;;; UIOP:DEFINE-PACKAGE instead interns the symbol and does not raise an
+;;; error.
+;;;---------------------------------------------------------------------------
+
+
+(define-package #:P0)
+
+(with-expected-failure (t)
+    (errors error
+            (uiop:define-package #:P1 (:import-from #:P0 #:sym0))))
+
+(defpackage #:P2)
+
+(signals error
+        (defpackage #:P3 (:import-from #:P2 #:sym1)))
