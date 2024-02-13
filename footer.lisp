@@ -11,7 +11,7 @@
   (:import-from #+abcl :sys #+(or clasp cmucl ecl) :ext #+clozure :ccl #+mkcl :mk-ext #+sbcl sb-ext #+mezzano :sys.int
                 #:*module-provider-functions*
                 #+ecl #:*load-hooks*)
-  #+(or clasp mkcl) (:import-from :si #:*load-hooks*))
+  #+(or mkcl) (:import-from :si #:*load-hooks*))
 
 (in-package :asdf/footer)
 
@@ -48,9 +48,9 @@
 
   #+(or clasp ecl mkcl)
   (progn
-    (pushnew '("fasb" . si::load-binary) *load-hooks* :test 'equal :key 'car)
+    #-clasp (pushnew '("fasb" . si::load-binary) *load-hooks* :test 'equal :key 'car)
 
-    #+os-windows
+    #+(and (not clasp) os-windows)
     (unless (assoc "asd" *load-hooks* :test 'equal)
       (appendf *load-hooks* '(("asd" . si::load-source))))
 
