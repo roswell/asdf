@@ -7,7 +7,7 @@ See also the many documents listed on the
 [asdf homepage](https://asdf.common-lisp.dev/#documentation)
 about ASDF, especially the ILC papers from
 [2010](https://gitlab.common-lisp.net/asdf/ilc2010),
-[2014](https://github.com/fare/asdf3-2013) and
+[2014](https://github.com/fare/asdf3-2013) (the most detailed) and
 [2017](https://github.com/fare/asdf-2017)
 for more detailed information about the design of ASDF and its evolution.
 
@@ -149,6 +149,7 @@ François-René Rideau is de facto maintainer,
 with notable contributions from Robert P. Goldman, but also
 Juanjo Garcia-Ripoll and James Anderson.
 
+Many usability and portability concerns are addressed
 ASDF 2.000 is released in May 2010
 with many clean-ups, better configurability, some new features,
 and updated documentation.
@@ -163,27 +164,37 @@ Last version: 2.26.
 Gary King is de facto maintainer, with notable contributions from
 Robert P. Goldman, Nikodemus Siivola, Christophe Rhodes, Daniel Herring.
 
-Many small features and bug fixes,
-making the project more maintainable,
-moving to using git and common-lisp.net.
+Gary takes ASDF from a hobby project to professional quality software,
+making it maintainable, moving to using git and common-lisp.net,
+and adding many small features and bug fixes.
 
 Last version: 1.369.
 
-### May 2004 to April 2006: ASDF 1.97
+### May 2004 to April 2006: Minimal Maintenance of ASDF 1.xx
 
 Christophe Rhodes is de facto maintainer,
 with notable contributions from
 Nikodemus Siivola, Peter Van Eynde, Edi Weitz, Kevin Rosenberg.
 
 The system made slightly more robust, a few more features.
+By now SBCL has become the defacto standard build system
+for new free software CL packages, but has many
+annoying bugs, weird corner cases and non-portable behaviors.
 
 Last version: 1.97.
 
-### August 2001 to May 2004: Creation by Daniel Barlow
+### August 2001 to May 2004: Daniel Barlow's original ASDF
 
 ASDF is created then developed by Daniel Barlow,
 with notable contributions from
 Christophe Rhodes, Kevin Rosenberg, Edi Weitz, Rahul Jain.
+
+The system quickly attracts a small community of users,
+as a much more usable alternative to mk-defsystem.
+Dan Barlow himself writes systems not just for all his software,
+but for many libraries that he uses.
+The system is primarily developer on and for SBCL, but soon enough
+also supports Allegro, clisp, CMUCL, CormanLisp, ECL, Genera, LispWorks, MCL, OpenMCL, SCL.
 
 See this first [public announcement of ASDF](https://sourceforge.net/p/cclan/mailman/message/2011712/)
 in late July 2001, even before it was first working and committed to CVS!
@@ -193,6 +204,66 @@ The initial revision of ASDF was only 418 lines long,
 compared to 14131 for ASDF 3.3.7.1 in 2024.
 
 Last version: 1.85.
+
+## Former ASDF Extensions, Now Superseded
+
+Below is a list of former extensions to ASDF, now superseded, with a reason why.
+See [our webpage](index.html#extensions) for currently active extensions of ASDF.
+
+### asdf-binary-locations
+
+ABL used to allow one to redirect where ASDF 1 created its output files,
+so they don't clash between implementations
+and don't pollute source directories.
+Since ASDF 2, it is superseded by
+`asdf`'s builtin `asdf-output-translations` mechanism;
+a limited compatibility mode is available to easily convert
+your former ABL configuration into an AOT configuration.
+
+`common-lisp-controller` and `cl-launch` used to provide similar mechanisms,
+and have also been superseded by `asdf-output-translations`
+
+### asdf-bundle
+
+`asdf-bundle`, née `asdf-ecl`, allowed you to create
+a single-file bundle out of a system, for easier delivery.
+
+Since ASDF 3, it is now a builtin part of `asdf/defsystem`,
+and allows users to deliver a single FASL for a system,
+a standalone executable program (on supported implementations),
+or an image containing your system precompiled.
+
+### asdf-condition-control
+
+Initially part of XCVB's `xcvb-driver`,
+`asdf-condition-control` allowed you to muffle
+uninteresting conditions during compilation.
+
+Since ASDF 3, it is now superseded by equivalent functionality in `uiop`.
+
+### asdf-contrib
+
+[asdf-contrib](https://gitlab.common-lisp.net/asdf/asdf-contrib)
+is an empty package that used to collect dependencies on other ASDF extensions,
+some current and obsolete. It has been unmaintained since before ASDF 3.
+
+### asdf-package-system
+
+[asdf-package-system](http://gitlab.common-lisp.net/asdf/asdf-package-system)
+extended ASDF 3.0 to enable compilation of Lisp source files in a one-package-per-file style
+wherein the file's topmost `defpackage` also determines dependencies.
+This style was inspired by `quick-build` and `faslpath`
+(see discussion of them below in the section "Alternate Lisp Build Systems").
+
+Since ASDF 3.1, this functionality is built into ASDF as
+`package-inferred-system`. See the manual for documentation.
+
+### asdf-utils
+
+`asdf-utils` was a collection of utilities that originated with ASDF.
+
+Since ASDF 3, it is now superseded by `uiop` (a.k.a. `asdf/driver`),
+which is part of ASDF, and exports its functionality in its own package `uiop`.
 
 ## Alternate Lisp Build Systems
 
@@ -208,14 +279,15 @@ to compensate for the first mover advantage.
 
 ### Bazel
 
-Google's deterministic and scalable build system [Bazel](https://bazel.build/)
-has support for Common Lisp: [bazelisp](https://github.com/qitab/bazelisp),
+Google's deterministic and scalable build system [Bazel](https://bazel.build/) (2015-)
+has support for Common Lisp: [bazelisp](https://github.com/qitab/bazelisp) (2016-),
 notably used by Google Flights (née QPX at ITA Software).
 
 Given a farm of worker machines, it can massively parallelize the
 deterministic compilation of Lisp individual files by SBCL,
-each compiled in its own process after loading all its individual dependencies
-with the SBCL interpreter, which is very fast for this purpose.
+each compiled "hermetically" in its own process
+after loading all its individual dependencies with the SBCL interpreter,
+which is very fast for this purpose.
 
 ### quick-build
 
@@ -237,7 +309,8 @@ See also faslpath below for another system of similar design.
 François-René Rideau's [XCVB](https://common-lisp.net/project/xcvb/) (2008-2012)
 was meant to build objects and image files deterministically and in parallel.
 
-It once worked, but introduced significant migration costs to move from ASDF,
+It once worked, but introduced significant migration costs to move from ASDF
+(though it also supported some level of interoperation with ASDF),
 and never received wide adoption.
 The author stopped actively developing it after his employer ITA
 lost interest in deploying it, and it bitrot for good
@@ -246,35 +319,19 @@ after the author became maintainer of ASDF itself instead.
 Many ideas from XCVB made their way into ASDF 2's the configuration system,
 and ASDF 3's compatibility layer UIOP (initially known as asdf-driver,
 that imported a lot of code from xcvb-driver, the portability layer of XCVB).
-However, the XCVB attempt at introducing a new unified namespace
-for all source files and build artefacts was largely a failure,
-introducing too much complexity and incompatibility for insufficient gains.
-Many ideas from XCVB also made their way in
-the ASDF [TODO](https://gitlab.common-lisp.net/asdf/asdf/blob/master/TODO) list
+Lessons from XCVB's failures also informed what <em>not</em> to do in ASDF:
+XCVB tried to introduce a new unified namespace for all source files and
+build artefacts potentially supporting all languages, which introduced
+too much complexity and incompatibility for insufficient gains.
+By contrast, the changes made to ASDF 2 and 3 tried to be as simple,
+unobtrusive and backward-compatible as possible.
+
+The XCVB experience also influenced the latter Lisp support
+for Bazel (see above).
+Finally, leftover ideas from XCVB made their way to the
+ASDF [TODO](https://gitlab.common-lisp.net/asdf/asdf/blob/master/TODO) list,
 meant to inspire a future ASDF that properly supports cross-compilation
 and maybe arbitrary build rules for many programming languages.
-
-For a deterministic build of Lisp files in a distributed system,
-you may use Bazel (see above);
-for a parallel build on a single machine, try POIU (see below).
-
-### YTools
-
-Drew McDermott's [YTools](http://cs-www.cs.yale.edu/homes/dvm/) (1976-2009)
-was the polar opposite of XCVB:
-its YTFM (YTools File Manager) tried to maintain coherence
-of the current Lisp image at a fine grain, down to "segments" of a file.
-
-Sadly, Drew recently passed away and no one took over his work.
-
-### ASDlite
-
-Dmitriy Ivanov's [ASDlite](http://lisp.ystok.ru/asdlite/) (2009-2015)
-was a somewhat improved incompatible variant of ASDF 1.
-But it is much less featureful, robust or portable than ASDF 2 or ASDF 3.
-
-It seemed wrongheaded to me (FRR), but I suppose
-the author probably had at least one good idea in it somewhere.
 
 ### MK-Defsystem
 
@@ -298,6 +355,24 @@ The code was a mess, and ASDF disrupted the failed attempts
 to modernize mk-defsystem.
 See the defsystem-3.x and defsystem-4 projects in clocc,
 the Common Lisp Open Code Collection.
+
+### ASDlite
+
+Dmitriy Ivanov's [ASDlite](http://lisp.ystok.ru/asdlite/) (2009-2015)
+was a somewhat improved incompatible variant of ASDF 1.
+But it is much less featureful, robust or portable than ASDF 2 or ASDF 3.
+
+It seemed wrongheaded to me (FRR), but I suppose
+the author probably had at least one good idea in it somewhere.
+
+### YTools
+
+Drew McDermott's [YTools](http://cs-www.cs.yale.edu/homes/dvm/) (1976-2009)
+was the polar opposite of XCVB:
+its YTFM (YTools File Manager) tried to maintain coherence
+of the current Lisp image at a fine grain, down to "segments" of a file.
+
+Sadly, Drew recently passed away and no one took over his work.
 
 ### mudballs
 

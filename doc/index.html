@@ -26,6 +26,7 @@
         <li><a href="#extensions">Extensions</a></li>
         <li><a href="#bugs">Reporting Bugs</a></li>
         <li><a href="#mailing-lists">Mailing Lists</a></li>
+        <li><a href="#contributing">Contributing</a></li>
       </ul>
     </div>
     <div class="contents">
@@ -151,14 +152,14 @@
           tarballs of packages you may depend upon.
           We also recommend
           <a href="https://github.com/fukamachi/qlot"><tt>qlot</tt></a>
-          (effective successor to seemingly unmaintained
+          (effective successor to the now seemingly unmaintained
           <a href="https://common-lisp.net/project/clbuild/"><tt>clbuild</tt></a>),
-          that now builds upon Quicklisp,
+          that builds upon Quicklisp,
           as a great tool for pulling from version control
           packages you need to modify or want to contribute to.
           We recommend you should <em>not</em> use <tt>asdf-install</tt>
           anymore, as it is an older similar piece of software
-          that is both unmaintained and obsolete.
+          that is both unmaintained and long obsolete.
         </p><p>
           ASDF is also not a tool to build or run Common Lisp software
           from the Unix command-line.
@@ -206,6 +207,12 @@
           with the latest release of these implementations:
           <ul>
             <li>
+              ABCL support is good as of version 1.9.
+              There were some regressions in 1.8.
+            </li><li>
+              Clasp contributors have recently been providing fixes
+              for ASDF on clasp, and it has been added to the test suite.
+            </li><li>
               CLISP is generally well-tested with ASDF,
               though it has a few minor bugs.
               The implementation has received only
@@ -214,26 +221,20 @@
               or often has antique version of ASDF tucked on it.
               However, ASDF has been recently updated
               in its source control system,
-              and there is hope of a new release some day soon.
+              and there is hope of a new release some happy day.
               If needs be, you can replace CLISP's provided ASDF
               with a newer one, or use an upgrade on top of that.
-            </li>
-            <li>clasp contributors have recently been providing fixes
-            for ASDF on clasp, and it has been added to the test
-            suite.</li>
-            <li>As of version 1.9, ABCL support is good. There were
-            some regressions in 1.8.</li>
-            <li>Clozure CL and CMUCL are getting harder to support,
-            since they don't run well or at all, respectively, on the
-            M1 hardware that I (rpg) use as my primary platform.</li>
-            <li>
-              CormanLisp was recently open-sourced.
-              Its bundled ASDF has not yet been updated from 1.x;
+            </li><li>
+              Clozure CL and CMUCL are getting harder to support,
+              since they don't run well or at all, respectively, on the
+              M1 hardware that I (rpg) use as my primary platform.
+            </li><li>
+              CormanLisp was eventually open-sourced, but isn't actively maintained.
+              Its bundled ASDF was never updated from 1.x;
               ASDF 3 should work fine with it, but
               several features were disabled
               because CormanLisp was insufficiently compliant with the CLHS,
               and requires some work in this regard.
-              Ask the new CormanLisp maintainers for updates.
             </li><li>
               ECL is generally well-tested with ASDF, but
               its bytecode compiler doesn't support the bundle operations, and
@@ -242,6 +243,8 @@
               <code>cl:require</code> and <code>ext:system</code>
               (and thus <code>uiop:run-program</code>)
               seem not to be working correctly on Windows.
+              Also, since January 2017, ECL has been distributing its own ASDF
+              as forked from ASDF 3.1.7 rather than adopting ASDF 3.2.0 and later.
             </li><li>
               GCL is somewhat maintained but
               its maintainer doesn't seem to care about ASDF,
@@ -294,11 +297,12 @@
               <a href="http://www.sbcl.org/" title="Steel Bank Common Lisp">SBCL</a>
             </td>
             <td align="left">
-              <a href="https://github.com/sharplispers/cormanlisp">CormanLisp</a>,
-              <a title="GNU Common Lisp" href="https://www.gnu.org/software/gcl/">GCL</a>,
-              <a title="Macintosh Common Lisp" href="https://en.wikipedia.org/wiki/Macintosh_Common_Lisp">MCL</a>
+              <a title="GNU Common Lisp" href="https://www.gnu.org/software/gcl/">GCL</a>
             </td>
-            <td align="left"><a href="https://github.com/gnooth/xcl">XCL</a></td></tr>
+            <td align="left">
+              <a href="https://github.com/sharplispers/cormanlisp">CormanLisp</a>,
+              <a title="Macintosh Common Lisp" href="https://en.wikipedia.org/wiki/Macintosh_Common_Lisp">MCL</a>,
+              <a href="https://github.com/gnooth/xcl">XCL</a></td></tr>
           <tr><th align="left">Proprietary</th>
             <td align="left">
               <a href="http://franz.com/products/allegro-common-lisp/">Allegro</a>,
@@ -355,7 +359,9 @@ Corman Common Lisp <admin@cormanlisp.com>
         <h3>Examples</h3>
         <p>Download any of the many packages available through
           <a href="http://quicklisp.org/">Quicklisp</a>
-          to see as many examples.</p>
+          to see as many examples.
+          See also our <a href="https://gitlab.common-lisp.net/asdf/asdf/blob/master/doc/best_practices.md">Best Practices</a> document.
+        </p>
 
         <a id="documentation"></a>
         <h3>Documentation</h3>
@@ -502,63 +508,9 @@ Corman Common Lisp <admin@cormanlisp.com>
                  ><tt>poiu</tt></a>,
             to compile a system in parallel on a multiprocessor machine.</li>
         </ul>
-        <p>Former extensions, now superseded, include:</p>
-        <ul>
-          <li><tt>asdf-binary-locations</tt>
-            used to allow one to redirect where ASDF 1 created its output files,
-            so they don't clash between implementations
-            and don't pollute source directories.
-            It is superseded by <tt>asdf/defsystem</tt>'s builtin
-            <tt>asdf-output-translations</tt> mechanism;
-            a limited compatibility mode is available to easily convert
-            your former ABL configuration into an AOT configuration.
-            <tt>common-lisp-controller</tt> and <tt>cl-launch</tt>
-            used to provide similar mechanisms,
-            and have also been superseded by <tt>asdf-output-translations</tt>
-            (built into ASDF 2 and later).
-          </li>
-          <li><tt>asdf-bundle</tt>, n&eacute;e <tt>asdf-ecl</tt>,
-            allowed you to create a single-file bundle out of a system,
-            for easier delivery.
-            It is now a builtin part of <tt>asdf/defsystem</tt>,
-            and allows users to deliver a single FASL for a system,
-            a standalone executable program (on supported implementations),
-            or an image containing your system precompiled.
-          </li>
-          <li><tt>asdf-condition-control</tt>,
-            initially part of XCVB's <tt>xcvb-driver</tt>,
-            allowed you to muffle uninteresting conditions during compilation.
-            Is now superseded by equivalent functionality in <tt>uiop</tt>.
-          </li>
-          <li><a href="https://gitlab.common-lisp.net/asdf/asdf-contrib"
-                 ><tt>asdf-contrib</tt></a>,
-            an empty package that used to collect dependencies on other systems
-            in the list above and below.</li>
-          <li><a href="http://gitlab.common-lisp.net/asdf/asdf-package-system"
-                 ><tt>asdf-package-system</tt></a>,
-            to compile Lisp source files with one package per file
-            that also determines dependencies, in the style of
-            <a href="https://bugs.launchpad.net/asdf/+bug/1230368"><tt>quick-build</tt></a> or
-            <a href="http://www.cliki.net/faslpath"><tt>faslpath</tt></a>
-            (this functionality is built into recent versions
-            of ASDF 3.1 and later,
-            but this package exists for backward compatibility
-            with earlier versions of ASDF 3;
-            search the manual for <tt>package-inferred-system</tt>).
-          </li>
-          <li><tt>asdf-utils</tt> was a collection of utilities
-            that originated with ASDF.
-            It is now superseded by <tt>uiop</tt>, aka <tt>asdf/driver</tt>,
-            which is part of ASDF,
-            and exports its functionality
-            in its own package <tt>uiop</tt>.
-          </li>
-        </ul>
-
-        <h3>Contributing</h3>
-        <p>Join our mailing list, check the code out from git,
-          send questions, ideas and patches!
-        </p>
+        <p>See our <a href="https://gitlab.common-lisp.net/asdf/asdf/blob/master/doc/history.md"
+                      >history document</a>
+          for former extensions, now superseded.
 
         <a id="bugs">
         <h3>Reporting Bugs</h3>
@@ -621,8 +573,10 @@ Corman Common Lisp <admin@cormanlisp.com>
             <a href="http://mailman.common-lisp.net/cgi-bin/mailman/listinfo/asdf-announce">asdf-announce mailman site to subscribe</a>
         </li></ul>
 
+        <a id="contributing" />
         <h3>Contributing</h3>
-        <p>Join our mailing list, check the code out from git,
+        <p>Join our mailing list, check the code out from
+          <a href="https://gitlab.common-lisp.net/asdf/asdf/">git</a>,
           send questions, ideas and patches!
         </p>
 
