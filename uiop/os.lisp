@@ -41,7 +41,7 @@ keywords explicitly."
 
   (defun os-unix-p ()
     "Is the underlying operating system some Unix variant?"
-    (or (featurep '(:or :unix :cygwin :haiku)) (os-macosx-p)))
+    (or (featurep '(:or :unix :cygwin :haiku :linux)) (os-macosx-p)))
 
   (defun os-windows-p ()
     "Is the underlying operating system Microsoft Windows?"
