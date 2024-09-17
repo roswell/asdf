@@ -81,6 +81,10 @@ Regression test:
     matrix:
       - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
+      - l: ccl
+        IMAGE: rpgoldman/ccl:latest
+      - l: sbcl
+        IMAGE: rpgoldman/sbcl:latest
       - l: clasp
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
       - l: abcl
