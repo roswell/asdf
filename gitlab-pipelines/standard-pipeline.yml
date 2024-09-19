@@ -68,7 +68,7 @@ Build docs:
   artifacts:
     when: always
     paths:
-      - build/results/$l-test.text
+      - build/results
   needs: []
   retry:
     max: 2
