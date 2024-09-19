@@ -81,10 +81,12 @@ Regression test:
     matrix:
       - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
+      # Use only bullseye images; bookworm images seem
+      # incompatible with the runner.
       - l: ccl
-        IMAGE: rpgoldman/ccl:latest
+        IMAGE: rpgoldman/ccl:1.13-bullseye
       - l: sbcl
-        IMAGE: rpgoldman/sbcl:latest
+        IMAGE: rpgoldman/sbcl:2.4.6-bullseye
       - l: clasp
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
       # drop ancient ABCL version
