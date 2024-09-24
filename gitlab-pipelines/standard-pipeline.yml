@@ -68,7 +68,7 @@ Build docs:
   artifacts:
     when: always
     paths:
-      - build/results/$l-test.text
+      - build/results
   needs: []
   retry:
     max: 2
@@ -81,10 +81,17 @@ Regression test:
     matrix:
       - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
+      # Use only bullseye images; bookworm images seem
+      # incompatible with the runner.
+      - l: ccl
+        IMAGE: rpgoldman/ccl:1.13-bullseye
+      - l: sbcl
+        IMAGE: rpgoldman/sbcl:2.4.6-bullseye
       - l: clasp
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
-      - l: abcl
-        IMAGE_TAG: 1.7.1-jdk8
+      # drop ancient ABCL version
+      # - l: abcl
+      #   IMAGE_TAG: 1.7.1-jdk8
       - l: allegro
         IMAGE: rpgoldman/allegro11express
       - l: allegro
