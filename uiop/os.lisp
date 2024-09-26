@@ -298,7 +298,9 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
              (lisp-version-string)
              (or (operating-system) (software-type))
              (or (architecture) (machine-type))
-             #+sbcl (if (featurep :sb-thread) "S" "")))))
+             ;; Threaded SBCL fasls are not ABI compatible with single
+             ;; threaded builds; see issue #143.
+             #+sbcl (unless (featurep :sb-thread) "st")))))
 
 
 ;;;; Other system information
