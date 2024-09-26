@@ -167,10 +167,14 @@ or the original (parsed) pathname if it is false (the default)."
   (defun directory* (pathname-spec &rest keys &key &allow-other-keys)
     "Return a list of the entries in a directory by calling DIRECTORY.
 Try to override the defaults to not resolving symlinks, if implementation allows."
-    (apply 'directory pathname-spec
+    (apply #-clisp 'directory
+           #+clisp (lambda (entry &rest keys)
+                     (mapcar (lambda (info) (car info))
+                             (apply 'directory entry keys)))
+           pathname-spec
            (append keys '#.(or #+allegro '(:directories-are-files nil :follow-symbolic-links nil)
                                #+(or clozure digitool) '(:follow-links nil)
-                               #+clisp '(:circle t :if-does-not-exist :ignore)
+                               #+clisp '(:full t :circle t :if-does-not-exist :ignore)
                                #+(or cmucl scl) '(:follow-links nil :truenamep nil)
                                #+lispworks '(:link-transparency nil)
                                #+sbcl (when (find-symbol* :resolve-symlinks '#:sb-impl nil)
@@ -237,9 +241,10 @@ The behavior in presence of symlinks is not portable. Use IOlib to handle such s
     (let* ((directory (ensure-directory-pathname directory))
            #-(or abcl cormanlisp genera xcl)
            (wild (merge-pathnames*
-                  #-(or abcl allegro cmucl lispworks sbcl scl xcl)
+                  #-(or abcl allegro cmucl lispworks sbcl scl xcl clisp)
                   *wild-directory*
                   #+(or abcl allegro cmucl lispworks sbcl scl xcl) "*.*"
+                  #+clisp "*/"
                   directory))
            (dirs
              #-(or abcl cormanlisp genera xcl)
@@ -270,6 +275,20 @@ The behavior in presence of symlinks is not portable. Use IOlib to handle such s
                      :defaults directory :name nil :type nil :version nil
                      :directory (append prefix (make-pathname-component-logical (last dir)))))))))))
 
+  (defun collect-sub*directories-helper (directory collectp recursep collector visited)
+    "A helper function for COLLECT-SUB*DIRECTORIES.
+VISITED is a hash table of directories that have already been traversed
+due to the presense of symbolic links."
+    (when (call-function collectp directory)
+      (call-function collector directory)
+      (dolist (subdir (subdirectories directory))
+        (when (and
+               (call-function recursep subdir)
+               (let* ((key (namestring (truename* subdir)))
+                      (visitedp (gethash key visited)))
+                 (if visitedp nil (setf (gethash key visited) t))))
+          (collect-sub*directories-helper subdir collectp recursep collector visited)))))
+
   (defun collect-sub*directories (directory collectp recursep collector)
     "Given a DIRECTORY, when COLLECTP returns true when CALL-FUNCTION'ed with the directory,
 call-function the COLLECTOR function designator on the directory,
@@ -277,11 +296,8 @@ and recurse each of its subdirectories on which the RECURSEP returns true when C
 This function will thus let you traverse a filesystem hierarchy,
 superseding the functionality of CL-FAD:WALK-DIRECTORY.
 The behavior in presence of symlinks is not portable. Use IOlib to handle such situations."
-    (when (call-function collectp directory)
-      (call-function collector directory)
-      (dolist (subdir (subdirectories directory))
-        (when (call-function recursep subdir)
-          (collect-sub*directories subdir collectp recursep collector))))))
+    (let ((visited (make-hash-table :test 'equalp)))
+      (collect-sub*directories-helper directory collectp recursep collector visited))))
 
 ;;; Resolving symlinks somewhat
 (with-upgradability ()

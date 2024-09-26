@@ -22,6 +22,7 @@ usage () {
     echo "   locations, you may simply specify the Allegro install directories using these variables:"
     echo "     ALLEGRO64DIR, ALLEGRO64SDIR (64-bit Allegro and SMP Allegro, respectively), ALLEGRODIR, and"
     echo "     ALLEGROSDIR."
+    echo " The environment variable NO_ASDF_BACKTRACE, if set, will suppress printing of the backtrace."
     echo "OPTIONS:"
     echo "    -c -- clean load test."
     echo "    -d -- debug mode."
