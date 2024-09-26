@@ -88,7 +88,7 @@ Regression test:
       - l: sbcl
         IMAGE: rpgoldman/sbcl:2.4.6-bullseye
       - l: clasp
-        IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
+        IMAGE: rpgoldman/clasp:latest
       # drop ancient ABCL version
       # - l: abcl
       #   IMAGE_TAG: 1.7.1-jdk8

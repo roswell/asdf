@@ -101,7 +101,7 @@ Note that it will NOT be called around the performing of LOAD-OP."))
           (destructuring-bind
               (output-file
                &optional
-                 #+(or clasp ecl mkcl) object-file
+                 #+(or ecl mkcl) object-file
                  #+clisp lib-file
                  warnings-file &rest rest) outputs
             ;; Allow for extra outputs that are not of type warnings-file
@@ -119,7 +119,7 @@ Note that it will NOT be called around the performing of LOAD-OP."))
                            :warnings-file warnings-file
                            (append
                             #+clisp (list :lib-file lib-file)
-                            #+(or clasp ecl mkcl) (list :object-file object-file)
+                            #+(or ecl mkcl) (list :object-file object-file)
                             flags))))))
         (check-lisp-compile-results output warnings-p failure-p
                                     "~/asdf-action::format-action/" (list (cons o c))))))
@@ -147,12 +147,9 @@ Note that it will NOT be called around the performing of LOAD-OP."))
 an OPERATION and a COMPONENT."
     (let* ((i (first (input-files o c)))
            (f (compile-file-pathname
-               i #+clasp :output-type #+ecl :type #+(or clasp ecl) :fasl
+               i #+ecl :type #+ecl :fasl
                #+mkcl :fasl-p #+mkcl t)))
       `(,f ;; the fasl is the primary output, in first position
-        #+clasp
-        ,@(unless nil ;; was (use-ecl-byte-compiler-p)
-            `(,(compile-file-pathname i :output-type :object)))
         #+clisp
         ,@`(,(make-pathname :type "lib" :defaults f))
         #+ecl

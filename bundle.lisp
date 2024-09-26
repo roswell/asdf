@@ -110,13 +110,13 @@ itself."))
     (:documentation "Base class for compiling into a bundle"))
   (defmethod bundle-type ((o basic-compile-bundle-op)) :fasb)
   (defmethod gather-type ((o basic-compile-bundle-op))
-    #-(or clasp ecl mkcl) :fasl
-    #+(or clasp ecl mkcl) :object)
+    #-(or ecl mkcl) :fasl
+    #+(or ecl mkcl) :object)
 
   ;; Analog to prepare-op, for load-bundle-op and compile-bundle-op
   (defclass prepare-bundle-op (sideway-operation)
     ((sideway-operation
-      :initform #+(or clasp ecl mkcl) 'load-bundle-op #-(or clasp ecl mkcl) 'load-op
+      :initform #+(or ecl mkcl) 'load-bundle-op #-(or ecl mkcl) 'load-op
       :allocation :class))
     (:documentation "Operation class for loading the bundles of a system's dependencies"))
 
@@ -126,16 +126,16 @@ for all the linkable object files associated with the system. Compare with DLL-O
 
 On most implementations, these object files only include extensions to the runtime
 written in C or another language with a compiler producing linkable object files.
-On CLASP, ECL, MKCL, these object files _also_ include the contents of Lisp files
+On ECL and MKCL these object files _also_ include the contents of Lisp files
 themselves. In any case, this operation will produce what you need to further build
 a static runtime for your system, or a dynamic library to load in an existing runtime."))
   (defmethod bundle-type ((o lib-op)) :lib)
   (defmethod gather-type ((o lib-op)) :object)
 
-  ;; What works: on ECL, CLASP(?), MKCL, we link the many .o files from the system into the .so;
+  ;; What works: on ECL and MKCL, we link the many .o files from the system into the .so;
   ;; on other implementations, we combine (usually concatenate) the .fasl files into one.
   (defclass compile-bundle-op (basic-compile-bundle-op selfward-operation gather-operation
-                                                       #+(or clasp ecl mkcl) link-op)
+                                                       #+(or ecl mkcl) link-op)
     ((selfward-operation :initform '(prepare-bundle-op) :allocation :class))
     (:documentation "This operator is an alternative to COMPILE-OP. Build a system
 and all of its dependencies, but build only a single (\"monolithic\") FASL, instead
@@ -163,8 +163,8 @@ for all the linkable object files associated with the system. Compare with LIB-O
   (defclass deliver-asd-op (basic-compile-op selfward-operation)
     ((selfward-operation
       ;; TODO: implement link-op on all implementations, and make that
-      ;; '(compile-bundle-op lib-op #-(or clasp ecl mkcl) dll-op)
-      :initform '(compile-bundle-op #+(or clasp ecl mkcl) lib-op)
+      ;; '(compile-bundle-op lib-op #-(or ecl mkcl) dll-op)
+      :initform '(compile-bundle-op #+(or ecl mkcl) lib-op)
       :allocation :class))
     (:documentation "produce an asd file for delivering the system as a single fasl"))
 
@@ -172,14 +172,14 @@ for all the linkable object files associated with the system. Compare with LIB-O
   (defclass monolithic-deliver-asd-op (deliver-asd-op monolithic-bundle-op)
     ((selfward-operation
       ;; TODO: implement link-op on all implementations, and make that
-      ;; '(monolithic-compile-bundle-op monolithic-lib-op #-(or clasp ecl mkcl) monolithic-dll-op)
-      :initform '(monolithic-compile-bundle-op #+(or clasp ecl mkcl) monolithic-lib-op)
+      ;; '(monolithic-compile-bundle-op monolithic-lib-op #-(or ecl mkcl) monolithic-dll-op)
+      :initform '(monolithic-compile-bundle-op #+(or ecl mkcl) monolithic-lib-op)
       :allocation :class))
     (:documentation "produce fasl and asd files for combined system and dependencies."))
 
   (defclass monolithic-compile-bundle-op
       (basic-compile-bundle-op monolithic-bundle-op
-       #+(or clasp ecl mkcl) link-op gather-operation non-propagating-operation)
+       #+(or ecl mkcl) link-op gather-operation non-propagating-operation)
     ()
     (:documentation "Create a single fasl for the system and its dependencies."))
 
@@ -196,12 +196,12 @@ for all the linkable object files associated with the system or its dependencies
 for all the linkable object files associated with the system or its dependencies. See LIB-OP"))
 
   (defclass image-op (monolithic-bundle-op selfward-operation
-                      #+(or clasp ecl mkcl) link-op #+(or clasp ecl mkcl) gather-operation)
-    ((selfward-operation :initform '(#-(or clasp ecl mkcl) load-op) :allocation :class))
+                      #+(or ecl mkcl) link-op #+(or ecl mkcl) gather-operation)
+    ((selfward-operation :initform '(#-(or ecl mkcl) load-op) :allocation :class))
     (:documentation "create an image file from the system and its dependencies"))
   (defmethod bundle-type ((o image-op)) :image)
-  #+(or clasp ecl mkcl) (defmethod gather-operation ((o image-op)) 'lib-op)
-  #+(or clasp ecl mkcl) (defmethod gather-type ((o image-op)) :static-library)
+  #+(or ecl mkcl) (defmethod gather-operation ((o image-op)) 'lib-op)
+  #+(or ecl mkcl) (defmethod gather-type ((o image-op)) :static-library)
 
   (defclass program-op (image-op) ()
     (:documentation "create an executable file from the system and its dependencies"))
@@ -217,19 +217,17 @@ for all the linkable object files associated with the system or its dependencies
       ((eql :fasl) ;; the type of a fasl
        (compile-file-type)) ; on image-based platforms, used as input and output
       ((eql :fasb) ;; the type of a fasl
-       #-(or clasp ecl mkcl) (compile-file-type) ; on image-based platforms, used as input and output
-       #+(or ecl mkcl) "fasb"
-       #+clasp "fasp") ; on C-linking platforms, only used as output for system bundles
+       #-(or ecl mkcl) (compile-file-type) ; on image-based platforms, used as input and output
+       #+(or ecl mkcl) "fasb") ; on C-linking platforms, only used as output for system bundles
       ((member :image)
        #+allegro "dxl"
        #+(and clisp os-windows) "exe"
        #-(or allegro (and clisp os-windows)) "image")
-      ;; NB: on CLASP and ECL these implementations, we better agree with
+      ;; NB: on ECL these implementations, we better agree with
       ;; (compile-file-type :type bundle-type))
       ((eql :object) ;; the type of a linkable object file
        (os-cond ((os-unix-p)
-                 #+clasp "fasp" ;(core:build-extension cmp:*default-object-type*)
-                 #-clasp "o")
+                 "o")
                 ((os-windows-p) (if (featurep '(:or :mingw32 :mingw64)) "o" "obj"))))
       ((member :lib :static-library) ;; the type of a linkable library
        (os-cond ((os-unix-p) "a")
@@ -251,7 +249,7 @@ for all the linkable object files associated with the system or its dependencies
                                  (if (operation-monolithic-p o)
                                      "--all-systems"
                                      ;; These use a different type .fasb or .a instead of .fasl
-                                     #-(or clasp ecl mkcl) "--system"))))
+                                     #-(or ecl mkcl) "--system"))))
                           (format nil "~A~@[~A~]" (coerce-filename (component-name c)) suffix))))
               (type (bundle-pathname-type bundle-type)))
           (values (list (subpathname (component-pathname c) name :type type))
@@ -263,7 +261,7 @@ for all the linkable object files associated with the system or its dependencies
   (defmethod output-files ((o bundle-op) (c system))
     (bundle-output-files o c))
 
-  #-(or clasp ecl mkcl)
+  #-(or ecl mkcl)
   (progn
     (defmethod perform ((o image-op) (c system))
       (dump-image (output-file o c) :executable (typep o 'program-op)))
@@ -271,7 +269,7 @@ for all the linkable object files associated with the system or its dependencies
       (setf *image-entry-point* (ensure-function (component-entry-point c)))))
 
   (defclass compiled-file (file-component)
-    ((type :initform #-(or clasp ecl mkcl) (compile-file-type) #+(or clasp ecl mkcl) "fasb"))
+    ((type :initform #-(or ecl mkcl) (compile-file-type) #+(or ecl mkcl) "fasb"))
     (:documentation "Class for a file that is already compiled,
 e.g. as part of the implementation, of an outer build system that calls into ASDF,
 or of opaque libraries shipped along the source code."))
@@ -488,7 +486,7 @@ which is probably not what you want; you probably need to tweak your output tran
                   s)
           (terpri s)))))
 
-  #-(or clasp ecl mkcl)
+  #-(or ecl mkcl)
   (defmethod perform ((o basic-compile-bundle-op) (c system))
     (let* ((input-files (input-files o c))
            (fasl-files (remove (compile-file-type) input-files :key #'pathname-type :test-not #'equalp))
@@ -520,14 +518,13 @@ which is probably not what you want; you probably need to tweak your output tran
 (asdf:load-system :precompiled-asdf-utils)
 |#
 
-#+(or clasp ecl mkcl)
+#+(or ecl mkcl)
 (with-upgradability ()
   (defun system-module-pathname (module)
     (let ((name (coerce-name module)))
       (some
        'file-exists-p
        (list
-        #+clasp (compile-file-pathname (make-pathname :name name :defaults "sys:") :output-type :object)
         #+ecl (compile-file-pathname (make-pathname :name name :defaults "sys:") :type :lib)
         #+ecl (compile-file-pathname (make-pathname :name (strcat "lib" name) :defaults "sys:") :type :lib)
         #+ecl (compile-file-pathname (make-pathname :name name :defaults "sys:") :type :object)
