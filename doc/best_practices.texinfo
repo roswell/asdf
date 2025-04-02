@@ -27,136 +27,136 @@ less obvious points that are often wrong in systems seen in the wild.
 @anchor{#table-of-contents}
 @itemize
 @item
-@ref{#trivial_examples,Trivial Examples}
+@ref{Trivial Examples}
 @itemize
 @item
-@ref{#trivial_asdf,Trivial Uses of ASDF}
+@ref{Trivial Uses of ASDF}
 @itemize
 @item
-@ref{#loading_system,Loading a System}
+@ref{Loading a System}
 @item
-@ref{#testing_system,Testing a System}
+@ref{Testing a System}
 @item
-@ref{#designating_system,Designating a System}
+@ref{Designating a System}
 @end itemize
 
 @item
-@ref{#trivial_system,Trivial System Definition}
+@ref{Trivial System Definition}
 @itemize
 @item
-@ref{#using_system,Using the system you defined}
+@ref{Using the system you defined}
 @end itemize
 
 @item
-@ref{#trivial_testing,Trivial Testing Definition}
+@ref{Trivial Testing Definition}
 @itemize
 @item
-@ref{#notes_asdf2,Notes on ASDF 2 compatibility}
+@ref{Note on ASDF 2 compatibility}
 @end itemize
 
 @item
-@ref{#trivial_packaging,Trivial Packaging}
+@ref{Trivial Packaging}
 @itemize
 @item
-@ref{#digression,Digression about symbols and packages}
-@end itemize
-
-@end itemize
-
-@item
-@ref{#simple_examples,Simple Examples}
-@itemize
-@item
-@ref{#simple_uses,Simple Uses of a System}
-@itemize
-@item
-@ref{#building_system,Building a System}
-@item
-@ref{#inspecting_system,Inspecting a System}
-@item
-@ref{#other_operations,Other Operations}
-@end itemize
-
-@item
-@ref{#system_naming,System Naming}
-@itemize
-@item
-@ref{#primary_systems,Primary Systems}
-@item
-@ref{#secondary_systems,Secondary Systems}
-@end itemize
-
-@item
-@ref{#simple_system,Simple System Definition}
-@item
-@ref{#simple_packaging,Simple Packaging}
-@itemize
-@item
-@ref{#initial_package,Initial Package for a Lisp File}
-@item
-@ref{#using_symbols,Using Symbols from ASDF and UIOP}
-@end itemize
-
-@item
-@ref{#simple_testing,Simple Testing}
-@item
-@ref{#other_secondary,Other Secondary Systems}
-@itemize
-@item
-@ref{#delivering_executable,Delivering an Executable}
-@item
-@ref{#system_connections,System Connections}
+@ref{Digression about symbols and packages}
 @end itemize
 
 @end itemize
 
 @item
-@ref{#moreelaborate_examples,More Elaborate Examples}
+@ref{Simple Examples}
 @itemize
 @item
-@ref{#moreelaborate_asdf,More Elaborate Uses of ASDF}
+@ref{Simple Uses of a System}
 @itemize
 @item
-@ref{#force,force}
+@ref{Building a System}
 @item
-@ref{#force_not,force-not}
+@ref{Inspecting a System}
 @item
-@ref{#require,Require}
+@ref{Other Operations}
 @end itemize
 
 @item
-@ref{#elaborate_definitions,More Elaborate System Definitions}
+@ref{System Naming}
 @itemize
 @item
-@ref{#package_inferred,package-inferred-system}
+@ref{Primary Systems}
 @item
-@ref{#using_extensions,Using ASDF Extensions}
-@item
-@ref{#code_asd,Code in .asd files}
-@item
-@ref{#conditional_code,Conditional Code}
+@ref{Secondary Systems}
 @end itemize
 
 @item
-@ref{#moreelaborate_testing,More Elaborate Testing}
+@ref{Simple System Definition}
 @item
-@ref{#defining_extensions,Defining ASDF Extensions}
+@ref{Simple Packaging}
 @itemize
 @item
-@ref{#source_types,Source File Types}
+@ref{Initial Package for a Lisp File}
 @item
-@ref{#conditional_outputs,Conditional Outputs and Conditional Perform}
+@ref{Using Symbols from ASDF and UIOP}
+@end itemize
+
+@item
+@ref{Simple Testing}
+@item
+@ref{Other secondary systems}
+@itemize
+@item
+@ref{Delivering an Executable}
+@item
+@ref{System Connections}
 @end itemize
 
 @end itemize
 
 @item
-@ref{#other,Other}
+@ref{More Elaborate Examples}
 @itemize
 @item
-@ref{#syntax_control,Syntax Control}
+@ref{More Elaborate Uses of ASDF}
+@itemize
 @item
-@ref{#using_asdf_internals,Using ASDF Internals}
+@ref{force}
+@item
+@ref{force-not}
+@item
+@ref{Require}
+@end itemize
+
+@item
+@ref{More Elaborate System Definitions}
+@itemize
+@item
+@ref{package-inferred-system}
+@item
+@ref{Using ASDF Extensions}
+@item
+@ref{Code in asd files}
+@item
+@ref{Conditional Code}
+@end itemize
+
+@item
+@ref{More Elaborate Testing}
+@item
+@ref{Defining ASDF Extensions}
+@itemize
+@item
+@ref{Source File Types}
+@item
+@ref{Conditional Outputs and Conditional Perform}
+@end itemize
+
+@end itemize
+
+@item
+@ref{Other}
+@itemize
+@item
+@ref{Syntax Control}
+@item
+@ref{Using ASDF Internals}
 @end itemize
 
 @end itemize
@@ -264,7 +264,7 @@ following contents:
   :components ((:file "foobar")))
 @end verbatim
 
-Note how the type @code{lisp} of @code{foobar.lisp} is implicit in the
+ how the type @code{lisp} of @code{foobar.lisp} is implicit in the
 name of the file above. As for contents of that file, they would look
 like this:
 
