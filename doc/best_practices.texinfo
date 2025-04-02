@@ -1,0 +1,1283 @@
+@node Top
+@top Top
+
+@menu
+* ASDF Best Practices::
+@end menu
+
+@node ASDF Best Practices
+@chapter ASDF Best Practices
+@anchor{#asdf-best-practices}
+This document presents the current best practices and conventions for
+using ASDF 3, as of 2017. It is not a tutorial, though it starts like
+one, because it assumes for each category of ASDF user (beginner, simple
+user, more elaborate user) that he already knows what seems to be common
+knowledge among such users, and tries to complete this knowledge with
+less obvious points that are often wrong in systems seen in the wild.
+
+@menu
+* Table of Contents::
+* Trivial Examples::
+* Simple Examples::
+* More Elaborate Examples::
+* Other::
+@end menu
+
+@node Table of Contents
+@section Table of Contents
+@anchor{#table-of-contents}
+@itemize
+@item
+@ref{#trivial_examples,Trivial Examples}
+@itemize
+@item
+@ref{#trivial_asdf,Trivial Uses of ASDF}
+@itemize
+@item
+@ref{#loading_system,Loading a System}
+@item
+@ref{#testing_system,Testing a System}
+@item
+@ref{#designating_system,Designating a System}
+@end itemize
+
+@item
+@ref{#trivial_system,Trivial System Definition}
+@itemize
+@item
+@ref{#using_system,Using the system you defined}
+@end itemize
+
+@item
+@ref{#trivial_testing,Trivial Testing Definition}
+@itemize
+@item
+@ref{#notes_asdf2,Notes on ASDF 2 compatibility}
+@end itemize
+
+@item
+@ref{#trivial_packaging,Trivial Packaging}
+@itemize
+@item
+@ref{#digression,Digression about symbols and packages}
+@end itemize
+
+@end itemize
+
+@item
+@ref{#simple_examples,Simple Examples}
+@itemize
+@item
+@ref{#simple_uses,Simple Uses of a System}
+@itemize
+@item
+@ref{#building_system,Building a System}
+@item
+@ref{#inspecting_system,Inspecting a System}
+@item
+@ref{#other_operations,Other Operations}
+@end itemize
+
+@item
+@ref{#system_naming,System Naming}
+@itemize
+@item
+@ref{#primary_systems,Primary Systems}
+@item
+@ref{#secondary_systems,Secondary Systems}
+@end itemize
+
+@item
+@ref{#simple_system,Simple System Definition}
+@item
+@ref{#simple_packaging,Simple Packaging}
+@itemize
+@item
+@ref{#initial_package,Initial Package for a Lisp File}
+@item
+@ref{#using_symbols,Using Symbols from ASDF and UIOP}
+@end itemize
+
+@item
+@ref{#simple_testing,Simple Testing}
+@item
+@ref{#other_secondary,Other Secondary Systems}
+@itemize
+@item
+@ref{#delivering_executable,Delivering an Executable}
+@item
+@ref{#system_connections,System Connections}
+@end itemize
+
+@end itemize
+
+@item
+@ref{#moreelaborate_examples,More Elaborate Examples}
+@itemize
+@item
+@ref{#moreelaborate_asdf,More Elaborate Uses of ASDF}
+@itemize
+@item
+@ref{#force,force}
+@item
+@ref{#force_not,force-not}
+@item
+@ref{#require,Require}
+@end itemize
+
+@item
+@ref{#elaborate_definitions,More Elaborate System Definitions}
+@itemize
+@item
+@ref{#package_inferred,package-inferred-system}
+@item
+@ref{#using_extensions,Using ASDF Extensions}
+@item
+@ref{#code_asd,Code in .asd files}
+@item
+@ref{#conditional_code,Conditional Code}
+@end itemize
+
+@item
+@ref{#moreelaborate_testing,More Elaborate Testing}
+@item
+@ref{#defining_extensions,Defining ASDF Extensions}
+@itemize
+@item
+@ref{#source_types,Source File Types}
+@item
+@ref{#conditional_outputs,Conditional Outputs and Conditional Perform}
+@end itemize
+
+@end itemize
+
+@item
+@ref{#other,Other}
+@itemize
+@item
+@ref{#syntax_control,Syntax Control}
+@item
+@ref{#using_asdf_internals,Using ASDF Internals}
+@end itemize
+
+@end itemize
+
+@node Trivial Examples
+@section Trivial Examples
+@anchor{#trivial-examples}
+Let's start with some trivial examples. We'll see below how these
+examples evolve as systems grow more complex.
+
+@menu
+* Trivial Uses of ASDF::
+* Trivial System Definition::
+* Trivial Testing Definition::
+* Trivial Packaging::
+@end menu
+
+@node Trivial Uses of ASDF
+@subsection Trivial Uses of ASDF
+@anchor{#trivial-uses-of-asdf}
+
+@menu
+* Loading a System::
+* Testing a System::
+* Designating a System::
+@end menu
+
+@node Loading a System
+@subsubsection Loading a System
+@anchor{#loading-a-system}
+The most trivial use of ASDF is by calling
+@code{(asdf:load-system :foobar)} to load your library. Then you can use
+it. For instance, if it exports a function @code{some-fun} in its
+package @code{foobar}, then you will be able to call it with
+@code{(foobar:some-fun ...)} or with:
+
+@verbatim
+(in-package :foobar)
+(some-fun ...)
+@end verbatim
+
+@node Testing a System
+@subsubsection Testing a System
+@anchor{#testing-a-system}
+To run the tests for a system, you may use:
+
+@verbatim
+(asdf:test-system :foobar)
+@end verbatim
+
+The convention is that an error SHOULD be signalled if tests are
+unsuccessful.
+
+@node Designating a System
+@subsubsection Designating a System
+@anchor{#designating-a-system}
+Using keywords to name systems is good and well at the REPL. However,
+when writing a program, a bootstrap script, or a system definition, you
+SHOULD follow the good style of writing names in the canonical way; and
+the canonical name of a system is a string, which by convention is in
+lower-case (indeed any symbol used as system designator is downcased by
+@code{asdf:coerce-name}).
+
+Thus, the proper way to designate a system in a program is with
+lower-case strings, as in:
+
+@verbatim
+(asdf:load-system "foobar")
+(asdf:test-system "foobar")
+@end verbatim
+
+(Historical note: MK-DEFSYSTEM and before it Genera's SCT used
+string-upcase to normalize system names, and use that as filenames,
+which made sense on Genera's filesystem or using logical pathnames as
+common with MK-DEFSYSTEM. Dan Barlow's ASDF, to ``Play Nice With Unix'',
+preferred lower-case file names, and used string-downcase to normalize
+symbols into strings; at the same time, he allowed you to specify mixed
+case or upper-case names by using a string. The latter was probably a
+mistake, and I strongly recommend against using anything but lower-case.
+If that weren't allowed, there would be a case for making lower-case
+symbols the default syntax, and let the various case conversions do
+their job without quotes. But that is not where we are. In any case,
+system names designate @code{.asd} files, not Lisp bindings, and this
+determines their syntax.)
+
+@node Trivial System Definition
+@subsection Trivial System Definition
+@anchor{#trivial-system-definition}
+A trivial system would have a single Lisp file called
+@code{foobar.lisp}. That file would depend on some existing libraries,
+say @code{alexandria} for general purpose utilities, and @code{trivia}
+for pattern-matching. To make this system buildable using ASDF, you
+create a system definition file called @code{foobar.asd}, with the
+following contents:
+
+@verbatim
+(defsystem "foobar"
+  :depends-on ("alexandria" "trivia")
+  :components ((:file "foobar")))
+@end verbatim
+
+Note how the type @code{lisp} of @code{foobar.lisp} is implicit in the
+name of the file above. As for contents of that file, they would look
+like this:
+
+@verbatim
+(defpackage :foobar
+  (:use :common-lisp :alexandria :trivia)
+  (:export
+   #:some-function
+   #:another-function
+   #:call-with-foobar
+   #:with-foobar))
+
+(in-package :foobar)
+
+(defun some-function (...)
+  ...)
+...
+@end verbatim
+
+@menu
+* Using the system you defined::
+@end menu
+
+@node Using the system you defined
+@subsubsection Using the system you defined
+@anchor{#using-the-system-you-defined}
+Assuming your system is installed under the @code{~/common-lisp/}
+hierarchy or some other filesystem hierarchy already configured for
+ASDF, you can load it with: @code{(asdf:load-system "foobar")}, or
+shorter @code{(asdf:make :foobar)}
+
+If your Lisp was already started when you created that file, you may
+have to @code{(asdf:clear-configuration)} to re-process the
+configuration.
+
+@node Trivial Testing Definition
+@subsection Trivial Testing Definition
+@anchor{#trivial-testing-definition}
+Even the most trivial of systems needs some tests, if only because it
+will have to be modified eventually, and you want to make sure those
+modifications don't break client code. Tests are also a good way to
+document expected behavior.
+
+The simplest way to write tests is to have a file
+@code{foobar-tests.lisp} and modify the above @code{foobar.asd} as
+follows:
+
+@verbatim
+(defsystem "foobar"
+  :depends-on ("alexandria" "trivia")
+  :components ((:file "foobar"))
+  :in-order-to ((test-op (test-op "foobar/tests"))))
+
+(defsystem "foobar/tests"
+  :depends-on ("foobar" "fiveam")
+  :components ((:file "foobar-tests"))
+  :perform (test-op (o c) (symbol-call :fiveam '#:run! :foobar)))
+@end verbatim
+
+The @code{:in-order-to} clause in the first system allows you to use
+@code{(asdf:test-system :foobar)} which will chain into
+@code{foobar/tests}. The @code{:perform} clause in the second system
+does the testing itself.
+
+In the test system, @code{fiveam} is the name of a popular test library,
+and the content of the @code{perform} method is how to invoke this
+library to run the test suite @code{:foobar}. Obviously your mileage may
+vary if you use a different library.
+
+@menu
+* Note on ASDF 2 compatibility::
+@end menu
+
+@node Note on ASDF 2 compatibility
+@subsubsection Note on ASDF 2 compatibility
+@anchor{#note-on-asdf-2-compatibility}
+The @code{:in-order-to ((test-op (test-op ...)))} idiom will not work
+with ASDF 2: attempts to @code{test-system} will result in failure due
+to circular dependencies; however, @code{load-system} will still work.
+As for the @code{:perform} method, you need to specify @code{:after}
+right after @code{test-op} for ASDF 2 to accept the @code{defsystem}
+form at all (but still not make the @code{:in-order-to} work); so it's
+probably OK if your test system is in a separate @code{.asd} file, but
+if you want backward compatibility and it's a secondary system, you'll
+use @code{:after}. Making things work completely on ASDF 2 as well as
+ASDF 3 would take a lot of pain, and would be colloquial for neither.
+
+But @emph{friends don't let friends use ASDF 2}. ASDF 3 has been
+available since 2013, and all implementations have now been providing it
+for a long time. Many systems, and growing, assume ASDF 3, possibly some
+you depend on, and it's pointless to maintain compatibility with a
+moribund system (especially so if you don't also check that all your
+dependencies do, too). Upgrade your implementations and/or at least your
+ASDF, and tell your friends to do as much. The
+@uref{http://fare.livejournal.com/149264.html,very founding principle of
+ASDF 2} (and 3) was to provide users with the ability to install a newer
+ASDF on top of an old one to fix its bugs (an ability that did not exist
+with ASDF 1); thus, users do not have to maintain compatibility with
+antique bugs.
+
+These days, I even recommended that you should freely rely on features
+of ASDF 3.1 (2014) not present in ASDF 3.0 (2013), such as:
+@code{~/common-lisp/} being included in the source-registry by default;
+@code{run-program} being full-fledged with input and error-output
+support; or the @code{package-inferred-system} feature. Conversely, if
+you want indefinite backward compatibility, why stop at ASDF 2? Why not
+also support ASDF 1, and MK-DEFSYSTEM, and the original Lisp Machine
+DEFSYSTEM? A good rule of thumb for me is that it is not worth writing
+workarounds for bugs that were fixed or features that were changed two
+years ago or more. Two years seems to be the time it takes for a release
+of ASDF to become ubiquitously available by default on all
+implementations; and, remember, if a user must use an older
+implementation, he can always trivially install a newer ASDF on top of
+it. Thus, by October 2019, people should not be shy about dropping
+support for ASDF versions older than 3.3. And even before then, if you
+need a recent ASDF, just document it, and tell your users to upgrade
+their implementation and/or install a recent ASDF on top of their
+implementation's.
+
+@node Trivial Packaging
+@subsection Trivial Packaging
+@anchor{#trivial-packaging}
+In the previous testing code, @code{symbol-call} is a function defined
+in package @code{uiop}. It helps deal with the fact that the package
+@code{:fiveam} isn't defined yet at the time the @code{defsystem} form
+is read. Thus you can't simply write @code{(fiveam:run! :foobar)}, as
+this might cause a failure at read-time when file @code{foobar.asd} is
+first read and the system @code{fiveam} isn't loaded yet. This of course
+also holds for packages defined by system @code{foobar} itself.
+
+To get a symbol in it that is not a function being called, you can also
+use @code{(find-symbol* :some-symbol :foobar)}, and you can use
+@code{symbol-value} to get the value bound to such a symbol as denoting
+a variable. For complex expressions, you can use @code{eval} and
+@code{read-from-string}, as in
+@code{(eval (read-from-string "(foobar:some-fun foobar:*some-var*)"))},
+or equivalently, also from @code{uiop}:
+@code{(eval-input "(foobar:some-fun foobar:*some-var*)")}.
+
+System definition files are loaded with the current @code{*package*}
+bound to the package @code{:asdf-user}, that uses the packages
+@code{:cl}, @code{:asdf} and @code{:uiop}. Therefore, you don't need to
+and you SHOULD NOT specify @code{cl:}, @code{asdf:} or @code{uiop:}
+prefixes when referring to symbols in these respective packages. It is
+considered bad form to do so, unless you changed the package, and even
+then, your package should probably use these packages, too. In
+particular you SHOULD NOT to write @code{(asdf:defsystem "foobar" ...)}
+instead of @code{(defsystem "foobar" ...)}. Also, you SHOULD NOT use
+@code{(in-package ...)} or @code{(defpackage ...)} if all you do can
+legitimately be done in package @code{ASDF-USER}.
+
+System definition files are loaded by a special function
+@code{asdf::load-asd}; this function locally binds the current
+@code{*package*} to the @code{:asdf-user} package, but it also does many
+other things. You MUST NOT ever load a @code{.asd} file using
+@code{cl:load}, as this will not work in general, and may fail in subtle
+or spectacular ways. You MUST always use @code{asdf::load-asd} for that
+purpose (the function is exported in ASDF 3.2 and above, but not in
+earlier versions). You SHOULD NOT encourage the illusion that a
+@code{.asd} file can be loaded with @code{cl:load} by using
+@code{(in-package :asdf-user)} or anything, or by using the package
+prefix @code{asdf:} for @code{defsystem} and other such symbols. You
+SHOULD be using the @code{slime-asdf} extension to SLIME if you are
+going to edit @code{.asd} file and then load them from SLIME, as it will
+automatically use @code{load-asd} to load the file contents.
+
+@menu
+* Digression about symbols and packages::
+@end menu
+
+@node Digression about symbols and packages
+@subsubsection Digression about symbols and packages
+@anchor{#digression-about-symbols-and-packages}
+A crucial notion in Common Lisp is that of @emph{symbols}, to which are
+associated functions, variables, macros, properties, and other meanings.
+These symbols are organized in a two-level namespace that is global to a
+given Lisp image. Symbols are the second level, and the first level are
+@emph{packages}. Symbols and packages are traditionally uppercase
+internally, but you traditionally write them lower-case in source code;
+the Common Lisp reader is @emph{case-converting}. These internal
+representation details matter, because they are exposed when you either
+write macros at compile-time or introspect the system at runtime.
+
+The conventional way to refer to a package is with its name designated
+by a lower-case keyword, starting with the colon character @code{:}. For
+instance, the standard package @code{COMMON-LISP} is commonly designated
+as @code{:common-lisp} (or @code{(find-package :common-lisp)} if you
+need an actual package object). Keywords are themselves symbols in the
+magic package @code{KEYWORD}, where each interned symbol is also a
+constant bound to its own name as a value. Using a keyword as designator
+rather than a string ensures that we can maintain the same convention of
+using lower-case in source code while the runtime will use uppercase.
+
+@node Simple Examples
+@section Simple Examples
+@anchor{#simple-examples}
+As systems grow, the above pattern quickly becomes insufficient, but
+systems can still remain simple.
+
+@menu
+* Simple Uses of a System::
+* System Naming::
+* Simple System Definition::
+* Simple Packaging::
+* Simple Testing::
+* Other secondary systems::
+@end menu
+
+@node Simple Uses of a System
+@subsection Simple Uses of a System
+@anchor{#simple-uses-of-a-system}
+
+@menu
+* Building a System::
+* Inspecting a System::
+* Other Operations::
+@end menu
+
+@node Building a System
+@subsubsection Building a System
+@anchor{#building-a-system}
+Some systems offer operations that are neither loading in the current
+image, nor testing. Whichever operation a system is meant to be used
+with, you may use it with:
+
+@verbatim
+(asdf:make :foobar)
+@end verbatim
+
+This will invoke @code{build-op}, which in turn will depend on the
+@code{build-operation} for the system, if defined, or @code{load-op} if
+not. Therefore, for usual Lisp systems that want you to load them, the
+above will be equivalent to @code{(asdf:load-system :foobar)}, but for
+other Lisp systems, e.g.@ one that creates a shell command-line
+executable, @code{(asdf:make ...)} will do the Right Thing™, whatever
+that Right Thing™ is.
+
+@node Inspecting a System
+@subsubsection Inspecting a System
+@anchor{#inspecting-a-system}
+To look at what ASDF knows of your system, try:
+
+@verbatim
+(describe (asdf:find-system "foobar"))
+@end verbatim
+
+If you're looking for the @code{.asd} file, try
+@code{(asdf:system-source-file "foobar")}. For the directory in which
+the @code{.asd} file resides, try
+@code{(asdf:system-source-directory "foobar")}. For a specific file
+under that directory try
+@code{(asdf:system-relative-pathname "foobar" "path/to/the/file.extension")}.
+
+@node Other Operations
+@subsubsection Other Operations
+@anchor{#other-operations}
+ASDF has the concept of an @emph{operation} that can act upon a system
+(or a smaller component thereof). Typical operations that matter to
+end-users include:
+
+@itemize
+@item
+@code{load-op} for loading a system in the current Lisp image, as used
+by @code{asdf:load-system},
+@item
+@code{test-op} for running tests associated to the system, as used by
+@code{asdf:test-system},
+@item
+@code{build-op} for doing whatever build operation is associated to the
+system, (which by default is @code{load-op} if the system didn't
+override it), as used by @code{asdf:make}.
+@end itemize
+
+Further operations of interest to users include:
+
+@itemize
+@item
+@code{compile-op} (ensure the system is compiled, without necessarily
+loading all of it, or any bit of it),
+@item
+@code{load-source-op} (load the system from source without compiling),
+@item
+@code{compile-bundle-op} (create a single fasl for the entire system,
+for delivery),
+@item
+@code{monolithic-compile-bundle-op} (create a single fasl for the entire
+system @emph{and all its transitive dependencies}, for delivery),
+@item
+@code{image-op} (create a development image with this system already
+loaded, for fast startup),
+@item
+@code{program-op} (create a standalone application, which we will see
+below), etc.
+@end itemize
+
+Whichever operation you want, @code{(asdf:operate}@emph{operation}
+@emph{system}@code{)} will ensure this operation is performed on that
+system (after all the necessary dependencies of such an action). A
+short-hand @code{asdf:oos} is available for @code{asdf:operate} (the
+name @code{oos} is an old acronym for @code{operate-on-system}, and both
+functions existed as synonyms in the old MK-DEFSYSTEM; the latter
+function doesn't exist in ASDF, which instead has just @code{operate}).
+
+The operation is typically specified as a symbol that names the
+operation class. Since ASDF 3, you can also use a keyword to specify an
+action in the ASDF package. Thus, @code{(asdf:oos :load-op :foobar)} is
+equivalent to @code{(asdf:load-system :foobar)}.
+
+@node System Naming
+@subsection System Naming
+@anchor{#system-naming}
+
+@menu
+* Primary Systems::
+* Secondary Systems::
+@end menu
+
+@node Primary Systems
+@subsubsection Primary Systems
+@anchor{#primary-systems}
+ASDF has a notion of @emph{primary system}, that it can find in
+configured parts of the filesystem (the @emph{source-registry}), in a
+file that has the same name and the type @code{asd}. Thus, primary
+system @code{foobar} is defined in a file @code{foobar.asd}.
+
+While arbitrary strings are accepted in system names, it is strongly
+discouraged to use anything but lower-case ASCII letters and digits for
+primary system names, plus the separators @code{-} (hyphen) and @code{.}
+(dot). The @code{.} itself is only recommended in primary system names
+that are part of an informal hierarchy; for instance the popular library
+@code{iolib} contains many related systems: @code{iolib.asdf},
+@code{iolib.base}, @code{iolib.common-lisp}, @code{iolib.conf},
+@code{iolib.examples}, @code{iolib.grovel}, @code{iolib.tests}. The main
+one is ostensibly @code{iolib}, but it contains many systems, and for
+some reasons (notably proper phase separation) they cannot all be
+secondary systems in the same file.
+
+@node Secondary Systems
+@subsubsection Secondary Systems
+@anchor{#secondary-systems}
+A @emph{secondary system} is a system defined in the same file as a
+primary system. By convention, its name starts the same as the file's
+primary system, followed by a slash @code{/} and by a @emph{suffix} made
+of some arbitrary characters, preferably ASCII letters and digits plus
+the separators @code{-} (hyphen), @code{.} (dot) and @code{/} (slash).
+We already saw an example of it with system @code{foobar/tests} in the
+trivial testing definition above.
+
+The convention above allows ASDF 3 and later to find a secondary system
+by name, by first looking for the associated primary system. ASDF 3.2 or
+later will issue a @code{warning} when you violate this naming
+convention.
+
+(Historically, ASDF 1 (and 2) allowed arbitrary names for secondary
+systems, and in practice many people used @code{foo-test} or such for
+secondary system names in @code{foo.asd}; however, ASDF 1 (and 2)
+couldn't find those systems by name, and horrific bugs could happen if a
+system was simultaneously defined in multiple files.)
+
+@node Simple System Definition
+@subsection Simple System Definition
+@anchor{#simple-system-definition}
+A simple system may be made of many files.
+
+Typically, in @code{package.lisp} (or @code{packages.lisp}) you'll
+define the package (or packages) used by all the files in your system in
+one or more forms such as @code{(defpackage :foobar ...)}.
+
+Then, in a package @code{utils.lisp} you'll define utility macros and
+functions that you're using throughout your system; maybe some of them
+deserve to be moved to @code{alexandria} and other utility systems; and
+maybe they already exist out there and you just haven't looked hard
+enough.
+
+Then a file @code{foobar.lisp} defines the meat of your system.
+
+Your system definition will look like:
+
+@verbatim
+(defsystem "foobar"
+  :depends-on ("alexandria" "trivia")
+  :serial t
+  :components
+  ((:file "package")
+   (:file "utils")
+   (:file "foobar")))
+@end verbatim
+
+The @code{:serial t} indicates that each of these files depends on (all)
+the previous.
+
+As your system grows some more, soon enough instead of a single file
+@code{foobar.lisp}, you will have several files, one for each aspect of
+your system, such as @code{foo.lisp}, @code{bar.lisp} as well as
+@code{foobar.lisp}. Moreover, @code{:serial t} soon becomes
+inappropriate: it will make your code slower to compile, but also to
+read. Indeed, those who read the code won't be readily able to tell
+which parts of the code they need to keep active in their brains to
+understand the code at hand. Instead, you may prefer to explicitly
+represent the dependencies between the components of your system using
+@code{:depends-on} clauses as follows:
+
+@verbatim
+(defsystem "foobar"
+  :depends-on ("alexandria" "trivia" "trivia.ppcre")
+  :components
+  ((:file "package")
+   (:file "utils" :depends-on ("package"))
+   (:file "foo" :depends-on ("utils"))
+   (:file "bar" :depends-on ("utils"))
+   (:file "foobar" :depends-on ("foo" "bar"))))
+@end verbatim
+
+Out of good style, you SHOULD still list the components in an order that
+makes sense, such that the readers can read the files and mentally
+rebuild the system. However, note that this order, if coherent, will be
+respected only in ASDF 3.3 or later, due to a bug in earlier versions of
+ASDF. But that precise order shouldn't matter, or it should be reflected
+in the @code{:depends-on} declarations (or in a @code{:serial t}
+declaration).
+
+@node Simple Packaging
+@subsection Simple Packaging
+@anchor{#simple-packaging}
+
+@menu
+* Initial Package for a Lisp File::
+* Using Symbols from ASDF and UIOP::
+@end menu
+
+@node Initial Package for a Lisp File
+@subsubsection Initial Package for a Lisp File
+@anchor{#initial-package-for-a-lisp-file}
+You MAY assume that the current package uses @code{CL} at the beginning
+of a file, but you MUST NOT assume that it is any particular package at
+this point: right now, it @emph{is} guaranteed to be the @code{CL-USER}
+package of the underlying implementation, but it is conceivable that in
+some indeterminate future, some extension to CL may provide a
+well-defined portable alternative that ASDF would use.
+
+Therefore, the sane way to write a Lisp file is that it SHOULD start
+with an @code{in-package} form, optionally preceded by a
+@code{defpackage} form (or a @code{uiop:define-package} form). You
+SHOULD NOT write @code{cl:in-package} or precede your @code{defpackage}
+with an @code{(in-package :cl-user)} (which is stupid, because to be
+pedantic you'd have to @code{(cl:in-package :cl-user)}, at which point
+you may as well @code{(cl:defpackage ...)} and
+@code{(cl:in-package ...)}). If it's a regular @code{cl-source-file}, it
+can assume the language is CL indeed, and that the readtable something
+reasonable, etc.
+
+@node Using Symbols from ASDF and UIOP
+@subsubsection Using Symbols from ASDF and UIOP
+@anchor{#using-symbols-from-asdf-and-uiop}
+You MAY use any of the symbols documented and exported by ASDF or UIOP.
+Actually, it is warmly recommended to use them everywhere that it
+matters, instead of less documented or less portable alternatives.
+
+You MUST NOT use @code{asdf:run-shell-command},
+@code{asdf:system-definition-pathname}, or other deprecated functions
+that were once recommended in the time of ASDF 1. They will be removed
+in the near future (one to two year horizon). ASDF 3.2 or 3.3 will issue
+a @code{style-warning} when you do, and some future version of ASDF will
+issue a full @code{warning}, which will then break the SBCL build. See
+@code{backward-interface.lisp} for a list of deprecated function --- or
+just heed the damn warnings.
+
+@node Simple Testing
+@subsection Simple Testing
+@anchor{#simple-testing}
+Test systems can also be divided in multiple files. If possible (which
+is not always the case), the file names for test files should match file
+names for regular code files, so that the file that tests
+@code{bar.lisp} will be called @code{bar-test.lisp} or
+@code{bar-tests.lisp} (pick singular or plural, but have a story for it
+and be consistent about it). To keep things tidy as the test system
+grows, you may even put all test files in a subdirectory @code{t/},
+@code{test/} or @code{tests/}. Your test system definition may then look
+like:
+
+@verbatim
+(defsystem "foobar/tests"
+  :depends-on ("fiveam" "foobar")
+  :pathname "t/" ;; specify the subdirectory
+  :components
+  ((:file "test-suite")
+   (:file "utils-test" :depends-on ("test-suite"))
+   (:file "foo-test" :depends-on ("test-suite"))
+   (:file "bar-test" :depends-on ("test-suite"))
+   (:file "foobar-test" :depends-on ("test-suite")))
+  :perform (test-op (o c) (symbol-call :foobar/tests :run-test-suite)))
+@end verbatim
+
+As the system and its test system both grow, the test system may be
+moved to its own file @code{foobar-tests.asd} or @code{foobar.tests.asd}
+where it is its own primary system:
+
+@verbatim
+(defsystem "foobar-tests" ...)
+@end verbatim
+
+@node Other secondary systems
+@subsection Other secondary systems
+@anchor{#other-secondary-systems}
+Other secondary systems may be created beyond test systems: for instance
+systems that provide independent aspects of the system, or optional
+add-ons to it. One case is a command that makes the Lisp functionality
+accessible from a Unix shell.
+
+@menu
+* Delivering an Executable::
+* System Connections::
+@end menu
+
+@node Delivering an Executable
+@subsubsection Delivering an Executable
+@anchor{#delivering-an-executable}
+To build an executable, define a system as follows (in this case, it's a
+secondary system, but it could also be a primary system). You will be
+able to create an executable file @code{foobar-command} by evaluating
+@code{(asdf:make :foobar/executable)}:
+
+@verbatim
+(defsystem "foobar/executable"
+  :build-operation program-op
+  :build-pathname "foobar-command" ;; shell name
+  :entry-point "foobar::start-foobar" ;; thunk
+  :depends-on ("foobar")
+  :components ((:file "main")))
+@end verbatim
+
+The @code{build-pathname} gives the name of the executable; a
+@code{.exe} type will be automatically added on Windows. As a horrible
+kluge that may go away in the future, the output will be created in the
+system's directory (where the @code{foobar.asd} file resides) when the
+@code{build-operation} matches the requested operation. A future version
+of ASDF will probably instead have some @code{:output} argument to
+@code{operate}, or some such thing, and drop this ugly special case. You
+have been warned. Contact me if you want that sooner, or not at all.
+
+There, file @code{main.lisp} defines a function @code{start-foobar} in
+package @code{foobar}, that takes no argument, and initializes and
+starts the executable --- after @code{uiop} calls its own
+@code{*image-restore-hook*} and evaluates any provided
+@code{*image-prelude*}. Importantly, libraries may register functions to
+call in the @code{*image-restore-hook*} using
+@code{register-image-restore-hook} (see also
+@code{register-image-dump-hook}); UIOP and ASDF themselves make use of
+this facility. Typically, @code{start-foobar} will be defined as
+something like:
+
+@verbatim
+(defun start-foobar () (main (uiop:command-line-arguments)))
+@end verbatim
+
+Where function @code{main} parses the arguments (a list of strings,
+excluding the magic C @code{argv[0]}, which can be computed as
+@code{(uiop:argv0)}) and does whatever its magic. You may want to use
+the full-featured @code{net.didierverna.clon} or my small
+@code{command-line-arguments} or one of a slew of other libraries to
+parse the command-line arguments. You may want to use
+@code{cl-scripting} to nicely wrap Lisp code into execution contexts
+that handle errors in a nice(r) user-visible way for the shell user. You
+may want to use @code{inferior-shell} if your program in turn invokes
+other shell programs.
+
+Instead may also use @code{cl-launch} to build executables, or
+@code{buildapp}. @code{cl-launch} is largely compatible with ASDF
+(indeed, a lot of code formerly written as part of @code{cl-launch} was
+later made part of ASDF 3's UIOP). @code{buildapp}, that came before
+ASDF 3 but after @code{cl-launch}, has a slightly incompatible
+convention where a main function is called with a list of arguments that
+includes the @code{argv[0]}. (@code{cl-launch} and after it UIOP had
+many good enough reasons to start the argument list at the ``user
+arguments'', if only because when invoking a Lisp implementation via
+@code{cl-launch}, the process' @code{argv[0]} may not be available or
+meaningful, whereas the user arguments may be only a subset of the
+actual process' arguments.) Both @code{cl-launch} and @code{buildapp}
+have similar functionality to handle multicall binaries à la
+@uref{http://busybox.net/,Busybox}, with the same incompatibility as
+above.
+
+@node System Connections
+@subsubsection System Connections
+@anchor{#system-connections}
+Sometimes, a system can provide an extension to another system. For
+instance, if you use both @code{metacopy} and @code{contextl}, you may
+be interested in some system @code{metacopy/with-contextl} that creates
+synergies between these two systems.
+
+There exists a system @code{asdf-system-connections} that will allow you
+to define such system connections that are @emph{automatically} loaded
+when both the connected systems are loaded. While I debugged that
+mechanism and made sure it works with ASDF 3, I recommend against using
+it, because it introduces side-effects within the build. Instead I
+recommend explicitly loading the system connections as part of the
+larger system that will use them.
+
+@node More Elaborate Examples
+@section More Elaborate Examples
+@anchor{#more-elaborate-examples}
+
+@menu
+* More Elaborate Uses of ASDF::
+* More Elaborate System Definitions::
+* More Elaborate Testing::
+* Defining ASDF Extensions::
+@end menu
+
+@node More Elaborate Uses of ASDF
+@subsection More Elaborate Uses of ASDF
+@anchor{#more-elaborate-uses-of-asdf}
+
+@menu
+* force::
+* force-not::
+* Require::
+@end menu
+
+@node force
+@subsubsection force
+@anchor{#force}
+Sometimes, you want to force ASDF to re-build some system. At those
+times, you can pass the @code{:force} argument to @code{asdf:operate}
+(or its wrappers @code{asdf:load-system}, @code{asdf:test-system},
+@code{asdf:oos}, etc.). Passing an argument @code{t} will force rebuild
+of just the system, and none of its dependencies (and that also means
+none of the dependencies that happen to be secondary systems with the
+same primary system name). Passing a list of system designators
+(preferably lower-case strings) will force the specific systems to be
+rebuilt (if they appear in the build plan at all, that is). Finally,
+passing @code{:all} as argument will force a rebuild of everything,
+including all dependencies.
+
+Thus, if you ran tests that use the @code{prove} test framework, in
+which loading the files is itself the test, and you want to force a
+re-run, even though ASDF might be satisfied with already having loaded
+the files, then you can use:
+@code{(asdf:load-system :clack-test :force t)}
+
+Note that it is strongly recommended to not have any non-determinism or
+side-effects that are not declared to ASDF, that would cause the forcing
+to be meaningful. Forcing is thus a debugging feature for ASDF systems
+that fail this good practice. In the case of @code{prove}, we will have
+to work with its author so that the correct way to use it doesn't
+violate ASDF invariants, but instead properly declare that ASDF should
+not consider tests already run.
+
+@node force-not
+@subsubsection force-not
+@anchor{#force-not}
+The converse of @code{:force} is @code{:force-not}, and you can specify
+a list of systems to not rebuild. In this context @code{t} means
+``everything but this system'' rather than " this system``.
+@code{force-not} takes precedence over @code{force}, and by default
+includes a list of''immutable" systems that may be used when delivering
+extensible applications to customers (See function
+@code{asdf::register-immutable-system}).
+
+Note that these flags are only for use by the user at the toplevel. You
+MUST NOT call @code{asdf:operate} with @code{:force} or
+@code{:force-not} from within a build. Actually, you should probably not
+explicitly use @code{asdf:operate} at all, except maybe inside a
+@code{.asd} file in cases where @code{defsystem-depends-on} isn't
+sufficient.
+
+@node Require
+@subsubsection Require
+@anchor{#require}
+You SHOULD NOT use @code{cl:require} as a substitute for
+@code{asdf:load-system}. You SHOULD NOT use @code{asdf:require-system}
+except at the toplevel.
+
+Back in the days of ASDF 1, a convenient hook was added to ASDF so that
+when you call @code{cl:require}, it would try to load the named system,
+and if not fall back on the builtin require mechanism. This was a cool
+hack, and when you merely wanted a dependency, it was easier to type
+@code{(require :foo)} than @code{(asdf:operate 'asdf:load-op :foo)} as
+you then had to. Moreover, on SBCL where ASDF was developed, ASDF itself
+was used to compile and load SBCL modules at runtime, so this hook came
+naturally.
+
+As ASDF maintainer, I now consider this in bad taste:
+
+@itemize
+@item
+First, this hook is not 100% portable, so it is bad taste to recommend
+relying on it.
+@item
+Second, @code{cl:require} has a mechanism for loading things only once
+by checking @code{cl:*modules*} which may subtly interfere with ASDF's
+mechanism for keeping things up to date.
+@item
+Third, it interferes with ASDF's capacity to detect legitimate vs
+illegitimate recursive uses of @code{operate} at places that defeat
+tracking of dependencies.
+@item
+Fourth, it adds a lot of complexity for dubious gain: at a time you had
+to type @code{(asdf:operate 'asdf:load-op :foo)}, @code{(require :foo)}
+may have been a nice short-hand, but it isn't such a great gain over
+@code{(asdf:make :foo)}.
+@item
+Fifth, SBCL now uses ASDF 3's @code{compile-bundle-op} to create a fasl
+during the build of SBCL itself, and that fasl can latter be loaded at
+runtime without ASDF. Therefore the hook has no natural use anymore.
+@end itemize
+
+Similarly, in ASDF 2.21 I added a function @code{require-system} that
+used to called @code{load-system} with
+@code{:force-not (already-loaded-systems)}, which was a nice hack at the
+time, that I latter used as part of the @code{cl:require} hook. That was
+all a big mistake, as @code{:force-not} interferes with the ability to
+keep a coherent plan across recursive uses of @code{asdf:operate} as
+required by builds that involve @code{:defsystem-depends-on} and other
+ASDF extensions. These days, this function only checks whether the
+requested component is already loaded, and if not calls
+@code{asdf:load-system} on it. This function MUST only be used at the
+toplevel, never in a script or build. It may be deprecated in a future
+version of ASDF.
+
+@node More Elaborate System Definitions
+@subsection More Elaborate System Definitions
+@anchor{#more-elaborate-system-definitions}
+
+@menu
+* package-inferred-system::
+* Using ASDF Extensions::
+* Code in asd files::
+* Conditional Code::
+@end menu
+
+@node package-inferred-system
+@subsubsection package-inferred-system
+@anchor{#package-inferred-system}
+When you start writing large enough systems, putting everything in one
+big package leads to a big mess: it's hard to find what function is
+defined where, or should be defined where; you invent your own symbol
+prefixing system to avoid name clashes; totally unrelated things end up
+in the same mother-of-all package; you divide your mother-of-all package
+into a few subpackages, but as the software keeps growing each of these
+packages in turn becomes too big.
+
+Meanwhile, as you grow large enough libraries, you find that you loading
+a big library just to use a small part of it becomes a big hassle,
+leading to code bloat, too much recompilation, too much re-testing, and
+not enough understanding of what's going on.
+
+A solution to both these problems is the ``one file, one package, one
+system'' style, once spearheaded by faslpath and quick-build, and now
+available as part of ASDF (since ASDF 3.1, 2014) using the
+@code{package-inferred-system} class.
+
+Following this style, your top @code{.asd} file defines uses this class
+for its primary system (you can still define secondary systems with
+different classes). Then, any secondary system, if not explicitly
+defined, will be searched for in a file as named by the secondary system
+suffix, under the directory that contains the system definition file.
+
+Thus, if @code{~/common-lisp/foobar-1.0/foobar.asd} defines a primary
+system of class @code{package-inferred-system}, but no secondary class
+@code{foobar/x/y}, then ASDF will look for a file
+@code{~/common-lisp/foobar-1.0/x/y.lisp} to contain this system. That
+file will be a regular Lisp file, that will begin with a
+@code{defpackage} or @code{uiop:define-package} form. (The latter form
+is more friendly to live upgrades, but also allows to use a mix of
+packages with a priority on symbol conflicts, or to reexport imported
+symbols.) Dependencies for this system will be deduced from the
+@code{:use}, @code{:import-form} and @code{:shadowing-import-from}
+clauses of that @code{defpackage}, where each package name is downcased
+and interpreted as a system name, unless registered otherwise via
+@code{asdf:register-system-packages}.
+
+This allows for large modular libraries, wherein you may use one file,
+and only that file and its transitive dependencies will be loaded,
+rather than the entire humongous library.
+
+This also helps you enforce a discipline wherein it is always clear in
+which file each symbol is defined, which files have symbols used by any
+other file, etc.
+
+@node Using ASDF Extensions
+@subsubsection Using ASDF Extensions
+@anchor{#using-asdf-extensions}
+If you need an ASDF extension, the recommended way is to use
+@code{:defsystem-depends-on}. The extension will define new classes of
+operations or components, new functions, etc. If it defines them in the
+ASDF package, you can refer to them using a keyword of the same name,
+e.g.@ @code{:cffi-wrapper-file} for one of the component classes defined
+by system @code{cffi-grovel}, @code{:static-program-op} for one of the
+operation classes defined by @code{cffi-toolchain}, or
+@code{:f2cl-system} for the system class defined by system @code{f2cl}.
+Otherwise, you can refer to them using a string that when read yields
+the symbol, e.g. the system @code{asdf-finalizers} defines a function
+that you can use as an around-compile hook for your system using the
+clause
+@code{:around-compile "asdf-finalizers:check-finalizers-around-compile"}.
+You cannot usually specify the qualified symbol directy, because it
+lives in a package that hasn't been defined yet at the time the
+@code{defsystem} form is read.
+
+Sometimes, you may want to use several build extensions at once, but a
+given system, smaller component or operation, can have only one class.
+You may split that system in two (say, a primary system and a secondary
+system) so each has its own extension (say, make the primary system a
+@code{package-inferred-system}, but have a secondary system be a
+@code{program-system}). For more advanced cases, you may have to define
+a class that inherits from multiple other classes in your own extension.
+(In a prototype OO system, you could just mix and match extensions
+without defining a new class, but CLOS is not a prototype OO system.)
+
+@node Code in asd files
+@subsubsection Code in .asd files
+@anchor{#code-in-.asd-files}
+ASDF currently allows arbitrary Lisp code in a @code{.asd} file. I would
+like to deprecate that in the future to make ASDF more declarative. In
+the meantime, here are some guidelines for how to write such code
+properly.
+
+First, you SHOULD minimize the amount of such code and you SHOULD
+strongly consider defining an extension in a separate @code{.asd} file
+that you @code{:defsystem-depends-on}.
+
+Then, @code{.asd} files are read with the current package being
+@code{asdf-user}. You MAY use any symbols defined in packages @code{cl},
+@code{asdf} and @code{uiop}, and you SHOULD stay in package
+@code{asdf-user} if it suffices; you SHOULD NOT needlessly create a
+package for your system definition file if you're not going to define
+any such function nor variable nor macro. But you MUST NOT pollute that
+package with bindings that could clash with uses by other systems.
+
+It is poor taste to define functions, variables or macros in package
+@code{asdf-user}, unless strictly necessary or widely useful, and even
+then with a long name that distinctively includes the name of your
+system. However it is perfectly acceptable to define methods on existing
+functions, preferably using the @code{:perform} syntax used above, as
+part of a @code{defsystem} form.
+
+If you must define new functions, variables or macros, you MUST define a
+new package in which to define them. That system would typically be
+named @code{foobar-system} and would export the relevant symbols, as in:
+
+@verbatim
+(defpackage :foobar-system
+  (:use :cl :asdf :uiop)
+  (:export #:my-foobar-class ...))
+(in-package :foobar-system)
+@end verbatim
+
+That said, if you need more than trivial definitions, and if these
+definitions ever need to be used by others, it is appropriate to move
+them to their own system.
+
+Also, it is poor taste to define symbols used in the system itself
+(e.g.@ @code{*version*}) since the system then depends on ASDF and
+cannot be directly built using Bazel, or some other future build system.
+For versions, consider having ASDF extract the version from a file, as
+in @code{:version (:read-file-form "variables.lisp" :at (2 2 2)}. See
+the ASDF manual for details, and @code{asdf.asd} itself for an example.
+
+@node Conditional Code
+@subsubsection Conditional Code
+@anchor{#conditional-code}
+The recommended way to conditionally use code is to rely on the CL
+features; yet, you SHOULD NOT use read-time conditionals if you can
+avoid it, and instead use the ASDF 3 @code{:feature} and
+@code{:if-feature} features:
+
+@itemize
+@item
+To conditionally depend on another system or module, specify as a
+@code{:depends-on} argument something like
+@code{(:feature :sbcl (:require :sb-introspect))} or
+@code{(:feature (:or :ccl :sbcl) "bordeaux-threads")}.
+@item
+To conditionally enable a component, specify a @code{:if-feature}
+argument to it like @code{(:file "sbcl-support" :if-feature :sbcl)}
+@end itemize
+
+Note that the feature expressions MUST use keywords, not symbols in the
+current package (unless you're pervert enough to make @code{:keyword}
+your current package).
+
+Also note that ASDF at this time wants all the component classes to be
+defined, so if your component classes are conditionally defined, you may
+have to resort back to the otherwise deprecated use of read-time
+conditionals, as in:
+
+@verbatim
+(defsystem "foo"
+  :defsystem-depends-on ((:feature :sbcl "some-sb-magic"))
+  :components (#+sbcl (:sb-magic-file "some-magic")))
+@end verbatim
+
+If the condition you want to express doesn't have a corresponding
+@code{*features*} keyword, you MAY use a
+@code{(when ... (pushnew :my-keyword *features*))} form to add a feature
+keyword for it. However, you SHOULD NOT needlessly push new features; in
+particular, the mere fact of having loaded your system does not warrant
+a new feature. A feature is only warranted if your system is some deep
+infrastructure with mostly compatible rivals that it needs to be
+distinguished from.
+
+@node More Elaborate Testing
+@subsection More Elaborate Testing
+@anchor{#more-elaborate-testing}
+You MUST NOT call @code{asdf:operate} or any of its derivatives, such as
+@code{asdf:load-system} or @code{asdf:test-system} from within a
+@code{perform} method. Instead, you SHOULD declare proper dependencies
+between actions using methods on @code{component-depends-on}, or more
+simply using an @code{:in-order-to} clause in your @code{defsystem}
+form.
+
+You MUST NOT call @code{asdf:clear-system} or in any way interfere with
+the build while in a @code{perform} method.
+
+You SHOULD NOT define methods on @code{asdf:operate} --- most of the
+time it's totally the wrong thing because users would @emph{not} be
+``operating'' on @emph{your} system, but on @emph{their} system that
+depends on it. Instead you SHOULD define methods on @code{asdf:perform},
+@code{asdf:component-depends-on}, etc.
+
+@node Defining ASDF Extensions
+@subsection Defining ASDF Extensions
+@anchor{#defining-asdf-extensions}
+
+@menu
+* Source File Types::
+* Conditional Outputs and Conditional Perform::
+@end menu
+
+@node Source File Types
+@subsubsection Source File Types
+@anchor{#source-file-types}
+You MUST NOT define methods on @code{source-file-type}. This bad ASDF 1
+interface must die and will be removed in a future version of ASDF.
+Instead, override the slot @code{type} for your file class and provide a
+proper @code{:initform}, as in:
+
+@verbatim
+(defclass cl-source-file.l (cl-source-file) ((type :initform "l")))
+@end verbatim
+
+You can then provide the name of that class as class name for individual
+components, or as @code{:default-component-class} to relevant systems or
+modules.
+
+@node Conditional Outputs and Conditional Perform
+@subsubsection Conditional Outputs and Conditional Perform
+@anchor{#conditional-outputs-and-conditional-perform}
+An operation MUST actually create all the outputs declared by the
+@code{output-files} method. If some of these outputs are conditional,
+the @code{output-files} method MUST check the condition and remove
+uncreated outputs from the list. If some output is sometimes non
+meaningful but that is only known after calling the @code{perform}
+method, it is sometimes appropriate to create an empty file instead of
+not creating the file.
+
+If you conditionally avoid performing an action altogether using an
+@code{:around} method, you MUST still call @code{mark-operation-done} on
+the action in the branch of the method where the action is not
+performed. In that case, both the @code{output-files} and
+@code{input-files} methods should probably return @code{nil} when that
+condition is met. Alternatively, if avoiding some actions is uniform for
+all operations on a given component, you MAY want to override or wrap
+around the @code{component-if-feature} method for that component instead
+of defining all those @code{perform}, @code{output-files} and
+@code{input-files} methods.
+
+@node Other
+@section Other
+@anchor{#other}
+
+@menu
+* Syntax Control::
+* Using ASDF Internals::
+@end menu
+
+@node Syntax Control
+@subsection Syntax Control
+@anchor{#syntax-control}
+Do not side-effect the current @code{*readtable*}, which is never
+guaranteed to be writable, and may not be what is current when you need
+the modification. If you need modifications to the readtable, use
+@code{named-readtables}, @code{reader-interception}, or some other
+adequate mechanism. To bind the readtable, use
+@code{named-readtables:in-readtable} or @code{cl-syntax:in-syntax} in
+each file that needs a non-standard readtable, and/or use an
+@code{:around-compile} hook to automatically bind it around every file
+in a module or system.
+
+See the syntax-control document (in the syntax-control branch if it
+wasn't merged yet).
+
+@node Using ASDF Internals
+@subsection Using ASDF Internals
+@anchor{#using-asdf-internals}
+At times, you will have to use some ASDF internals to get your software
+to work. When this happens, follow these rules to minimize the breakage
+associated to bitrot:
+
+@itemize
+@item
+You MUST use the @code{asdf::} package prefix rather than
+@code{asdf/foo:} to name the symbols internal to ASDF. Indeed, from one
+version of ASDF to the next, which internal package a symbol will reside
+in may change; for instance @code{asdf/find-system:primary-system-name}
+recently became @code{asdf/system:primary-system-name} (it is still
+present, not exported, in the former system); but it is always present
+(though not currently exported) in package @code{asdf}.
+
+@item
+When you use internals, you MUST notify the ASDF maintainers, and
+request that they either export the symbol and support the API, or offer
+an alternative API more to their liking for the same functionality.
+Otherwise, they will be justified in modifying internals that no one is
+supposed to use, and they will blame you when they later change or
+remove these internals and your software breaks.
+
+@end itemize
+
+Note that the latter point is true of all software, not just ASDF.
