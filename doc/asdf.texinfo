@@ -91,7 +91,6 @@ Manual for Version 3.3.7.3
 @menu
 * Introduction::
 * Quick start summary::
-* Best Practices::
 * Loading ASDF::
 * Configuring ASDF::
 * Using ASDF::
@@ -335,7 +334,7 @@ free software systems in Quicklisp remain the best source of examples,
 and the mailing-list the best place to ask for help.
 
 
-@node  Quick start summary, Best Practices, Introduction, Top
+@node  Quick start summary, Loading ASDF, Introduction, Top
 @chapter Quick start summary
 
 @itemize
@@ -395,16 +394,11 @@ to make sure it's all working properly. @xref{Using ASDF}.
 @c get started.  (2) discuss the option of starting with Quicklisp.
 
 
-
-@node Best Practices, Loading ASDF, Quick start summary, Top
-@comment  node-name,  next,  previous,  up
-@chapter Best Practices
-
-This is a dummy node for test purposes.
+@comment best_practices defines its own chapter and nodes
+@include best_practices.texinfo
 
 
-
-@node Loading ASDF, Configuring ASDF, Best Practices, Top
+@node Loading ASDF, Configuring ASDF, Quick start summary, Top
 @comment  node-name,  next,  previous,  up
 @chapter Loading ASDF
 
