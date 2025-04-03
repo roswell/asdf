@@ -429,7 +429,7 @@ free software systems in Quicklisp remain the best source of examples,
 and the mailing-list the best place to ask for help.
 
 
-@node  Quick start summary, Loading ASDF, Introduction, Top
+@node  Quick start summary, ASDF Best Practices, Introduction, Top
 @chapter Quick start summary
 
 @itemize
@@ -493,7 +493,7 @@ to make sure it's all working properly. @xref{Using ASDF}.
 @include best_practices.texinfo
 
 
-@node Loading ASDF, Configuring ASDF, Quick start summary, Top
+@node Loading ASDF, Configuring ASDF, ASDF Best Practices, Top
 @comment  node-name,  next,  previous,  up
 @chapter Loading ASDF
 
