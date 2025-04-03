@@ -1,7 +1,6 @@
 @node ASDF Best Practices
 @comment  node-name,  next,  previous,  up
 @chapter ASDF Best Practices
-@anchor{#asdf-best-practices}
 This document presents the current best practices and conventions for
 using ASDF 3, as of 2017. It is not a tutorial, though it starts like
 one, because it assumes for each category of ASDF user (beginner, simple
@@ -20,7 +19,6 @@ less obvious points that are often wrong in systems seen in the wild.
 @node Trivial Examples, Simple Examples, ASDF Best Practices, ASDF Best Practices
 @comment  node-name,  next,  previous,  up
 @section Trivial Examples
-@anchor{#trivial-examples}
 Let's start with some trivial examples. We'll see below how these
 examples evolve as systems grow more complex.
 
@@ -35,7 +33,6 @@ examples evolve as systems grow more complex.
 @node Trivial Uses of ASDF, Trivial System Definition, Trivial Examples, Trivial Examples
 @comment  node-name,  next,  previous,  up
 @subsection Trivial Uses of ASDF
-@anchor{#trivial-uses-of-asdf}
 
 @menu
 * Loading a System::
@@ -47,7 +44,7 @@ examples evolve as systems grow more complex.
 @node Loading a System, Testing a System, Trivial Uses of ASDF, Trivial Uses of ASDF
 @comment  node-name,  next,  previous,  up
 @subsubsection Loading a System
-@anchor{#loading-a-system}
+
 The most trivial use of ASDF is by calling
 @code{(asdf:load-system :foobar)} to load your library. Then you can use
 it. For instance, if it exports a function @code{some-fun} in its
@@ -63,7 +60,7 @@ package @code{foobar}, then you will be able to call it with
 @node Testing a System, Designating a System, Loading a System, Trivial Uses of ASDF
 @comment  node-name,  next,  previous,  up
 @subsubsection Testing a System
-@anchor{#testing-a-system}
+
 To run the tests for a system, you may use:
 
 @verbatim
@@ -77,7 +74,7 @@ unsuccessful.
 @node Designating a System,  , Testing a System, Trivial Uses of ASDF
 @comment  node-name,  next,  previous,  up
 @subsubsection Designating a System
-@anchor{#designating-a-system}
+
 Using keywords to name systems is good and well at the REPL. However,
 when writing a program, a bootstrap script, or a system definition, you
 SHOULD follow the good style of writing names in the canonical way; and
@@ -111,7 +108,7 @@ determines their syntax.)
 @node Trivial System Definition, Trivial Testing Definition, Trivial Uses of ASDF, Trivial Examples
 @comment  node-name,  next,  previous,  up
 @subsection Trivial System Definition
-@anchor{#trivial-system-definition}
+
 A trivial system would have a single Lisp file called
 @code{foobar.lisp}. That file would depend on some existing libraries,
 say @code{alexandria} for general purpose utilities, and @code{trivia}
@@ -153,7 +150,7 @@ like this:
 @node Using the system you defined,  , Trivial System Definition, Trivial System Definition
 @comment  node-name,  next,  previous,  up
 @subsubsection Using the system you defined
-@anchor{#using-the-system-you-defined}
+
 Assuming your system is installed under the @code{~/common-lisp/}
 hierarchy or some other filesystem hierarchy already configured for
 ASDF, you can load it with: @code{(asdf:load-system "foobar")}, or
@@ -167,7 +164,7 @@ configuration.
 @node Trivial Testing Definition, Trivial Packaging, Trivial System Definition, Trivial Examples
 @comment  node-name,  next,  previous,  up
 @subsection Trivial Testing Definition
-@anchor{#trivial-testing-definition}
+
 Even the most trivial of systems needs some tests, if only because it
 will have to be modified eventually, and you want to make sure those
 modifications don't break client code. Tests are also a good way to
@@ -207,7 +204,7 @@ vary if you use a different library.
 @node Note on ASDF 2 compatibility,  , Trivial Testing Definition, Trivial Testing Definition
 @comment  node-name,  next,  previous,  up
 @subsubsection Note on ASDF 2 compatibility
-@anchor{#note-on-asdf-2-compatibility}
+
 The @code{:in-order-to ((test-op (test-op ...)))} idiom will not work
 with ASDF 2: attempts to @code{test-system} will result in failure due
 to circular dependencies; however, @code{load-system} will still work.
@@ -255,7 +252,7 @@ implementation's.
 @node Trivial Packaging,  , Trivial Testing Definition, Trivial Examples
 @comment  node-name,  next,  previous,  up
 @subsection Trivial Packaging
-@anchor{#trivial-packaging}
+
 In the previous testing code, @code{symbol-call} is a function defined
 in package @code{uiop}. It helps deal with the fact that the package
 @code{:fiveam} isn't defined yet at the time the @code{defsystem} form
@@ -308,7 +305,7 @@ automatically use @code{load-asd} to load the file contents.
 @node Digression about symbols and packages,  , Trivial Packaging, Trivial Packaging
 @comment  node-name,  next,  previous,  up
 @subsubsection Digression about symbols and packages
-@anchor{#digression-about-symbols-and-packages}
+
 A crucial notion in Common Lisp is that of @emph{symbols}, to which are
 associated functions, variables, macros, properties, and other meanings.
 These symbols are organized in a two-level namespace that is global to a
@@ -333,7 +330,7 @@ using lower-case in source code while the runtime will use uppercase.
 @node Simple Examples, More Elaborate Examples, Trivial Examples, ASDF Best Practices
 @comment  node-name,  next,  previous,  up
 @section Simple Examples
-@anchor{#simple-examples}
+
 As systems grow, the above pattern quickly becomes insufficient, but
 systems can still remain simple.
 
@@ -350,7 +347,6 @@ systems can still remain simple.
 @node Simple Uses of a System, System Naming, Simple Examples, Simple Examples
 @comment  node-name,  next,  previous,  up
 @subsection Simple Uses of a System
-@anchor{#simple-uses-of-a-system}
 
 @menu
 * Building a System::
@@ -362,7 +358,7 @@ systems can still remain simple.
 @node Building a System, Inspecting a System, Simple Uses of a System, Simple Uses of a System
 @comment  node-name,  next,  previous,  up
 @subsubsection Building a System
-@anchor{#building-a-system}
+
 Some systems offer operations that are neither loading in the current
 image, nor testing. Whichever operation a system is meant to be used
 with, you may use it with:
@@ -383,7 +379,7 @@ that Right Thing™ is.
 @node Inspecting a System, Other Operations, Building a System, Simple Uses of a System
 @comment  node-name,  next,  previous,  up
 @subsubsection Inspecting a System
-@anchor{#inspecting-a-system}
+
 To look at what ASDF knows of your system, try:
 
 @verbatim
@@ -401,7 +397,7 @@ under that directory try
 @node Other Operations,  , Inspecting a System, Simple Uses of a System
 @comment  node-name,  next,  previous,  up
 @subsubsection Other Operations
-@anchor{#other-operations}
+
 ASDF has the concept of an @emph{operation} that can act upon a system
 (or a smaller component thereof). Typical operations that matter to
 end-users include:
@@ -458,7 +454,6 @@ equivalent to @code{(asdf:load-system :foobar)}.
 @node System Naming, Simple System Definition, Simple Uses of a System, Simple Examples
 @comment  node-name,  next,  previous,  up
 @subsection System Naming
-@anchor{#system-naming}
 
 @menu
 * Primary Systems::
@@ -469,7 +464,7 @@ equivalent to @code{(asdf:load-system :foobar)}.
 @node Primary Systems, Secondary Systems, System Naming, System Naming
 @comment  node-name,  next,  previous,  up
 @subsubsection Primary Systems
-@anchor{#primary-systems}
+
 ASDF has a notion of @emph{primary system}, that it can find in
 configured parts of the filesystem (the @emph{source-registry}), in a
 file that has the same name and the type @code{asd}. Thus, primary
@@ -491,7 +486,7 @@ secondary systems in the same file.
 @node Secondary Systems,  , Primary Systems, System Naming
 @comment  node-name,  next,  previous,  up
 @subsubsection Secondary Systems
-@anchor{#secondary-systems}
+
 A @emph{secondary system} is a system defined in the same file as a
 primary system. By convention, its name starts the same as the file's
 primary system, followed by a slash @code{/} and by a @emph{suffix} made
@@ -515,7 +510,7 @@ system was simultaneously defined in multiple files.)
 @node Simple System Definition, Simple Packaging, System Naming, Simple Examples
 @comment  node-name,  next,  previous,  up
 @subsection Simple System Definition
-@anchor{#simple-system-definition}
+
 A simple system may be made of many files.
 
 Typically, in @code{package.lisp} (or @code{packages.lisp}) you'll
@@ -579,7 +574,6 @@ declaration).
 @node Simple Packaging, Simple Testing, Simple System Definition, Simple Examples
 @comment  node-name,  next,  previous,  up
 @subsection Simple Packaging
-@anchor{#simple-packaging}
 
 @menu
 * Initial Package for a Lisp File::
@@ -590,7 +584,7 @@ declaration).
 @node Initial Package for a Lisp File, Using Symbols from ASDF and UIOP, Simple Packaging, Simple Packaging
 @comment  node-name,  next,  previous,  up
 @subsubsection Initial Package for a Lisp File
-@anchor{#initial-package-for-a-lisp-file}
+
 You MAY assume that the current package uses @code{CL} at the beginning
 of a file, but you MUST NOT assume that it is any particular package at
 this point: right now, it @emph{is} guaranteed to be the @code{CL-USER}
@@ -613,7 +607,7 @@ reasonable, etc.
 @node Using Symbols from ASDF and UIOP,  , Initial Package for a Lisp File, Simple Packaging
 @comment  node-name,  next,  previous,  up
 @subsubsection Using Symbols from ASDF and UIOP
-@anchor{#using-symbols-from-asdf-and-uiop}
+
 You MAY use any of the symbols documented and exported by ASDF or UIOP.
 Actually, it is warmly recommended to use them everywhere that it
 matters, instead of less documented or less portable alternatives.
@@ -631,7 +625,7 @@ just heed the damn warnings.
 @node Simple Testing, Other secondary systems, Simple Packaging, Simple Examples
 @comment  node-name,  next,  previous,  up
 @subsection Simple Testing
-@anchor{#simple-testing}
+
 Test systems can also be divided in multiple files. If possible (which
 is not always the case), the file names for test files should match file
 names for regular code files, so that the file that tests
@@ -667,7 +661,7 @@ where it is its own primary system:
 @node Other secondary systems,  , Simple Testing, Simple Examples
 @comment  node-name,  next,  previous,  up
 @subsection Other secondary systems
-@anchor{#other-secondary-systems}
+
 Other secondary systems may be created beyond test systems: for instance
 systems that provide independent aspects of the system, or optional
 add-ons to it. One case is a command that makes the Lisp functionality
@@ -682,7 +676,7 @@ accessible from a Unix shell.
 @node Delivering an Executable, System Connections, Other secondary systems, Other secondary systems
 @comment  node-name,  next,  previous,  up
 @subsubsection Delivering an Executable
-@anchor{#delivering-an-executable}
+
 To build an executable, define a system as follows (in this case, it's a
 secondary system, but it could also be a primary system). You will be
 able to create an executable file @code{foobar-command} by evaluating
@@ -752,7 +746,7 @@ above.
 @node System Connections,  , Delivering an Executable, Other secondary systems
 @comment  node-name,  next,  previous,  up
 @subsubsection System Connections
-@anchor{#system-connections}
+
 Sometimes, a system can provide an extension to another system. For
 instance, if you use both @code{metacopy} and @code{contextl}, you may
 be interested in some system @code{metacopy/with-contextl} that creates
@@ -770,7 +764,6 @@ larger system that will use them.
 @node More Elaborate Examples, Other, Simple Examples, ASDF Best Practices
 @comment  node-name,  next,  previous,  up
 @section More Elaborate Examples
-@anchor{#more-elaborate-examples}
 
 @menu
 * More Elaborate Uses of ASDF::
@@ -783,7 +776,7 @@ larger system that will use them.
 @node More Elaborate Uses of ASDF, More Elaborate System Definitions, More Elaborate Examples, More Elaborate Examples
 @comment  node-name,  next,  previous,  up
 @subsection More Elaborate Uses of ASDF
-@anchor{#more-elaborate-uses-of-asdf}
+
 
 @menu
 * force::
@@ -795,7 +788,6 @@ larger system that will use them.
 @node force, force-not, More Elaborate Uses of ASDF, More Elaborate Uses of ASDF
 @comment  node-name,  next,  previous,  up
 @subsubsection force
-@anchor{#force}
 Sometimes, you want to force ASDF to re-build some system. At those
 times, you can pass the @code{:force} argument to @code{asdf:operate}
 (or its wrappers @code{asdf:load-system}, @code{asdf:test-system},
@@ -826,7 +818,7 @@ not consider tests already run.
 @node force-not, Require, force, More Elaborate Uses of ASDF
 @comment  node-name,  next,  previous,  up
 @subsubsection force-not
-@anchor{#force-not}
+
 The converse of @code{:force} is @code{:force-not}, and you can specify
 a list of systems to not rebuild. In this context @code{t} means
 ``everything but this system'' rather than " this system``.
@@ -846,7 +838,7 @@ sufficient.
 @node Require,  , force-not, More Elaborate Uses of ASDF
 @comment  node-name,  next,  previous,  up
 @subsubsection Require
-@anchor{#require}
+
 You SHOULD NOT use @code{cl:require} as a substitute for
 @code{asdf:load-system}. You SHOULD NOT use @code{asdf:require-system}
 except at the toplevel.
@@ -902,7 +894,6 @@ version of ASDF.
 @node More Elaborate System Definitions, More Elaborate Testing, More Elaborate Uses of ASDF, More Elaborate Examples
 @comment  node-name,  next,  previous,  up
 @subsection More Elaborate System Definitions
-@anchor{#more-elaborate-system-definitions}
 
 @menu
 * package-inferred-system::
@@ -915,7 +906,7 @@ version of ASDF.
 @node package-inferred-system, Using ASDF Extensions, More Elaborate System Definitions, More Elaborate System Definitions
 @comment  node-name,  next,  previous,  up
 @subsubsection package-inferred-system
-@anchor{#package-inferred-system}
+
 When you start writing large enough systems, putting everything in one
 big package leads to a big mess: it's hard to find what function is
 defined where, or should be defined where; you invent your own symbol
@@ -966,7 +957,7 @@ other file, etc.
 @node Using ASDF Extensions, Code in asd files, package-inferred-system, More Elaborate System Definitions
 @comment  node-name,  next,  previous,  up
 @subsubsection Using ASDF Extensions
-@anchor{#using-asdf-extensions}
+
 If you need an ASDF extension, the recommended way is to use
 @code{:defsystem-depends-on}. The extension will define new classes of
 operations or components, new functions, etc. If it defines them in the
@@ -998,7 +989,7 @@ without defining a new class, but CLOS is not a prototype OO system.)
 @node Code in asd files, Conditional Code, Using ASDF Extensions, More Elaborate System Definitions
 @comment  node-name,  next,  previous,  up
 @subsubsection Code in .asd files
-@anchor{#code-in-.asd-files}
+
 ASDF currently allows arbitrary Lisp code in a @code{.asd} file. I would
 like to deprecate that in the future to make ASDF more declarative. In
 the meantime, here are some guidelines for how to write such code
@@ -1049,7 +1040,7 @@ the ASDF manual for details, and @code{asdf.asd} itself for an example.
 @node Conditional Code,  , Code in asd files, More Elaborate System Definitions
 @comment  node-name,  next,  previous,  up
 @subsubsection Conditional Code
-@anchor{#conditional-code}
+
 The recommended way to conditionally use code is to rely on the CL
 features; yet, you SHOULD NOT use read-time conditionals if you can
 avoid it, and instead use the ASDF 3 @code{:feature} and
@@ -1094,7 +1085,7 @@ distinguished from.
 @node More Elaborate Testing, Defining ASDF Extensions, More Elaborate System Definitions, More Elaborate Examples
 @comment  node-name,  next,  previous,  up
 @subsection More Elaborate Testing
-@anchor{#more-elaborate-testing}
+
 You MUST NOT call @code{asdf:operate} or any of its derivatives, such as
 @code{asdf:load-system} or @code{asdf:test-system} from within a
 @code{perform} method. Instead, you SHOULD declare proper dependencies
@@ -1115,7 +1106,6 @@ depends on it. Instead you SHOULD define methods on @code{asdf:perform},
 @node Defining ASDF Extensions,  , More Elaborate Testing, More Elaborate Examples
 @comment  node-name,  next,  previous,  up
 @subsection Defining ASDF Extensions
-@anchor{#defining-asdf-extensions}
 
 @menu
 * Source File Types::
@@ -1126,7 +1116,7 @@ depends on it. Instead you SHOULD define methods on @code{asdf:perform},
 @node Source File Types, Conditional Outputs and Conditional Perform, Defining ASDF Extensions, Defining ASDF Extensions
 @comment  node-name,  next,  previous,  up
 @subsubsection Source File Types
-@anchor{#source-file-types}
+
 You MUST NOT define methods on @code{source-file-type}. This bad ASDF 1
 interface must die and will be removed in a future version of ASDF.
 Instead, override the slot @code{type} for your file class and provide a
@@ -1144,7 +1134,7 @@ modules.
 @node Conditional Outputs and Conditional Perform,  , Source File Types, Defining ASDF Extensions
 @comment  node-name,  next,  previous,  up
 @subsubsection Conditional Outputs and Conditional Perform
-@anchor{#conditional-outputs-and-conditional-perform}
+
 An operation MUST actually create all the outputs declared by the
 @code{output-files} method. If some of these outputs are conditional,
 the @code{output-files} method MUST check the condition and remove
@@ -1168,7 +1158,6 @@ of defining all those @code{perform}, @code{output-files} and
 @node Other,  , More Elaborate Examples, ASDF Best Practices
 @comment  node-name,  next,  previous,  up
 @section Other
-@anchor{#other}
 
 @menu
 * Syntax Control::
@@ -1179,7 +1168,7 @@ of defining all those @code{perform}, @code{output-files} and
 @node Syntax Control, Using ASDF Internals, Other, Other
 @comment  node-name,  next,  previous,  up
 @subsection Syntax Control
-@anchor{#syntax-control}
+
 Do not side-effect the current @code{*readtable*}, which is never
 guaranteed to be writable, and may not be what is current when you need
 the modification. If you need modifications to the readtable, use
@@ -1197,7 +1186,7 @@ wasn't merged yet).
 @node Using ASDF Internals,  , Syntax Control, Other
 @comment  node-name,  next,  previous,  up
 @subsection Using ASDF Internals
-@anchor{#using-asdf-internals}
+
 At times, you will have to use some ASDF internals to get your software
 to work. When this happens, follow these rules to minimize the breakage
 associated to bitrot:
