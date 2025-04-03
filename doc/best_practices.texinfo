@@ -10,7 +10,6 @@ knowledge among such users, and tries to complete this knowledge with
 less obvious points that are often wrong in systems seen in the wild.
 
 @menu
-* Table of Contents::
 * Trivial Examples::
 * Simple Examples::
 * More Elaborate Examples::
@@ -18,7 +17,7 @@ less obvious points that are often wrong in systems seen in the wild.
 @end menu
 
 
-@node Trivial Examples, Simple Examples, Table of Contents, ASDF Best Practices
+@node Trivial Examples, Simple Examples, ASDF Best Practices, ASDF Best Practices
 @comment  node-name,  next,  previous,  up
 @section Trivial Examples
 @anchor{#trivial-examples}
