@@ -92,6 +92,7 @@ Manual for Version 3.3.7.3
 @menu
 * Introduction::
 * Quick start summary::
+* ASDF Best Practices::
 * Loading ASDF::
 * Configuring ASDF::
 * Using ASDF::
@@ -112,6 +113,98 @@ Manual for Version 3.3.7.3
 
 @detailmenu
  --- The Detailed Node Listing ---
+
+ASDF Best Practices
+
+* Trivial Examples::
+* Simple Examples::
+* More Elaborate Examples::
+* Other::
+
+Trivial Examples
+
+* Trivial Uses of ASDF::
+* Trivial System Definition::
+* Trivial Testing Definition::
+* Trivial Packaging::
+
+Trivial Uses of ASDF
+
+* Loading a System::
+* Testing a System::
+* Designating a System::
+
+Trivial System Definition
+
+* Using the system you defined::
+
+Trivial Testing Definition
+
+* Note on ASDF 2 compatibility::
+
+Trivial Packaging
+
+* Digression about symbols and packages::
+
+Simple Examples
+
+* Simple Uses of a System::
+* System Naming::
+* Simple System Definition::
+* Simple Packaging::
+* Simple Testing::
+* Other secondary systems::
+
+Simple Uses of a System
+
+* Building a System::
+* Inspecting a System::
+* Other Operations::
+
+System Naming
+
+* Primary Systems::
+* Secondary Systems::
+
+Simple Packaging
+
+* Initial Package for a Lisp File::
+* Using Symbols from ASDF and UIOP::
+
+Other secondary systems
+
+* Delivering an Executable::
+* System Connections::
+
+More Elaborate Examples
+
+* More Elaborate Uses of ASDF::
+* More Elaborate System Definitions::
+* More Elaborate Testing::
+* Defining ASDF Extensions::
+
+More Elaborate Uses of ASDF
+
+* force::
+* force-not::
+* Require::
+
+More Elaborate System Definitions
+
+* package-inferred-system::
+* Using ASDF Extensions::
+* Code in asd files::
+* Conditional Code::
+
+Defining ASDF Extensions
+
+* Source File Types::
+* Conditional Outputs and Conditional Perform::
+
+Other
+
+* Syntax Control::
+* Using ASDF Internals::
 
 Loading ASDF
 
