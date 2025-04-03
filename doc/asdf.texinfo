@@ -79,6 +79,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 @ifnottex
 
+
 @node Top, Introduction, (dir), (dir)
 @top ASDF: Another System Definition Facility
 @ifnottex
@@ -273,6 +274,7 @@ ASDF development FAQs
 
 @c -------------------
 
+
 @node Introduction, Quick start summary, Top, Top
 @comment  node-name,  next,  previous,  up
 @chapter Introduction
@@ -410,6 +412,7 @@ to make sure it's all working properly. @xref{Using ASDF}.
 * Loading ASDF from source::
 @end menu
 
+
 @node  Loading a pre-installed ASDF, Checking whether ASDF is loaded, Loading ASDF, Loading ASDF
 @section Loading a pre-installed ASDF
 
@@ -480,6 +483,7 @@ If you are experiencing problems with ASDF,
 please try upgrading to the latest released version,
 using the method below,
 before you contact us and raise an issue.
+
 
 @node  Upgrading ASDF, Replacing your implementation's ASDF, Checking whether ASDF is loaded, Loading ASDF
 @section Upgrading ASDF
@@ -578,6 +582,7 @@ and resetting the ASDF configuration is usually only needed in corner cases.
 * Configuring where ASDF stores object files::
 * Resetting the ASDF configuration::
 @end menu
+
 
 @node Configuring ASDF to find your systems, Configuring ASDF to find your systems --- old style, Configuring ASDF, Configuring ASDF
 @section Configuring ASDF to find your systems
@@ -682,7 +687,6 @@ skip directly to @ref{Configuring where ASDF stores object files}.
 
 Note that your Operating System distribution or your system administrator
 may already have configured system-managed libraries for you.
-
 
 
 @node Configuring ASDF to find your systems --- old style, Configuring where ASDF stores object files, Configuring ASDF to find your systems, Configuring ASDF
@@ -886,6 +890,7 @@ ASDF-Binary-Locations is now not needed anymore and should not be used.
 cl-launch 3.000 and common-lisp-controller 7.2 have been updated
 to delegate object file placement to ASDF.
 
+
 @node Resetting the ASDF configuration,  , Configuring where ASDF stores object files, Configuring ASDF
 @section Resetting the ASDF configuration
 
@@ -913,6 +918,7 @@ or push it into your implementation's equivalent of @code{uiop:*image-dump-hook*
 e.g. @code{sb-ext:*save-hooks*} on SBCL, or @code{ext:*before-save-initializations*}
 on CMUCL and SCL, etc.
 
+
 @node  Using ASDF, Defining systems with defsystem, Configuring ASDF, Top
 @chapter Using ASDF
 
@@ -921,6 +927,7 @@ on CMUCL and SCL, etc.
 * Convenience Functions::
 * Moving on::
 @end menu
+
 
 @node Loading a system, Convenience Functions, Using ASDF, Using ASDF
 @section Loading a system
@@ -1089,8 +1096,6 @@ loaded so far.
 @end defun
 
 
-
-
 @node Moving on,  , Convenience Functions, Using ASDF
 @section Moving on
 
@@ -1115,6 +1120,7 @@ software.
 * Other code in .asd files::
 * The package-inferred-system extension::
 @end menu
+
 
 @node  The defsystem form, A more involved example, Defining systems with defsystem, Defining systems with defsystem
 @comment  node-name,  next,  previous,  up
@@ -2199,6 +2205,7 @@ where the @file{.asd} file resides.
 
 @codequoteundirected off
 
+
 @node The object model of ASDF, Controlling where ASDF searches for systems, Defining systems with defsystem, Top
 @comment  node-name,  next,  previous,  up
 @chapter The Object model of ASDF
@@ -2267,6 +2274,7 @@ customize the behaviour of existing @emph{functions}.
 * Functions::
 * Parsing system definitions::
 @end menu
+
 
 @node  Operations, Components, The object model of ASDF, The object model of ASDF
 @comment  node-name,  next,  previous,  up
@@ -2770,6 +2778,7 @@ in which case you could have this method return @code{t}.
 Operations that print output should send that output to the standard
 CL stream @code{*standard-output*}, as the Lisp compiler and loader do.
 
+
 @node Components, Dependencies, Operations, The object model of ASDF
 @comment  node-name,  next,  previous,  up
 @section Components
@@ -3005,6 +3014,7 @@ If @var{base} is a @code{cons} cell, it designates the component found by
 * Creating new component types::
 @end menu
 
+
 @node  Common attributes of components, Pre-defined subclasses of component, Components, Components
 @comment  node-name,  next,  previous,  up
 @subsection Common attributes of components
@@ -3218,6 +3228,7 @@ so use symbols or keywords or something.
 * Creating new component types::
 @end menu
 
+
 @node Pre-defined subclasses of component, Creating new component types, Common attributes of components, Components
 @comment  node-name,  next,  previous,  up
 @subsection Pre-defined subclasses of component
@@ -3288,6 +3299,7 @@ Users can create new classes for their systems:
 the default @code{defsystem} macro takes a @code{:class} keyword argument.
 @end deftp
 
+
 @node  Creating new component types,  , Pre-defined subclasses of component, Components
 @comment  node-name,  next,  previous,  up
 @subsection Creating new component types
@@ -3333,6 +3345,7 @@ The new component type is used in a @code{defsystem} form in this way:
      ...
     )
 @end lisp
+
 
 @node Dependencies, Functions, Components, The object model of ASDF
 @section Dependencies
@@ -3405,6 +3418,7 @@ could be in the future extended to specify an exclusive upper bound for compatib
 as well as an inclusive lower bound.
 @end defun
 
+
 @node Parsing system definitions,  , Functions, The object model of ASDF
 @section Parsing system definitions
 @cindex Parsing system definitions
@@ -3460,7 +3474,6 @@ for) new component types.
 @end deffn
 
 
-
 @node Controlling where ASDF searches for systems, Controlling where ASDF saves compiled files, The object model of ASDF, Top
 @comment  node-name,  next,  previous,  up
 @chapter Controlling where ASDF searches for systems
@@ -3484,6 +3497,7 @@ for) new component types.
 * TODO::
 * Credits for the source-registry::
 @end menu
+
 
 @node  Configurations, Truenames and other dangers, Controlling where ASDF searches for systems, Controlling where ASDF searches for systems
 @section Configurations
@@ -3577,6 +3591,7 @@ Additionally, some implementation-specific directories
 may be automatically prepended to whatever directories are specified
 in configuration files, no matter if the last one inherits or not.
 
+
 @node Truenames and other dangers, XDG base directory, Configurations, Controlling where ASDF searches for systems
 @section Truenames and other dangers
 
@@ -3599,6 +3614,7 @@ by setting the variable @var{asdf:*resolve-symlinks*} to @code{nil}.
 
 PS: Yes, if you haven't read Vernor Vinge's short but great classic
 ``True Names... and Other Dangers'' then you're in for a treat.
+
 
 @node XDG base directory, Backward Compatibility, Truenames and other dangers, Controlling where ASDF searches for systems
 @section XDG base directory
@@ -3625,6 +3641,7 @@ ASDF 3 relies on the environment variables that Windows usually exports,
 and are hopefully in synch with the Windows registry.
 If you care about the details, see @file{uiop/configuration.lisp} and don't hesitate to suggest improvements.
 
+
 @node Backward Compatibility, Configuration DSL, XDG base directory, Controlling where ASDF searches for systems
 @section Backward Compatibility
 
@@ -3639,6 +3656,7 @@ By default, @code{asdf:*central-registry*} will be empty.
 
 This old mechanism will therefore not affect you if you don't use it,
 but will take precedence over the new mechanism if you do use it.
+
 
 @node Configuration DSL, Configuration Directories, Backward Compatibility, Controlling where ASDF searches for systems
 @section Configuration DSL
@@ -3782,6 +3800,7 @@ which is the default place ASDF looks for this configuration, once contained:
   :inherit-configuration)
 @end example
 
+
 @node Configuration Directories, Shell-friendly syntax for configuration, Configuration DSL, Controlling where ASDF searches for systems
 @section Configuration Directories
 
@@ -3827,6 +3846,7 @@ alone in its directory with the following contents:
 @menu
 * The here directive::
 @end menu
+
 
 @node The here directive,  , Configuration Directories, Configuration Directories
 @subsection The :here directive
@@ -3874,6 +3894,7 @@ form containing that s-expression.  ASDF will find the .conf file that X
 has provided, and then set up source locations within the working
 directory according to X's (relative) instructions.
 
+
 @node Shell-friendly syntax for configuration, Search Algorithm, Configuration Directories, Controlling where ASDF searches for systems
 @section Shell-friendly syntax for configuration
 
@@ -3898,6 +3919,7 @@ as a list of paths, where
    then it indicates that the inherited configuration should be spliced
    there.
 @end itemize
+
 
 @node Search Algorithm, Caching Results, Shell-friendly syntax for configuration, Controlling where ASDF searches for systems
 @section Search Algorithm
@@ -4043,6 +4065,7 @@ you need to explicitly @code{initialize-source-registry} again,
 or maybe simply to @code{clear-source-registry} (or @code{clear-configuration})
 which will cause the initialization to happen next time around.
 
+
 @node Introspection, Status, Configuration API, Controlling where ASDF searches for systems
 @section Introspection
 
@@ -4050,6 +4073,7 @@ which will cause the initialization to happen next time around.
 * *source-registry-parameter* variable::
 * Information about system dependencies::
 @end menu
+
 
 @node *source-registry-parameter* variable, Information about system dependencies, Introspection, Introspection
 @subsection *source-registry-parameter* variable
@@ -4061,6 +4085,7 @@ configuration of ASDF's source registry.  @strong{This variable should
 never be set!}  It will be set as a side-effect of calling
 @code{initialize-source-registry}; user code should treat it as
 read-only.
+
 
 @node Information about system dependencies,  , *source-registry-parameter* variable, Introspection
 @subsection Information about system dependencies
@@ -4086,6 +4111,7 @@ than the return values of the other two system dependency introspection
 functions.
 @end defun
 
+
 @node Status, Rejected ideas, Introspection, Controlling where ASDF searches for systems
 @section Status
 
@@ -4095,6 +4121,7 @@ though we will continue to support it.
 All hooks into implementation-specific search mechanisms
 have been integrated in the @code{wrapping-source-registry}
 that everyone uses implicitly.
+
 
 @node Rejected ideas, TODO, Status, Controlling where ASDF searches for systems
 @section Rejected ideas
@@ -4150,12 +4177,14 @@ for the sake of keeping ASDF no more complex than strictly necessary.
   It isn't that Lisp friendly either.
 @end itemize
 
+
 @node TODO, Credits for the source-registry, Rejected ideas, Controlling where ASDF searches for systems
 @section TODO
 
 @itemize
 @item Add examples
 @end itemize
+
 
 @node Credits for the source-registry,  , TODO, Controlling where ASDF searches for systems
 @section Credits for the source-registry
@@ -4168,7 +4197,6 @@ All bad design ideas and implementation bugs are mine, not theirs.
 But so are good design ideas and elegant implementation tricks.
 
  --- Francois-Rene Rideau @email{fare@@tunes.org}, Mon, 22 Feb 2010 00:07:33 -0500
-
 
 
 @node Controlling where ASDF saves compiled files, Error handling, Controlling where ASDF searches for systems, Top
@@ -4207,6 +4235,7 @@ to mitigate the problem.
 * Output location API::
 * Credits for output translations::
 @end menu
+
 
 @node Output Configurations, Output Backward Compatibility, Controlling where ASDF saves compiled files, Controlling where ASDF saves compiled files
 @section Configurations
@@ -4342,6 +4371,7 @@ or you might experience ``interesting'' issues.
 
 Also, note that output translation is enabled by default.
 To disable it, use @code{(asdf:disable-output-translations)}.
+
 
 @node Output Configuration DSL, Output Configuration Directories, Output Backward Compatibility, Controlling where ASDF saves compiled files
 @section Configuration DSL
@@ -4517,6 +4547,7 @@ or namestring in an @code{:include} directive, e.g.:
 	(:include "/foo/bar/")
 @end verbatim
 
+
 @node Output Shell-friendly syntax for configuration, Semantics of Output Translations, Output Configuration Directories, Controlling where ASDF saves compiled files
 @section Shell-friendly syntax for configuration
 
@@ -4580,6 +4611,7 @@ If no match is found, return the source pathname.
 (A global default mapping the filesystem root to itself
 may ensure that there will always be a match,
 with same fall-through semantics).
+
 
 @node Output Caching Results, Output location API, Semantics of Output Translations, Controlling where ASDF saves compiled files
 @section Caching Results
@@ -4685,6 +4717,7 @@ But so are good design ideas and elegant implementation tricks.
 @c See the document @file{README.asdf-output-translations}
 @c for a full specification on how to configure @code{asdf-output-translations}.
 
+
 @node  Error handling, Miscellaneous additional functionality, Controlling where ASDF saves compiled files, Top
 @comment  node-name,  next,  previous,  up
 @chapter Error handling
@@ -4711,6 +4744,7 @@ control the handling of any such events.
 The valid values for these variables are
 @code{:error}, @code{:warn}, and @code{:ignore}.
 
+
 @node  Miscellaneous additional functionality, Getting the latest version, Error handling, Top
 @comment  node-name,  next,  previous,  up
 @chapter Miscellaneous additional functionality
@@ -4724,6 +4758,7 @@ useful for system definition and development.
 * Miscellaneous Functions::
 * Some Utility Functions::
 @end menu
+
 
 @node Controlling file compilation, Controlling source file character encoding, Miscellaneous additional functionality, Miscellaneous additional functionality
 @section Controlling file compilation
@@ -4937,6 +4972,7 @@ Otherwise, the main data in these files is component (path)names,
 and we don't recommend using non-ASCII characters for these,
 for the result probably isn't very portable.
 
+
 @node Miscellaneous Functions, Some Utility Functions, Controlling source file character encoding, Miscellaneous additional functionality
 @section Miscellaneous Functions
 
@@ -5075,6 +5111,7 @@ yet, on Windows, some implementations will use CMD.EXE,
 while others (like SBCL) will make an attempt at invoking a POSIX shell
 (and fail if it is not present).
 @end defun
+
 
 @node Some Utility Functions,  , Miscellaneous Functions, Miscellaneous additional functionality
 @section Some Utility Functions
@@ -5318,6 +5355,7 @@ You can also browse the repository on
 Discussion of ASDF development is conducted on the
 mailing list (@pxref{Mailing list}).
 
+
 @node FAQ, Ongoing Work, Getting the latest version, Top
 @comment  node-name,  next,  previous,  up
 @chapter FAQ
@@ -5332,6 +5370,7 @@ mailing list (@pxref{Mailing list}).
 * ASDF development FAQs::
 @end menu
 
+
 @node Where do I report a bug?, Mailing list, FAQ, FAQ
 @section  ``Where do I report a bug?''
 @cindex bug tracker
@@ -5343,6 +5382,7 @@ but we are now consolidating project management on @code{common-lisp.net}.
 
 If you're unsure about whether something is a bug, or for general discussion,
 use the asdf-devel mailing list (@pxref{Mailing list}).
+
 
 @node Mailing list, What has changed between ASDF 1 ASDF 2 and ASDF 3?, Where do I report a bug?, FAQ
 @section Mailing list
@@ -5401,6 +5441,7 @@ and the next one will probably be @code{:asdf3.2}.
 * What happened to the bundle operations::
 @end menu
 
+
 @node What are ASDF 1 2 3?, How do I detect the ASDF version?, What has changed between ASDF 1 ASDF 2 and ASDF 3?, What has changed between ASDF 1 ASDF 2 and ASDF 3?
 @subsection What are ASDF 1, ASDF 2, and ASDF 3?
 
@@ -5417,6 +5458,7 @@ ASDF 3 refers to releases from 2.27 (Feb 1st 2013) to 2.33 and 3.0.0 onward (May
 
 ASDF 3.1 refers to releases from 3.1.2 (May 6th 2014) onward.
 These releases are also considered part of ASDF 3.
+
 
 @node How do I detect the ASDF version?, ASDF can portably name files in subdirectories, What are ASDF 1 2 3?, What has changed between ASDF 1 ASDF 2 and ASDF 3?
 @subsection How do I detect the ASDF version?
@@ -5468,7 +5510,6 @@ any version before 1.77 or so, or some buggy variant of 1.x.
 If it returns anything older than @code{"3.0.1"},
 you really need to upgrade your implementation or at least upgrade its ASDF.
 @xref{Replacing your implementation's ASDF}.
-
 
 
 @node ASDF can portably name files in subdirectories, Output translations, How do I detect the ASDF version?, What has changed between ASDF 1 ASDF 2 and ASDF 3?
@@ -5525,6 +5566,7 @@ a coherent set of configuration files and hooks,
 and support for non-Unix platforms.
 
 @xref{Controlling where ASDF saves compiled files}.
+
 
 @node Source Registry Configuration, Usual operations are made easier to the user, Output translations, What has changed between ASDF 1 ASDF 2 and ASDF 3?
 @subsection Source Registry Configuration
@@ -5668,6 +5710,7 @@ that we will do our best to fix.
 There are still limitations on upgrade, though,
 most notably the fact that after you upgrade ASDF,
 you must also reload or upgrade all ASDF extensions.
+
 
 @node Decoupled release cycle, Pitfalls of the transition to ASDF 2, ASDF can be upgraded, What has changed between ASDF 1 ASDF 2 and ASDF 3?
 @subsection Decoupled release cycle
@@ -5939,7 +5982,6 @@ Old bundle operations, and their modern equivalents are:
 @end itemize
 
 
-
 @node Issues with installing the proper version of ASDF, Issues with configuring ASDF, What has changed between ASDF 1 ASDF 2 and ASDF 3?, FAQ
 @section Issues with installing the proper version of ASDF
 
@@ -5948,6 +5990,7 @@ Old bundle operations, and their modern equivalents are:
 * I'm a Common Lisp implementation vendor. When and how should I upgrade ASDF?::
 * After upgrading ASDF, ASDF (and Quicklisp) can't find my systems: After upgrading ASDF.
 @end menu
+
 
 @node My Common Lisp implementation comes with an outdated version of ASDF. What to do?, I'm a Common Lisp implementation vendor. When and how should I upgrade ASDF?, Issues with installing the proper version of ASDF, Issues with installing the proper version of ASDF
 @subsection ``My Common Lisp implementation comes with an outdated version of ASDF. What to do?''
@@ -6047,6 +6090,7 @@ when they upgrade to the upstream version.
 
 @end itemize
 
+
 @node After upgrading ASDF,  , I'm a Common Lisp implementation vendor. When and how should I upgrade ASDF?, Issues with installing the proper version of ASDF
 @subsection After upgrading ASDF, ASDF (and Quicklisp) can't find my systems
 @vindex *central-registry*
@@ -6087,6 +6131,7 @@ please complain to Zach Beane about it.
 * How can I debug problems finding ASDF systems::
 @end menu
 
+
 @node How can I customize where fasl files are stored?, How can I wholly disable the compiler output cache?, Issues with configuring ASDF, Issues with configuring ASDF
 @subsection ``How can I customize where fasl files are stored?''
 
@@ -6107,6 +6152,7 @@ Use @code{asdf:system-relative-pathname} to locate a file
 in the source directory of some system, and
 use @code{asdf:apply-output-translations} to locate a file
 whose pathname has been translated by the facility.
+
 
 @node How can I wholly disable the compiler output cache?, How can I debug problems finding ASDF systems, How can I customize where fasl files are stored?, Issues with configuring ASDF
 @subsection ``How can I wholly disable the compiler output cache?''
@@ -6144,6 +6190,7 @@ use (after loading ASDF but before using it):
 Note that this does @emph{NOT} belong in a @file{.asd} file.
 Please do not tamper with ASDF configuration from a @file{.asd} file,
 and only do this from your personal configuration or build scripts.
+
 
 @node How can I debug problems finding ASDF systems,  , How can I wholly disable the compiler output cache?, Issues with configuring ASDF
 @comment  node-name,  next,  previous,  up
@@ -6202,6 +6249,7 @@ interpretation of its source configuration as it happens.
 * How can I produce a binary at a specific path from sources at a specific path::
 @end menu
 
+
 @node How can I cater for unit-testing in my system?, How can I cater for documentation generation in my system?, Issues with using and extending ASDF to define systems, Issues with using and extending ASDF to define systems
 @subsection ``How can I cater for unit-testing in my system?''
 
@@ -6258,6 +6306,7 @@ We provide some guidelines in the discussion of @code{test-op}.
 @c has passed, or which tests have failed.  The user must simply read the
 @c console output.  This limitation has been the subject of much
 @c discussion.
+
 
 @node How can I cater for documentation generation in my system?, How can I maintain non-Lisp (e.g. C) source files?, How can I cater for unit-testing in my system?, Issues with using and extending ASDF to define systems
 @subsection ``How can I cater for documentation generation in my system?''
@@ -6337,6 +6386,7 @@ either as the name component of a pathname
 or as a name component plus optional dot-separated type component
 (if the component class doesn't specifies a pathname type).
 
+
 @node How do I create a system definition where all the source files have a .cl extension?, How do I mark a source file to be loaded only and not compiled?, I want to put my module's files at the top level.  How do I do this?, Issues with using and extending ASDF to define systems
 @subsection How do I create a system definition where all the source files have a .cl extension?
 
@@ -6392,6 +6442,7 @@ you might skip package complications:
   ...)
 @end lisp
 
+
 @node How do I mark a source file to be loaded only and not compiled?, How do I work with readtables?, How do I create a system definition where all the source files have a .cl extension?, Issues with using and extending ASDF to define systems
 @subsection How do I mark a source file to be loaded only and not compiled?
 
@@ -6410,6 +6461,7 @@ to allow for such a trick.
 @c If compilation makes it slow, use @code{declaim} or @code{eval-when}
 @c to adjust your compiler settings,
 @c or eschew compilation by @code{eval}uating a quoted source form at load-time.
+
 
 @node How do I work with readtables?, How can I capture ASDF's output?, How do I mark a source file to be loaded only and not compiled?, Issues with using and extending ASDF to define systems
 @subsection How do I work with readtables?
@@ -6479,6 +6531,7 @@ to eschew using such an important library anymore.
 
 Use from the @code{named-readtables} system the macro @code{named-readtables:defreadtable}.
 
+
 @node How can I capture ASDF's output?, LOAD-PATHNAME has a weird value, How do I work with readtables?, Issues with using and extending ASDF to define systems
 @subsection How can I capture ASDF's output?
 
@@ -6489,6 +6542,7 @@ Use from the @code{named-readtables} system the macro @code{named-readtables:def
 Output from ASDF and ASDF extensions are sent to the CL stream
 @code{*standard-output*}, so rebinding that stream around calls to
 @code{asdf:operate} should redirect all output from ASDF operations.
+
 
 @node LOAD-PATHNAME has a weird value, How can I produce a binary at a specific path from sources at a specific path, How can I capture ASDF's output?, Issues with using and extending ASDF to define systems
 @subsection *LOAD-PATHNAME* and *LOAD-TRUENAME* have weird values, help!
@@ -6521,6 +6575,7 @@ in a macro expansion or other compile-time evaluated context.
 
 @end enumerate
 
+
 @node How can I produce a binary at a specific path from sources at a specific path,  , LOAD-PATHNAME has a weird value, Issues with using and extending ASDF to define systems
 @subsection How can I produce a binary at a specific path from sources at a specific path?
 @cindex bundle operations
@@ -6552,12 +6607,14 @@ path to put the resulting binary at, and compiles a system there.
 (uiop:quit)
 @end example
 
+
 @node ASDF development FAQs,  , Issues with using and extending ASDF to define systems, FAQ
 @section ASDF development FAQs
 
 @menu
 * How do I run the tests interactively in a REPL?::
 @end menu
+
 
 @node How do I run the tests interactively in a REPL?,  , ASDF development FAQs, ASDF development FAQs
 @subsection How do I run the tests interactively in a REPL?
@@ -6595,6 +6652,7 @@ Here's the procedure for experimenting with tests in a REPL:
 
 @comment FIXME: Add a FAQ about how to use a new system class...
 
+
 @comment  node-name,  next,  previous,  up
 @node  Ongoing Work, Bibliography, FAQ, Top
 @unnumbered Ongoing Work
@@ -6603,6 +6661,7 @@ see the @file{TODO} file in the source repository.
 
 Also, bugs are currently tracked on launchpad:
 @url{https://launchpad.net/asdf}.
+
 
 @node Bibliography, Concept Index, Ongoing Work, Top
 @unnumbered Bibliography
@@ -6714,15 +6773,18 @@ Also, bugs are currently tracked on launchpad:
 
 @printindex cp
 
+
 @node Function and Macro Index, Variable Index, Concept Index, Top
 @unnumbered Function and Macro Index
 
 @printindex fn
 
+
 @node Variable Index, Class and Type Index, Function and Macro Index, Top
 @unnumbered Variable Index
 
 @printindex vr
+
 
 @node  Class and Type Index,  , Variable Index, Top
 @unnumbered Class and Type Index
