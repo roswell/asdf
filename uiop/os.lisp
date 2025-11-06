@@ -353,7 +353,7 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
                      (error "Could not set current directory to ~A" x))
       #+ecl (ext:chdir x)
       #+clasp (ext:chdir x t)
-      #+gcl (system:chdir x)
+      #+gcl (system::chdir x)
       #+lispworks (hcl:change-directory x)
       #+mkcl (mk-ext:chdir x)
       #+sbcl (progn (require :sb-posix) (symbol-call :sb-posix :chdir (sb-ext:native-namestring x)))

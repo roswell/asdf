@@ -109,20 +109,6 @@ or the original (parsed) pathname if it is false (the default)."
       (when p
         #+allegro
         (probe-file p :follow-symlinks truename)
-        #+gcl
-        (if truename
-            (truename* p)
-            (let ((kind (car (si::stat p))))
-              (when (eq kind :link)
-                (setf kind (ignore-errors (car (si::stat (truename* p))))))
-              (ecase kind
-                ((nil) nil)
-                ((:file :link)
-                 (cond
-                   ((file-pathname-p p) p)
-                   ((directory-pathname-p p)
-                    (subpathname p (car (last (pathname-directory p)))))))
-                (:directory (ensure-directory-pathname p)))))
         #+clisp
         #.(let* ((fs (or #-os-windows (find-symbol* '#:file-stat :posix nil)))
                  (pp (find-symbol* '#:probe-pathname :ext nil)))
@@ -137,7 +123,7 @@ or the original (parsed) pathname if it is false (the default)."
                     (t '(or (and (truename* p) p)
                          (if-let (d (ensure-directory-pathname p))
                           (and (truename* d) d)))))))
-        #-(or allegro clisp gcl)
+        #-(or allegro clisp)
         (if truename
             (probe-file p)
             (and

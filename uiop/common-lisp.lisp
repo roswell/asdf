@@ -210,5 +210,5 @@ Return a string made of the parts not omitted or emitted by FROB."
 
   (defmacro compatfmt (format)
     #+(or gcl genera)
-    (frob-substrings format `("~3i~_" #+genera ,@'("~@<" "~@;" "~@:>" "~:>")))
+    (frob-substrings format `("~3i~_" "~@<" "~@;" "~@:>" "~:>"))
     #-(or gcl genera) format))
