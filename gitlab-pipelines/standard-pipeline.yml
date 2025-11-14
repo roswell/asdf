@@ -31,7 +31,7 @@ Build ASDF:
   stage: build
   image:
     name: rpgoldman/sbcl:trixie
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: ["/bin/bash"]
   script:
     - echo "Running custom entrypoint."
     - make
