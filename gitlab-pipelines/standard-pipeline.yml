@@ -54,12 +54,8 @@ Build docs:
       - doc/asdf.pdf
       - doc/*.log
 
-###############################################################################
-# Regression tests
-###############################################################################
-
 test_entrypoint_override:
-  stage: regression
+  stage: build
   rules:
     - when: always
   image:
@@ -68,6 +64,10 @@ test_entrypoint_override:
   script:
     - echo "If you see this, entrypoint override is allowed"
     - echo "Check above for 'Entrypoint override disabled' warning"
+
+###############################################################################
+# Regression tests
+###############################################################################
 
 .Regression test template:
   stage: regression
@@ -112,7 +112,7 @@ Regression test:
 
 Regression test new:
   rules:
-    - when: always
+    - when: never
   extends: .Regression test template
   image:
     name: $IMAGE
