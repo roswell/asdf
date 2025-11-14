@@ -28,7 +28,8 @@ workflow:
 
 Build ASDF:
   stage: build
-  image: containers.common-lisp.net/cl-docker-images/sbcl:latest
+  image:
+    name: rpgoldman/sbcl:trixie # buster seems no longer to work
   script:
     - make
   artifacts:
@@ -38,7 +39,8 @@ Build ASDF:
 
 Build docs:
   stage: build
-  image: buildpack-deps:buster
+  image:
+    name: buildpack-deps:trixie
   script:
     - apt-get update
     - apt-get install -y --no-install-recommends texinfo texlive
@@ -57,7 +59,9 @@ Build docs:
 
 .Regression test template:
   stage: regression
-  image: $IMAGE
+  image:
+    name: $IMAGE
+    entrypoint: [""]
   variables:
     IMAGE_TAG: latest
     IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
@@ -81,12 +85,6 @@ Regression test:
     matrix:
       - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
         IMAGE_TAG: latest
-      # Use only bullseye images; bookworm images seem
-      # incompatible with the runner.
-      - l: ccl
-        IMAGE: rpgoldman/ccl:1.13-bullseye
-      - l: sbcl
-        IMAGE: rpgoldman/sbcl:2.4.6-bullseye
       - l: clasp
         IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
       # drop ancient ABCL version
@@ -98,13 +96,27 @@ Regression test:
         IMAGE: rpgoldman/allegro11express
         variant: modern
 
+Regression test new:
+  extends: .Regression test template
+  image:
+    name: $IMAGE
+    entrypoint: ["/bin/bash", "-c"]
+  parallel:
+    matrix:
+      - l: ccl
+        IMAGE: rpgoldman/ccl:1.13-trixie
+      - l: sbcl
+        IMAGE: rpgoldman/sbcl:trixie
+
 ###############################################################################
 # Upgrade tests
 ###############################################################################
 
 .Upgrade test template:
   stage: upgrade
-  image: $IMAGE
+  image:
+    name: $IMAGE
+    entrypoint: [""]
   variables:
     IMAGE_TAG: latest
     IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
