@@ -58,6 +58,17 @@ Build docs:
 # Regression tests
 ###############################################################################
 
+test_entrypoint_override:
+  stage: regression
+  rules:
+    - when: always
+  image:
+    name: rpgoldman/sbcl:trixie
+    entrypoint: ["/bin/bash", "-c", "echo 'Custom entrypoint worked'"]
+  script:
+    - echo "If you see this, entrypoint override is allowed"
+    - echo "Check above for 'Entrypoint override disabled' warning"
+
 .Regression test template:
   stage: regression
   rules:
