@@ -31,9 +31,9 @@ Build ASDF:
   stage: build
   image:
     name: rpgoldman/sbcl:trixie
-    entrypoint: ["/bin/bash"]
+    # entrypoint: ["/bin/bash"]
   script:
-    - echo "Running custom entrypoint."
+    # - echo "Running custom entrypoint."
     - make
   artifacts:
     when: always
@@ -56,16 +56,16 @@ Build docs:
       - doc/asdf.pdf
       - doc/*.log
 
-test_entrypoint_override:
-  stage: build
-  rules:
-    - when: always
-  image:
-    name: rpgoldman/sbcl:trixie
-    entrypoint: ["/bin/bash", "-c", "echo 'Custom entrypoint worked'"]
-  script:
-    - echo "If you see this, entrypoint override is allowed"
-    - echo "Check above for 'Entrypoint override disabled' warning"
+# test_entrypoint_override:
+#   stage: build
+#   rules:
+#     - when: always
+#   image:
+#     name: rpgoldman/sbcl:trixie
+#     entrypoint: ["/bin/bash", "-c", "echo 'Custom entrypoint worked'"]
+#   script:
+#     - echo "If you see this, entrypoint override is allowed"
+#     - echo "Check above for 'Entrypoint override disabled' warning"
 
 ###############################################################################
 # Regression tests
