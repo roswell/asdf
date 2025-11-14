@@ -30,8 +30,10 @@ workflow:
 Build ASDF:
   stage: build
   image:
-    name: rpgoldman/sbcl:trixie # buster seems no longer to work
+    name: rpgoldman/sbcl:trixie
+    entrypoint: ["/bin/bash", "-c"]
   script:
+    - echo "Running custom entrypoint."
     - make
   artifacts:
     when: always
