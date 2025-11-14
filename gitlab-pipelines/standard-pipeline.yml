@@ -99,10 +99,12 @@ Regression test:
         variant: modern
 
 Regression test new:
+  rules:
+    - when: always
   extends: .Regression test template
   image:
     name: $IMAGE
-    entrypoint: ["/bin/bash", "-c"]
+    entrypoint: [""]
   parallel:
     matrix:
       - l: ccl
@@ -163,10 +165,11 @@ Upgrade test:
 
 .REQUIRE upgrade test template:
   extends: .Upgrade test template
-  rules:
-    - if: $RUN_UPGRADE_TESTS
-      when: never
-    - when: on_success
+  # disable temporarily
+  # rules:
+  #   - if: $RUN_UPGRADE_TESTS
+  #     when: never
+  #   - when: on_success
 
 REQUIRE upgrade test:
   extends: .REQUIRE upgrade test template
