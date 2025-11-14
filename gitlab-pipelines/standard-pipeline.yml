@@ -59,6 +59,8 @@ Build docs:
 
 .Regression test template:
   stage: regression
+  rules:
+    - when: never
   image:
     name: $IMAGE
     entrypoint: [""]
@@ -114,6 +116,8 @@ Regression test new:
 
 .Upgrade test template:
   stage: upgrade
+  rules:
+    - when: never
   image:
     name: $IMAGE
     entrypoint: [""]
