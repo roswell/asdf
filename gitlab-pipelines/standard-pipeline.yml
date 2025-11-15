@@ -114,7 +114,7 @@ Regression test:
 
 Regression test new:
   rules:
-    - when: never
+    - when: always
   extends: .Regression test template
   image:
     name: $IMAGE
