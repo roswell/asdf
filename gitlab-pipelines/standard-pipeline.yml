@@ -79,6 +79,7 @@ Build docs:
     name: $IMAGE
     entrypoint: [""]
   variables:
+    RUNNER_SCRIPT_TIMEOUT: 60m
     IMAGE_TAG: latest
     IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
   script:
@@ -123,6 +124,7 @@ Regression test new:
     matrix:
       - l: ccl
         IMAGE: rpgoldman/ccl:1.13-trixie
+        RUNNER_SCRIPT_TIMEOUT: 90m
       - l: sbcl
         IMAGE: rpgoldman/sbcl:trixie
 
