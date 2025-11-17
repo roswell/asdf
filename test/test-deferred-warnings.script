@@ -2,6 +2,15 @@
 
 (in-package :asdf-test)
 
+#+sbcl
+(let* ((version (uiop:lisp-version-string))
+       (pos (position #\- version)))
+  (when pos
+    (setf version (subseq version 0 pos)))
+  (when (uiop:version<= "2.4.5" version)
+    (format t "Skipping unfixed test-deferred-warnings.script.")
+    (uiop:quit 0)))
+
 (enable-deferred-warnings-check)
 
 (def-test-system :unintern-foo
