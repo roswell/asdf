@@ -5,9 +5,9 @@
   (:use :uiop/common-lisp :uiop/package)
   ;; import and reexport a few things defined in :uiop/common-lisp
   (:import-from :uiop/common-lisp #:compatfmt #:frob-substrings
-   #+(or clasp ecl) #:use-ecl-byte-compiler-p #+mcl #:probe-posix)
+   #+ecl #:use-ecl-byte-compiler-p #+mcl #:probe-posix)
   (:export #:compatfmt #:frob-substrings #:compatfmt
-   #+(or clasp ecl) #:use-ecl-byte-compiler-p #+mcl #:probe-posix)
+   #+ecl #:use-ecl-byte-compiler-p #+mcl #:probe-posix)
   (:export
    ;; magic helper to define debugging functions:
    #:uiop-debug #:load-uiop-debug-utility #:*uiop-debug-utility*
