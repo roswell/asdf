@@ -298,7 +298,7 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
              (lisp-version-string)
              (or (operating-system) (software-type))
              (or (architecture) (machine-type))
-             #+sbcl (if (featurep :sb-thread) "" "unthreaded")))))
+             #+sbcl (unless (featurep :sb-thread) "unthreaded")))))
 
 
 ;;;; Other system information
