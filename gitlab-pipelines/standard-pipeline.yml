@@ -127,6 +127,12 @@ Regression test new:
         RUNNER_SCRIPT_TIMEOUT: 90m
       - l: sbcl
         IMAGE: rpgoldman/sbcl:trixie
+      - l: allegro
+        IMAGE: rpgoldman/allegro11express
+      - l: allegro
+        IMAGE: rpgoldman/allegro11express
+        variant: modern
+
 
 ###############################################################################
 # Upgrade tests
