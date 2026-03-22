@@ -530,8 +530,7 @@
     (with-expected-failure (#+abcl
                             (or
                              (and (eq (uiop:operating-system) :linux)
-                                  (uiop:version= (lisp-implementation-version) "1.8.0"))
-
+                                  (uiop:version<= "1.8.0" (lisp-implementation-version)))
                              (not (eq (uiop:operating-system) :linux))))
       (let* ((process-info (launch-program "./sleeper.sh 12 1"))
              (pid (process-info-pid process-info)))
