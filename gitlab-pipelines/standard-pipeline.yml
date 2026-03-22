@@ -117,18 +117,12 @@ Regression test:
 Regression test new:
   rules:
     - when: always
-    - if : $ALLOW_FAILURE
-      allow_failure: true
   extends: .Regression test template
   image:
     name: $IMAGE
     entrypoint: [""]
   parallel:
     matrix:
-      - l: ccl
-        IMAGE: rpgoldman/ccl:1.13-trixie
-        RUNNER_SCRIPT_TIMEOUT: 90m
-        ALLOW_FAILURE: "true"
       - l: sbcl
         IMAGE: rpgoldman/sbcl:trixie
       - l: allegro
@@ -139,230 +133,17 @@ Regression test new:
       - l: abcl
         IMAGE: clfoundation/abcl:1.9.3-noble-jdk-21
 
-
-###############################################################################
-# Upgrade tests
-###############################################################################
-
-.Upgrade test template:
-  stage: upgrade
-  rules:
-    - when: never
-    - if: $RUN_UPGRADE_TESTS
-  image:
-    name: $IMAGE
-    entrypoint: [""]
-  variables:
-    IMAGE_TAG: latest
-    IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
-  script:
-    - export l=$l$variant
-    - make
-    - make test-upgrade
-  artifacts:
-    when: always
-    paths:
-      - build/results/$l-upgrade.text
-  needs: []
-
-Upgrade test:
-  extends: .Upgrade test template
-  parallel:
-    matrix:
-      - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
-        IMAGE_TAG: latest
-      - l: clasp
-        IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-        variant: modern
-
-# No more tests are known to fail. But leave commented out in case it needs to
-# be resurrected.
-
-# Upgrade test known failure:
-#   extends: .Upgrade test template
-#   parallel:
-#     matrix:
-#       - l: []
-#         IMAGE_TAG: latest
-#   allow_failure: true
-
-.REQUIRE upgrade test template:
-  extends: .Upgrade test template
-  # disable temporarily
-  # rules:
-  #   - if: $RUN_UPGRADE_TESTS
-  #     when: never
-  #   - when: on_success
-
-REQUIRE upgrade test:
-  extends: .REQUIRE upgrade test template
-  variables:
-    ASDF_UPGRADE_TEST_TAGS: REQUIRE
-  parallel:
-    matrix:
-      - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
-        IMAGE_TAG: latest
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-        variant: modern
-
-
-# No more tests are known to fail. But leave commented out in case it needs to
-# be resurrected.
-
-REQUIRE upgrade test known failure:
-  extends: .REQUIRE upgrade test template
-  variables:
-    ASDF_UPGRADE_TEST_TAGS: REQUIRE
-  parallel:
-    matrix:
-      - l: [clasp]
-        IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
+Regression test fail ok:
   allow_failure: true
-###############################################################################
-# Global configuration
-###############################################################################
-
-variables:
-  # Just let the runner fetch and update the submodules for us.
-  GIT_SUBMODULE_STRATEGY: normal
-  I_AGREE_TO_ALLEGRO_EXPRESS_LICENSE: "yes"
-  CI_DEBUG_TRACE: 0
-
-# Split regression testing into a separate stage than upgrade tests. The
-# upgrade tests tend to run slower and are generally less important than
-# regression tests for most changes.
-stages:
-  - build
-  - regression
-  - upgrade
-
-# This is needed otherwise the jobs won't always be added to MR pipelines. We
-# can just say when: always because this is run as a child pipeline and only
-# triggered under the desired conditions.
-workflow:
-  rules:
-    - when: always
-
-###############################################################################
-# Build jobs
-###############################################################################
-
-Build ASDF:
-  stage: build
-  image:
-    name: rpgoldman/sbcl:trixie
-    # entrypoint: ["/bin/bash"]
-  script:
-    # - echo "Running custom entrypoint."
-    - make
-  artifacts:
-    when: always
-    paths:
-      - build/asdf.lisp
-
-Build docs:
-  stage: build
-  image:
-    name: buildpack-deps:trixie
-  script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends texinfo texlive
-    - make -C doc
-  artifacts:
-    when: always
-    paths:
-      - doc/asdf.html
-      - doc/asdf.info
-      - doc/asdf.pdf
-      - doc/*.log
-
-# test_entrypoint_override:
-#   stage: build
-#   rules:
-#     - when: always
-#   image:
-#     name: rpgoldman/sbcl:trixie
-#     entrypoint: ["/bin/bash", "-c", "echo 'Custom entrypoint worked'"]
-#   script:
-#     - echo "If you see this, entrypoint override is allowed"
-#     - echo "Check above for 'Entrypoint override disabled' warning"
-
-###############################################################################
-# Regression tests
-###############################################################################
-
-.Regression test template:
-  stage: regression
-  rules:
-    - when: never
-  image:
-    name: $IMAGE
-    entrypoint: [""]
   variables:
-    RUNNER_SCRIPT_TIMEOUT: 60m
-    IMAGE_TAG: latest
-    IMAGE: containers.common-lisp.net/cl-docker-images/$l:$IMAGE_TAG
-  script:
-    - export l=$l$variant
-    - make
-    - make test
-  artifacts:
-    when: always
-    paths:
-      - build/results
-  needs: []
-  retry:
-    max: 2
-    when:
-      - job_execution_timeout
-
-Regression test:
-  extends: .Regression test template
-  parallel:
-    matrix:
-      - l: [abcl, ccl, clisp, cmucl, ecl, sbcl]
-        IMAGE_TAG: latest
-      - l: clasp
-        IMAGE_TAG: "b14e329f49998275579926da2a737885ceb2cea7"
-      # drop ancient ABCL version
-      # - l: abcl
-      #   IMAGE_TAG: 1.7.1-jdk8
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-        variant: modern
-
-Regression test new:
-  rules:
-    - when: always
-  extends: .Regression test template
+    RUNNER_SCRIPT_TIMEOUT: 90m
+  extends: Regression test new
   image:
-    name: $IMAGE
-    entrypoint: []
+    name: rpgoldman/ccl:1.13-trixie
+    entrypoint: [""]
   parallel:
     matrix:
       - l: ccl
-        IMAGE: rpgoldman/ccl:1.13-trixie
-        RUNNER_SCRIPT_TIMEOUT: 90m
-        allow_failure: yes
-      - l: sbcl
-        IMAGE: rpgoldman/sbcl:trixie
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-      - l: allegro
-        IMAGE: rpgoldman/allegro11express
-        variant: modern
-      - l: abcl
-        IMAGE: clfoundation/abcl:1.9.3-noble-jdk-21
-
 
 ###############################################################################
 # Upgrade tests
@@ -372,6 +153,7 @@ Regression test new:
   stage: upgrade
   rules:
     - when: never
+    - if: $RUN_UPGRADE_TESTS
   image:
     name: $IMAGE
     entrypoint: [""]
@@ -387,8 +169,6 @@ Regression test new:
     paths:
       - build/results/$l-upgrade.text
   needs: []
-  rules:
-    - if: $RUN_UPGRADE_TESTS
 
 Upgrade test:
   extends: .Upgrade test template
