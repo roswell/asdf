@@ -132,6 +132,8 @@ Regression test new:
       - l: allegro
         IMAGE: rpgoldman/allegro11express
         variant: modern
+      - l: abcl
+        IMAGE: clfoundation/abcl:1.9.3-noble-jdk-21
 
 
 ###############################################################################
