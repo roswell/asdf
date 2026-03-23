@@ -137,13 +137,13 @@ Regression test new:
 # tests to fail.
 Regression test fail ok:
   rules:
-    - when: never
+    - when: always
   allow_failure: true
-  variables:
-    RUNNER_SCRIPT_TIMEOUT: 90m
+  # variables:
+  #   RUNNER_SCRIPT_TIMEOUT: 90m
   extends: Regression test new
   image:
-    name: rpgoldman/ccl:1.13-trixie
+    name: clfoundation/ccl:1.13-trixie
     entrypoint: [""]
   parallel:
     matrix:
