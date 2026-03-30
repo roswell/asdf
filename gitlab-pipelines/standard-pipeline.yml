@@ -137,14 +137,13 @@ Regression test new:
 # tests to fail.
 Regression test for Clozure:
   rules:
-    - when: never               # can't be run because of timeout.
+    - when: always               # can't be run because of timeout.
   allow_failure: true
   # variables:
   #   RUNNER_SCRIPT_TIMEOUT: 90m
   extends: Regression test new
   image:
     name: clfoundation/ccl:1.13-trixie
-    entrypoint: [""]
   parallel:
     matrix:
       - l: ccl
