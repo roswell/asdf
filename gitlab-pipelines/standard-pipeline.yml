@@ -137,7 +137,7 @@ Regression test new:
 # tests to fail.
 Regression test for Clozure:
   rules:
-    - when: always               # can't be run because of timeout.
+    - when: never               # can't be run because of timeout.
   allow_failure: true
   # variables:
   #   RUNNER_SCRIPT_TIMEOUT: 90m
