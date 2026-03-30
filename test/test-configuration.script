@@ -134,19 +134,27 @@
     :do (assert (probe-file asd-file))
         (run-program (format nil "ln -s ~a ~a" (namestring asd-file) (namestring *link-farm-directory*)))))
 
+(DBG "clearing link farm directory")
 ;;; prepare for link farm test
 ;; clean up first
 (when (uiop:directory-exists-p *link-farm-directory*)
   (uiop:delete-directory-tree *link-farm-directory*
                               :validate (lambda (x) (subpathp x *tmp-directory*))))
+(DBG "Done clearing link farm directory")
+
 ;; create the link farm
 (ensure-directories-exist *link-farm-directory*)
+(DBG "Created link farm directory")
 (link-asd-files)
+(DBG "Linked ASD files")
 ;;; test following symlinks
+(DBG "Initializing source registry")
 (initialize-source-registry
  `(:source-registry (:include ,(namestring *link-farm-directory*))
    :ignore-inherited-configuration))
+(DBG "Dumping source registry")
 (dump-source-registry)
+(DBG "Done dumping source registry")
 
 (assert (find-system :foo0 nil))
 (assert (find-system :foo1 nil))
