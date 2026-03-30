@@ -131,7 +131,7 @@ Regression test new:
         IMAGE: rpgoldman/allegro11express
         variant: modern
       - l: abcl
-        IMAGE: clfoundation/abcl:1.9.3-noble-jdk-21
+        IMAGE: rpgoldman/abcl:1.9.2-jdk21-jammy
 
 # Have to disable this because CCL timeout causes all
 # tests to fail.
