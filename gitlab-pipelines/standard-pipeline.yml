@@ -132,6 +132,9 @@ Regression test new:
         variant: modern
       - l: abcl
         IMAGE: rpgoldman/abcl:1.9.2-jdk21-jammy
+      - l: ecl
+      - l: cmucl
+      - l: clisp
 
 # Have to disable this because CCL timeout causes all
 # tests to fail.
