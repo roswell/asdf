@@ -152,6 +152,7 @@ Regression tests with known failures:
       - l: ccl
         IMAGE: clfoundation/ccl:1.13-trixie
       - l: ecl                  # error in GCC
+        IMAGE: rpgoldman/ecl:26.3.27-trixie
       - l: cmucl                # seems unable to run w/o access to /proc
       - l: clisp                # same issue as CCL -- timeout due to
                                 # link farm test...
