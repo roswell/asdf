@@ -253,6 +253,7 @@ case "$lisp" in
     nodebug="-on-error exit"
     eval="-x" ;;
   cmucl)
+    echo "SET_ARCH is ${SET_ARCH}"
     # cmucl likes to have its executable called lisp, but so does scl
     # Please use a symlink or an exec ... "$@" trampoline script.
     command="${CMUCL:-cmucl}"
