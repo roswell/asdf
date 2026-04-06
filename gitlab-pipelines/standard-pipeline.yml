@@ -133,23 +133,26 @@ Regression test new:
       - l: abcl
         IMAGE: rpgoldman/abcl:1.9.2-jdk21-jammy
       - l: ecl
-      - l: cmucl
-      - l: clisp
 
 # Have to disable this because CCL timeout causes all
 # tests to fail.
-Regression test for Clozure:
+Regression tests with known failures:
   rules:
     - when: always               # can't be run because of timeout.
   allow_failure: true
   # variables:
   #   RUNNER_SCRIPT_TIMEOUT: 90m
-  extends: Regression test new
+  extends: Regression test
   image:
-    name: clfoundation/ccl:1.13-trixie
+    name:
   parallel:
     matrix:
       - l: ccl
+        IMAGE: clfoundation/ccl:1.13-trixie
+      - l: ecl                  # error in GCC
+      - l: cmucl                # seems unable to run w/o access to /proc
+      - l: clisp                # same issue as CCL -- timeout due to
+                                # link farm test...
 
 ###############################################################################
 # Upgrade tests
