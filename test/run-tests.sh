@@ -257,9 +257,6 @@ case "$lisp" in
     # cmucl likes to have its executable called lisp, but so does scl
     # Please use a symlink or an exec ... "$@" trampoline script.
     command="${CMUCL:-cmucl}"
-    if [ "${SET_ARCH}" == "true" && "${LINUX}" == "true" ]; then
-        command="linux32 ${command}"
-    fi
     flags="-noinit"
     nodebug="-batch"
     eval="-eval" ;;
@@ -320,6 +317,10 @@ ASDFDIR="$(cd $(dirname $0)/.. ; command pwd)"
 if [ -z "${DEBUG_ASDF_TEST}" ] ; then
   bcmd="$bcmd $nodebug"
 fi
+if [ "$lisp" == "cmucl" ] && [ "${SET_ARCH}" = "true" ] && [ "${LINUX}" = "true" ]; then
+        bcmd="linux32 ${bcmd}"
+fi
+
 
 
 create_config () {
@@ -573,7 +574,11 @@ test_load_systems () {
 test_interactively () {
     cd ${ASDFDIR}
     mkdir -p build/results/
-    rlwrap $icmd $eval "(or'#.(load(string'|test/script-support.lisp|))#.(asdf-test:interactive-test'($*)))"
+    if [ "$lisp" = "cmucl" ] && [ "${SET_ARCH}" = "true" ] && [ "${LINUX}" = "true" ]; then
+        linux32 rlwrap $icmd $eval "(or'#.(load(string'|test/script-support.lisp|))#.(asdf-test:interactive-test'($*)))"
+    else
+        rlwrap $icmd $eval "(or'#.(load(string'|test/script-support.lisp|))#.(asdf-test:interactive-test'($*)))"
+    fi
 }
 
 if [ -z "$command" ] ; then
