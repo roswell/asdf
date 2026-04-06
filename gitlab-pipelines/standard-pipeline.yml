@@ -9,7 +9,7 @@ variables:
   CI_DEBUG_TRACE: 0
   ALLOW_FAILURE: false
   # set the architecture, for CMUCL
-  SET_ARCH: false
+  SET_ARCH: "false"
 
 # Split regression testing into a separate stage than upgrade tests. The
 # upgrade tests tend to run slower and are generally less important than
@@ -151,7 +151,7 @@ Regression tests with known failures:
       - l: ecl                  # error in GCC
         IMAGE: rpgoldman/ecl:26.3.27-trixie
       - l: cmucl                # seems unable to run w/o access to /proc
-        SET_ARCH: true
+        SET_ARCH: "true"
       - l: clisp                # same issue as CCL -- timeout due to
                                 # link farm test...
 
