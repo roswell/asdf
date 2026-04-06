@@ -145,8 +145,6 @@ Regression tests with known failures:
   # variables:
   #   RUNNER_SCRIPT_TIMEOUT: 90m
   extends: Regression test
-  image:
-    name:
   parallel:
     matrix:
       - l: ccl
