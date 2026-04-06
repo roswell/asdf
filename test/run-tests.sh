@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # run-tests {lisp invocation} {scripts-regex}
-# - read lisp forms one at a time from standard input
 # - quit with exit status 0 on getting eof
 # - quit with exit status >0 if an unhandled error occurs
 
@@ -36,7 +35,11 @@ usage () {
 unset DEBUG_ASDF_TEST upgrade clean_load load_systems test_interactively extract_all
 
 SHELL=/bin/sh
-export SHELL DEBUG_ASDF_TEST GCL_ANSI ASDF_OUTPUT_TRANSLATIONS
+case "$(uname -s)" in
+    Linux*) LINUX="true" ;;
+    *) LINUX="false" ;;
+esac
+export SHELL DEBUG_ASDF_TEST GCL_ANSI ASDF_OUTPUT_TRANSLATIONS LINUX
 
 if [ -n "$ALLEGRO64DIR" ] ; then
     ALLEGRO_64=${ALLEGRO64DIR}/alisp
@@ -253,6 +256,9 @@ case "$lisp" in
     # cmucl likes to have its executable called lisp, but so does scl
     # Please use a symlink or an exec ... "$@" trampoline script.
     command="${CMUCL:-cmucl}"
+    if [ "${SET_ARCH}" == "true" && "${LINUX}" == "true" ]; then
+        command="linux32 ${command}"
+    fi
     flags="-noinit"
     nodebug="-batch"
     eval="-eval" ;;
