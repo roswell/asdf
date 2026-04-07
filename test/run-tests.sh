@@ -318,7 +318,7 @@ if [ -z "${DEBUG_ASDF_TEST}" ] ; then
   bcmd="$bcmd $nodebug"
 fi
 echo "lisp is ${lisp}, SET_ARCH is ${SET_ARCH} and LINUX is ${LINUX}"
-if [ "$lisp" == "cmucl" ] && [ "${SET_ARCH}" = "true" ] && [ "${LINUX}" = "true" ]; then
+if [ "${lisp}" = "cmucl" ] && [ "${SET_ARCH}" = "true" ] && [ "${LINUX}" = "true" ]; then
         bcmd="linux32 ${bcmd}"
         echo "Setting bcmd to ${bcmd}"
 fi
