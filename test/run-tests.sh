@@ -35,11 +35,7 @@ usage () {
 unset DEBUG_ASDF_TEST upgrade clean_load load_systems test_interactively extract_all
 
 SHELL=/bin/sh
-case "$(uname -s)" in
-    Linux*) LINUX="true" ;;
-    *) LINUX="false" ;;
-esac
-export SHELL DEBUG_ASDF_TEST GCL_ANSI ASDF_OUTPUT_TRANSLATIONS LINUX
+export SHELL DEBUG_ASDF_TEST GCL_ANSI ASDF_OUTPUT_TRANSLATIONS
 
 if [ -n "$ALLEGRO64DIR" ] ; then
     ALLEGRO_64=${ALLEGRO64DIR}/alisp
@@ -253,7 +249,6 @@ case "$lisp" in
     nodebug="-on-error exit"
     eval="-x" ;;
   cmucl)
-    echo "SET_ARCH is ${SET_ARCH}"
     # cmucl likes to have its executable called lisp, but so does scl
     # Please use a symlink or an exec ... "$@" trampoline script.
     command="${CMUCL:-cmucl}"
@@ -317,12 +312,6 @@ ASDFDIR="$(cd $(dirname $0)/.. ; command pwd)"
 if [ -z "${DEBUG_ASDF_TEST}" ] ; then
   bcmd="$bcmd $nodebug"
 fi
-echo "lisp is ${lisp}, SET_ARCH is ${SET_ARCH} and LINUX is ${LINUX}"
-if [ "${lisp}" = "cmucl" ] && [ "${SET_ARCH}" = "true" ] && [ "${LINUX}" = "true" ]; then
-        bcmd="linux32 ${bcmd}"
-        echo "Setting bcmd to ${bcmd}"
-fi
-
 
 
 create_config () {
@@ -576,11 +565,7 @@ test_load_systems () {
 test_interactively () {
     cd ${ASDFDIR}
     mkdir -p build/results/
-    if [ "$lisp" = "cmucl" ] && [ "${SET_ARCH}" = "true" ] && [ "${LINUX}" = "true" ]; then
-        linux32 rlwrap $icmd $eval "(or'#.(load(string'|test/script-support.lisp|))#.(asdf-test:interactive-test'($*)))"
-    else
-        rlwrap $icmd $eval "(or'#.(load(string'|test/script-support.lisp|))#.(asdf-test:interactive-test'($*)))"
-    fi
+    rlwrap $icmd $eval "(or'#.(load(string'|test/script-support.lisp|))#.(asdf-test:interactive-test'($*)))"
 }
 
 if [ -z "$command" ] ; then
