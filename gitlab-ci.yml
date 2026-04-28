@@ -3,8 +3,6 @@
 # triggered via the web interface.
 
 Standard pipeline:
-  tags:
-    - docker
   trigger:
     include:
       - local: gitlab-pipelines/standard-pipeline.yml
@@ -19,8 +17,6 @@ Standard pipeline:
 # Trigger. It is run whenever a new image is released for an implementation
 # release candidate or full release.
 New image pipeline:
-  tags:
-    - docker
   trigger:
     include:
       - local: gitlab-pipelines/new-implementation-version.yml
