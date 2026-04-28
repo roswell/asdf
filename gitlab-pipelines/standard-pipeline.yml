@@ -32,6 +32,8 @@ workflow:
 
 Build ASDF:
   stage: build
+  tags:
+    - docker
   image:
     name: rpgoldman/sbcl:trixie
     # entrypoint: ["/bin/bash"]
@@ -45,6 +47,8 @@ Build ASDF:
 
 Build docs:
   stage: build
+  tags:
+    - docker
   image:
     name: buildpack-deps:trixie
   script:
@@ -76,6 +80,8 @@ Build docs:
 
 .Regression test template:
   stage: regression
+  tags:
+    - docker
   rules:
     - when: never
   image:
