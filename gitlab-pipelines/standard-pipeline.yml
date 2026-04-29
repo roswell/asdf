@@ -149,11 +149,11 @@ build_docs_cl_net:
     - .build_docs
     - .on_cl_net
 
-test-vars:
-  stage: build
-  script:
-    - echo "CI_SERVER_URL=$CI_SERVER_URL"
-    - echo "CI_SERVER_HOST=$CI_SERVER_HOST"
+# test-vars:
+#   stage: build
+#   script:
+#     - echo "CI_SERVER_URL=$CI_SERVER_URL"
+#     - echo "CI_SERVER_HOST=$CI_SERVER_HOST"
 
 
 # test_entrypoint_override:
