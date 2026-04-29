@@ -140,6 +140,10 @@ Regression test new:
         variant: modern
       - l: abcl
         IMAGE: rpgoldman/abcl:1.9.2-jdk21-jammy
+      - l: ccl
+        IMAGE: clfoundation/ccl:1.13-trixie
+      - l: clisp                # same issue as CCL -- timeout due to
+                                # link farm test...
 
 # Have to disable this because CCL timeout causes all
 # tests to fail.
@@ -152,14 +156,10 @@ Regression tests with known failures:
   extends: Regression test
   parallel:
     matrix:
-      - l: ccl
-        IMAGE: clfoundation/ccl:1.13-trixie
       - l: ecl                  # error in GCC
         IMAGE: rpgoldman/ecl:26.3.27-trixie
-      # - l: cmucl                # seems unable to run w/o access to /proc
+      - l: cmucl                # seems unable to run w/o access to /proc
       #   SET_ARCH: "true"
-      - l: clisp                # same issue as CCL -- timeout due to
-                                # link farm test...
 
 ###############################################################################
 # Upgrade tests
