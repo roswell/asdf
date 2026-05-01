@@ -88,20 +88,13 @@ after having found a .asd file? True by default.")
   (defun collect-sub*directories-asd-files
       (directory &key (exclude *default-source-registry-exclusions*) collect
                    (recurse-beyond-asds *recurse-beyond-asds*) ignore-cache)
-    (let ((visited (make-hash-table :test 'equalp)))
-      (flet ((collectp (dir)
-               (unless (and (not ignore-cache) (process-source-registry-cache dir collect))
-                 (let ((asds (collect-asds-in-directory dir collect)))
-                   (or recurse-beyond-asds (not asds)))))
-             (recursep (x)                    ; x will be a directory pathname
-               (and
-                (not (member (car (last (pathname-directory x))) exclude :test #'equal))
-                (flet ((pathname-key (x)
-                         (namestring (truename* x))))
-                  (let ((visitedp (gethash (pathname-key x) visited)))
-                    (if visitedp nil
-                        (setf (gethash (pathname-key x) visited) t)))))))
-      (collect-sub*directories directory #'collectp #'recursep (constantly nil)))))
+    (flet ((collectp (dir)
+             (unless (and (not ignore-cache) (process-source-registry-cache dir collect))
+               (let ((asds (collect-asds-in-directory dir collect)))
+                 (or recurse-beyond-asds (not asds)))))
+           (recursep (x)
+             (not (member (car (last (pathname-directory x))) exclude :test #'equal))))
+      (collect-sub*directories directory #'collectp #'recursep (constantly nil))))
 
 
   ;;; Validate the configuration forms

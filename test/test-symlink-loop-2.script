@@ -1,0 +1,46 @@
+;;; -*- Lisp -*-
+
+;;;---------------------------------------------------------------------------
+;;; This checks a directory structure that contains a symbolic link back to
+;;; the parent directory.
+;;; ---------------------------------------------------------------------------
+(in-package :asdf-test)
+;; since symlinks only somewhat exist on Windows, we don't test there.
+(when (uiop:os-windows-p)
+  (exit-lisp 0))
+
+(trace uiop:pathname-equal)
+(let* ((scratch-dir (make-sub-pathname :directory '(:relative "looping-scratch-2")
+                                       :defaults *test-directory*))
+       (scratch-dir-name (namestring scratch-dir)))
+  (unwind-protect
+       (progn
+         ;; set up directory structure
+         (uiop:run-program (format nil "mkdir ~a" scratch-dir-name))
+         (uiop:run-program (format nil "cd ~a ; ln -s . subdir" scratch-dir-name))
+         (DBG "Testing sub-directory linking to its parent directory.")
+         (let ((dir-values (directory* (merge-pathnames "*/" scratch-dir))))
+           (DBG "After linking \"subdir\" into its parent directory, directory* returns:\n" dir-values)
+           ;; since we are on POSIX, we should be able to do this:
+           (DBG
+            (uiop:run-program (format nil "cd ~a ; ls -l" scratch-dir-name) :output :string))
+           (let (directories)
+             (uiop:collect-sub*directories
+              scratch-dir
+              ;; collectp
+              (constantly t)
+              (constantly t)
+              (lambda (it) (push it directories)))
+             ;; this check could be moved into the collector argument.
+             (setf directories (remove-if #'(lambda (x) (uiop:pathname-equal x scratch-dir)) directories))
+             (assert-equal 1 (length directories))
+             (assert  (uiop:pathname-equal
+                       (merge-pathnames "subdir/" scratch-dir)
+                       (first directories))))))
+    ;; clean up
+    (DBG "Cleaning up")
+    (untrace)
+    (uiop:delete-directory-tree scratch-dir :validate (lambda (x) (subpathp x *test-directory*)))))
+
+(DBG "Exiting")
+(exit-lisp 0)
