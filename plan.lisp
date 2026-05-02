@@ -564,8 +564,8 @@ return a list of the components involved in building the desired action."
     (assert (performable-p (forcing plan)) () "plan not performable")
     (let ((*package* *package*)
           (*readtable* *readtable*))
-      (with-compilation-unit () ;; backward-compatibility.
-        (call-next-method))))   ;; Going forward, see deferred-warning support in lisp-build.
+      (with-compilation-unit* ()
+        (call-next-method))))
 
   (defun action-already-done-p (plan operation component)
     (if-let (status (action-status plan operation component))

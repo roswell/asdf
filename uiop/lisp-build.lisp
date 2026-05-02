@@ -17,8 +17,10 @@
    #:check-lisp-compile-results #:check-lisp-compile-warnings
    #:*uninteresting-conditions* #:*usual-uninteresting-conditions*
    #:*uninteresting-compiler-conditions* #:*uninteresting-loader-conditions*
+   #:*with-compilation-unit-deferred-warnings-behavior*
    ;; Types
    #+sbcl #:sb-grovel-unknown-constant-condition
+   #:deferred-warnings-error
    ;; Functions & Macros
    ;; the following three removed from UIOP because they have bugs, it's
    ;; easier to remove tham than to fix them, and they could never have been
@@ -34,7 +36,8 @@
    #:current-lisp-file-pathname #:load-pathname
    #:lispize-pathname #:compile-file-type #:call-around-hook
    #:compile-file* #:compile-file-pathname* #:*compile-check*
-   #:load* #:load-from-string #:combine-fasls)
+   #:load* #:load-from-string #:combine-fasls
+   #:deferred-warnings-error-warnings #:with-compilation-unit*)
   (:intern #:defaults #:failure-p #:warnings-p #:s #:y #:body))
 (in-package :uiop/lisp-build)
 
@@ -870,3 +873,48 @@ it will filter them appropriately."
              (scm:concatenate-system output :fasls-to-concatenate :force t))
         (loop :for f :in fasls :do (ignore-errors (delete-file f)))
         (ignore-errors (lispworks:delete-system :fasls-to-concatenate))))))
+
+;;; Escalate unhandled warnings to errors.
+(with-upgradability ()
+  (define-condition deferred-warnings-error (error)
+    ((warnings
+      :initarg :warnings
+      :initform nil
+      :reader deferred-warnings-error-warnings))
+    (:report (lambda (c s)
+               (format s "A compilation unit signaled deferred warnings:~{~%~%~A~}"
+                       (deferred-warnings-error-warnings c)))))
+  (defvar *with-compilation-unit-deferred-warnings-behavior*
+    :error
+    "How should ASDF react if it encounters warnings signaled after compilation unit is finished.
+Valid values are :error and :ignore.")
+  (defmacro with-compilation-unit* ((&rest options
+                                     &key (asdf-deferred-warnings-behavior '*with-compilation-unit-deferred-warnings-behavior*))
+                                    &body body)
+    "Executes BODY inside a compilation unit with the provided OPTIONS. If
+ASDF-DEFERRED-WARNINGS-BEHAVIOR is :ERROR (default), then any warning signaled
+upon leaving the compilation unit stored in a DEFERRED-WARNINGS-ERROR condition
+and signaled as an ERROR."
+    (let ((finishedp (gensym))
+          (warnings (gensym))
+          (behavior (gensym)))
+      `(let ((,finishedp nil)
+             (,warnings nil)
+             (,behavior ,asdf-deferred-warnings-behavior))
+         (unwind-protect
+              (handler-bind
+                  ((warning
+                     #'(lambda (c)
+                         ;; Add it to our list of warnings.
+                         (when (and ,finishedp (eql ,behavior :error))
+                           (push c ,warnings)
+                           (let ((restart (find-restart 'muffle-warning c)))
+                             (when restart (invoke-restart restart)))))))
+                (with-compilation-unit (,@(remove-plist-key :deferred-warnings-as-errors options))
+                  (unwind-protect
+                       (progn
+                         ,@body)
+                    (setf ,finishedp t))))
+           (unless (null ,warnings)
+             (error 'deferred-warnings-error
+                    :warnings ,warnings)))))))

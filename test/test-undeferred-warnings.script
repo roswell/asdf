@@ -32,21 +32,32 @@
         ;;; need to cover the other cases, or will produce a compile error
         #-(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp))
               clasp lispworks mkcl xcl cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
-        (let ((*compile-file-warnings-behaviour* :error))
+        (let ((*compile-file-warnings-behaviour* :error)
+              (*with-compilation-unit-deferred-warnings-behavior* :ignore))
           (load-system :undefined-variables :force t)))
+;; TODO: More implementations may support deferred warnings.
+#+(or cmucl sbcl scl ecl clasp allegro abcl ccl)
+(progn
+  (format t "Check for proper errors on warning when exiting w-c-u~%")
+  (errors deferred-warnings-error
+    (let ((*with-compilation-unit-deferred-warnings-behavior* :error))
+      (load-system :undefined-variables :force t))))
 (format t  "Check for proper warnings on warning.~%")
 (errors #+(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp)) clasp lispworks mkcl xcl) compile-file-error
         #+(or cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
         ;;; need to cover the other cases, or will produce a compile error
         #-(or abcl allegro clisp clozure (and ecl (not ecl-bytecmp))
               clasp lispworks mkcl xcl cmucl (and ecl ecl-bytecmp) gcl sbcl scl) null
-        (let ((*compile-file-warnings-behaviour* :warning))
+        (let ((*compile-file-warnings-behaviour* :warning)
+              (*with-compilation-unit-deferred-warnings-behavior* :ignore))
           (load-system :undefined-variables :force t)))
 (format t "check for undefined variable warnings to not fail a build.~%")
 (assert
- (let ((*compile-file-warnings-behaviour* :ignore))
+ (let ((*compile-file-warnings-behaviour* :ignore)
+       (*with-compilation-unit-deferred-warnings-behavior* :ignore))
    (load-system :undefined-variables :force t)))
 (format t "check for undefined variable-warnings throttled by PERFORM around method not failing a build.~%")
 (assert
- (let ((*compile-file-warnings-behaviour* :error))
+ (let ((*compile-file-warnings-behaviour* :error)
+       (*with-compilation-unit-deferred-warnings-behavior* :ignore))
    (asdf:load-system :undefined-variables-throttled :force t)))
