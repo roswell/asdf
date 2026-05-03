@@ -10,6 +10,8 @@ For some reference documentation, read the manual:
 For a guide on how to use it, read our "best practices" document:
 <https://github.com/fare/asdf/blob/master/doc/best_practices.md>
 
+Note: The best practices are in the process of being integrated into the ASDF manual.
+
 Below is a guide for ASDF developers. It is not meant for ASDF users.
 
 [TOC]
