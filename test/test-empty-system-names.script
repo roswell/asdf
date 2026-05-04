@@ -1,0 +1,23 @@
+;;; -*- Lisp -*-
+(in-package :asdf-test)
+
+(DBG "Checking CHECK-SYSTEM-NAME-STRING")
+(assert (not (asdf/find-system::check-system-name-string "" nil)))
+(signals asdf:system-definition-error (asdf/find-system::check-system-name-string ""))
+(assert (not (asdf/find-system::check-system-name-string "foo/" nil)))
+(signals asdf:system-definition-error (asdf/find-system::check-system-name-string "foo/"))
+(assert (asdf/find-system::check-system-name-string "foo" nil))
+(assert (asdf/find-system::check-system-name-string "foo/bar" nil))
+
+(DBG "Checking names in FIND-SYSTEM")
+(signals asdf:system-definition-error (asdf:find-system "" t))
+(signals asdf:system-definition-error (asdf:find-system "foo/" t))
+
+(DBG "Checking names in LOCATE-SYSTEM")
+(signals asdf:system-definition-error (asdf:locate-system ""))
+(signals asdf:system-definition-error (asdf:locate-system "foo/"))
+(assert (null (asdf:locate-system "foo/" nil)))
+
+(DBG "Checking OK names in FIND-SYSTEM")
+(does-not-signal asdf:system-definition-error (asdf:find-system "loop"))
+(does-not-signal asdf:system-definition-error (asdf:find-system "foo" nil))

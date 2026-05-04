@@ -140,6 +140,7 @@ Some constraints:
        (,condition (,x)
          (error "~&Condition signaled: ~S~%" ,x))
        (:no-error (&rest ,x)
+         (declare (ignorable ,x))
          t))))
 (defmacro errors (condition sexp &aux (x (gensym)))
   `(progn
