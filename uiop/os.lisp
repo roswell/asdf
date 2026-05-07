@@ -255,7 +255,7 @@ then returning the non-empty string value of the variable"
                 ;; Note if not using International ACL
                 ;; see http://www.franz.com/support/documentation/8.1/doc/operators/excl/ics-target-case.htm
                 (excl:ics-target-case (:-ics "8"))
-                (and (member :smp *features*) "SBT"))
+                (and (member :smp *features*) "smp"))
         #+armedbear (format nil "~a-fasl~a" s system::*fasl-version*)
         #+clisp
         (subseq s 0 (position #\space s)) ; strip build information (date, etc.)
@@ -298,7 +298,7 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
              (lisp-version-string)
              (or (operating-system) (software-type))
              (or (architecture) (machine-type))
-             #+sbcl (if (featurep :sb-thread) "S" "")))))
+             #+sbcl (unless (featurep :sb-thread) "unthreaded")))))
 
 
 ;;;; Other system information
