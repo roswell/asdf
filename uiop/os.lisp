@@ -74,7 +74,6 @@ except on ABCL where it might change between FASL compilation and runtime."
                                         (:os-mezzano . os-mezzano-p))
           :when (and (or (not o) (eq feature :os-macosx) (eq feature :os-haiku)) (funcall detect))
             :do (setf o feature) (pushnew feature *features*)
-          :else :do (setf *features* (remove feature *features*))
           :finally
              (return (or o (error "Congratulations for trying ASDF on an operating system~%~
 that is neither Unix, nor Windows, nor Genera, nor even old MacOS.~%Now you port it.")))))
