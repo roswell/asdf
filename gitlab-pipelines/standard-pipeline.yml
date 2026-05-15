@@ -57,7 +57,7 @@ workflow:
         IMAGE: rpgoldman/abcl:1.9.2-jdk21-jammy
 
       - l: ccl
-        IMAGE: clfoundation/ccl:1.13-trixie
+        IMAGE: clfoundation/ccl:1.13-bookworm
 
       - l: clisp
 
@@ -83,7 +83,7 @@ workflow:
         IMAGE: rpgoldman/abcl:1.9.2-jdk21-jammy
 
       - l: ccl
-        IMAGE: clfoundation/ccl:1.13-trixie
+        IMAGE: clfoundation/ccl:1.13-bookworm
 
       - l: clisp
 
