@@ -315,13 +315,13 @@ initialized with SEED."
      (let* (;; collect timestamps from inputs, and exit early if any is missing
             (in-files (input-files o c))
             (in-stamps (mapcar #'get-file-stamp in-files))
-            (missing-in (loop :for f :in in-files :for s :in in-stamps :unless s :collect f))
+            (missing-in (loop :for f :in in-files :for s :in in-stamps :when (eq s t) :collect f))
             (latest-in (timestamps-latest (cons dep-stamp in-stamps))))
        (when (and missing-in (not just-done)) (return (values nil nil))))
      (let* (;; collect timestamps from outputs, and exit early if any is missing
             (out-files (remove-if 'null (output-files o c)))
             (out-stamps (mapcar (if just-done 'register-file-stamp 'get-file-stamp) out-files))
-            (missing-out (loop :for f :in out-files :for s :in out-stamps :unless s :collect f))
+            (missing-out (loop :for f :in out-files :for s :in out-stamps :when (eq s t) :collect f))
             (earliest-out (timestamps-earliest out-stamps)))
        (when (and missing-out (not just-done)) (return (values nil nil))))
      (let (;; Time stamps from the files at hand, and whether any is missing
