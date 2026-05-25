@@ -2,4 +2,5 @@
   "asdf.asd"
   "uiop/asdf-driver.asd"
   "uiop/uiop.asd"
-  "tools/asdf-tools.asd")
+  "tools/asdf-tools.asd"
+  "contrib/fiveam-asdf/fiveam-asdf.asd")
