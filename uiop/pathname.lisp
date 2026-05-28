@@ -344,6 +344,7 @@ actually-existing directory."
 
 ;;; Parsing filenames
 (with-upgradability ()
+  #-gcl
   (declaim (ftype function ensure-pathname)) ; forward reference
 
   (defun split-unix-namestring-directory-components
