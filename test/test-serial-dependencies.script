@@ -12,3 +12,26 @@
 (asdf:operate 'asdf:load-op
               (asdf:find-component (asdf:find-system "test-serial-dependencies")
                                    (list "file2")))
+
+(def-test-system "test-feature-tracking"
+  :serial t
+  :components
+  ((:file "file1" :if-feature :changing-feature)
+   (:file "test-package-exists")))
+
+(asdf:load-system "test-feature-tracking")
+;; attempt to restore to original state
+(delete-package :test-package-2)
+(push :changing-feature *features*)
+(asdf:load-system "test-feature-tracking" :force t)
+
+;;; if ASDF is not smart about features, then this test will fail
+;;; because ASDF will load only test-package-exists
+(delete-package :test-package)
+(delete-package :test-package-2)
+(setf *features* (remove :changing-feature *features*))
+(DBG "Here we should load only test-package-exists.")
+;; if ASDF correctly recompiles test-package-exists, because it
+;; detects that it needs recompilation because of the feature change,
+;; this test will pass.
+(asdf:load-system "test-feature-tracking")
