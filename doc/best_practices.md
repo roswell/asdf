@@ -107,7 +107,7 @@ or using logical pathnames as common with MK-DEFSYSTEM.
 Dan Barlow's ASDF, to "Play Nice With Unix", preferred lower-case file names,
 and used string-downcase to normalize symbols into strings;
 at the same time, he allowed you to specify mixed case or upper-case names by using a string.
-The latter was probably a mistake, and I strongly recommend against using anything but lower-case.
+The latter was probably a mistake, and I (fare) strongly recommend against using anything but lower-case.
 If that weren't allowed, there would be a case for making lower-case symbols the default syntax,
 and let the various case conversions do their job without quotes.
 But that is not where we are.
@@ -213,7 +213,7 @@ the ability to install a newer ASDF on top of an old one to fix its bugs
 (an ability that did not exist with ASDF 1);
 thus, users do not have to maintain compatibility with antique bugs.
 
-These days, I even recommended that you should freely rely
+These days, I (fare) even recommended that you should freely rely
 on features of ASDF 3.1 (2014) not present in ASDF 3.0 (2013), such as:
 `~/common-lisp/` being included in the source-registry by default;
 `run-program` being full-fledged with input and error-output support;
@@ -600,7 +600,7 @@ that creates synergies between these two systems.
 There exists a system `asdf-system-connections` that will allow you
 to define such system connections that are *automatically* loaded
 when both the connected systems are loaded.
-While I debugged that mechanism and made sure it works with ASDF 3,
+While I (fare) debugged that mechanism and made sure it works with ASDF 3,
 I recommend against using it, because it introduces side-effects within the build.
 Instead I recommend explicitly loading the system connections
 as part of the larger system that will use them.
@@ -663,7 +663,7 @@ Moreover, on SBCL where ASDF was developed,
 ASDF itself was used to compile and load SBCL modules at runtime,
 so this hook came naturally.
 
-As ASDF maintainer, I now consider this in bad taste:
+As (now former) ASDF maintainer, I (fare) consider this in bad taste:
 
   * First, this hook is not 100% portable, so it is bad taste to recommend relying on it.
   * Second, `cl:require` has a mechanism for loading things only once by checking `cl:*modules*`
@@ -833,6 +833,13 @@ However, you SHOULD NOT needlessly push new features;
 in particular, the mere fact of having loaded your system does not warrant a new feature.
 A feature is only warranted if your system is some deep infrastructure
 with mostly compatible rivals that it needs to be distinguished from.
+
+Finally note that `:if-feature` may interfere with `:serial t` in the case the feature is absent:
+the serial dependency chain will be broken, and the component after the disabled one
+will have to explicitly `:depends-on` the component before the disabled one
+to restore the serial dependency chain. Or maybe you can put the component with `:if-feature`
+either first or last, at which point it won't matter that the serial dependency chain is broken.
+
 
 ### <a name="moreelaborate_testing"></a>More Elaborate Testing
 
