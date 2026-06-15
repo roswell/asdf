@@ -344,6 +344,7 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
         #+mkcl (mk-ext:getcwd)
         #+sbcl (sb-ext:parse-native-namestring (sb-unix:posix-getcwd/))
         #+xcl (extensions:current-directory)
+        #+dotcl (dotcl:getcwd)
         (not-implemented-error 'getcwd)))
 
   (defun chdir (x)
@@ -362,7 +363,8 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
       #+lispworks (hcl:change-directory x)
       #+mkcl (mk-ext:chdir x)
       #+sbcl (progn (require :sb-posix) (symbol-call :sb-posix :chdir (sb-ext:native-namestring x)))
-      #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl genera lispworks mkcl sbcl scl xcl)
+      #+dotcl (dotcl:chdir x)
+      #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl genera lispworks mkcl sbcl scl xcl dotcl)
       (not-implemented-error 'chdir))))
 
 
