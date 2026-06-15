@@ -78,7 +78,8 @@ This is designed to abstract away the implementation specific quit forms."
                (cond
                  (exit `(,exit :code code :abort (not finish-output)))
                  (quit `(,quit :unix-status code :recklessly-p (not finish-output)))))
-    #-(or abcl allegro clasp clisp clozure cmucl ecl gcl genera lispworks mcl mkcl sbcl scl xcl)
+    #+dotcl (dotcl:quit code)
+    #-(or abcl allegro clasp clisp clozure cmucl ecl gcl genera lispworks mcl mkcl sbcl scl xcl dotcl)
     (not-implemented-error 'quit "(called with exit code ~S)" code))
 
   (defun die (code format &rest arguments)
@@ -237,7 +238,8 @@ depending on whether *LISP-INTERACTION* is set, enter debugger or die"
     #+mkcl (loop :for i :from 0 :below (mkcl:argc) :collect (mkcl:argv i))
     #+sbcl sb-ext:*posix-argv*
     #+xcl system:*argv*
-    #-(or abcl allegro clasp clisp clozure cmucl ecl gcl genera lispworks mcl mezzano mkcl sbcl scl xcl)
+    #+dotcl (dotcl:command-line-arguments)
+    #-(or abcl allegro clasp clisp clozure cmucl ecl gcl genera lispworks mcl mezzano mkcl sbcl scl xcl dotcl)
     (not-implemented-error 'raw-command-line-arguments))
 
   (defun command-line-arguments (&optional (arguments (raw-command-line-arguments)))
