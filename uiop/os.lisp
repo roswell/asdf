@@ -80,8 +80,10 @@ except on ABCL where it might change between FASL compilation and runtime."
 that is neither Unix, nor Windows, nor Genera, nor even old MacOS.~%Now you port it.")))))
 
   (defmacro os-cond (&rest clauses)
-    #+abcl `(cond ,@clauses)
-    #-abcl (loop :for (test . body) :in clauses :when (eval test) :return `(progn ,@body)))
+    ;; ABCL and dotcl ship a single FASL whose OS can differ from compile time,
+    ;; so evaluate the test at run time rather than folding it at macroexpansion.
+    #+(or abcl dotcl) `(cond ,@clauses)
+    #-(or abcl dotcl) (loop :for (test . body) :in clauses :when (eval test) :return `(progn ,@body)))
 
   (detect-os))
 
