@@ -422,7 +422,7 @@ or whether it's already taken care of by the implementation's underlying run-pro
     (when (member :stream (list input output error-output))
       (parameter-error "~S: ~S is not allowed as synchronous I/O redirection argument"
                        'run-program :stream))
-    #+(or abcl allegro clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
+    #+(or abcl allegro clozure cmucl dotcl ecl (and lispworks os-unix) mkcl sbcl scl)
     (let (#+(or abcl ecl mkcl)
             (version (parse-version
                       #-abcl
@@ -560,14 +560,17 @@ RUN-PROGRAM returns 3 values:
 or an indication of failure via the EXIT-CODE of the process"
     (declare (ignorable input output error-output if-input-does-not-exist if-output-exists
                         if-error-output-exists element-type external-format ignore-error-status))
-    #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl lispworks mcl mkcl sbcl scl xcl)
+    #-(or abcl allegro clasp clisp clozure cmucl cormanlisp dotcl ecl gcl lispworks mcl mkcl sbcl scl xcl)
     (not-implemented-error 'run-program)
+    ;; dotcl proceeds through the normal LAUNCH-PROGRAM path below — its
+    ;; #+dotcl branch in launch-program.lisp uses dotcl:launch-process, and
+    ;; UIOP's slurp-input-stream handles every output spec.
     (apply (if (or force-shell
                    ;; Per doc string, set FORCE-SHELL to T if we get command as a string.
                    ;; But don't override user's specified preference. [2015/06/29:rpg]
                    (and (stringp command)
                         (or (not force-shell-suppliedp)
-                            #-(or allegro clisp clozure sbcl) (os-cond ((os-windows-p) t))))
+                            #-(or allegro clisp clozure dotcl sbcl) (os-cond ((os-windows-p) t))))
                    #+(or clasp clisp cormanlisp gcl (and lispworks os-windows) mcl xcl) t
                    ;; A race condition in ECL <= 16.0.0 prevents using ext:run-program
                    #+ecl #.(if-let (ver (parse-version (lisp-implementation-version)))

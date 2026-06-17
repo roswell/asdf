@@ -154,16 +154,16 @@ argument to pass to the internal RUN-PROGRAM"
       ((eql :interactive)
        #+(or allegro lispworks) nil
        #+clisp :terminal
-       #+(or abcl clasp clozure cmucl ecl mkcl sbcl scl) t
-       #-(or abcl clasp clozure cmucl ecl mkcl sbcl scl allegro lispworks clisp)
+       #+(or abcl clasp clozure cmucl ecl mkcl sbcl scl dotcl) t
+       #-(or abcl clasp clozure cmucl ecl mkcl sbcl scl allegro lispworks clisp dotcl)
        (not-implemented-error :interactive-output
                               "On this lisp implementation, cannot interpret ~a value of ~a"
                               specifier role))
       ((eql :output)
        (cond ((eq role :error-output)
-              #+(or abcl allegro clasp clozure cmucl ecl lispworks mkcl sbcl scl)
+              #+(or abcl allegro clasp clozure cmucl ecl lispworks mkcl sbcl scl dotcl)
               :output
-              #-(or abcl allegro clasp clozure cmucl ecl lispworks mkcl sbcl scl)
+              #-(or abcl allegro clasp clozure cmucl ecl lispworks mkcl sbcl scl dotcl)
               (not-implemented-error :error-output-redirect
                                      "Can't send ~a to ~a on this lisp implementation."
                                      role specifier))
@@ -268,17 +268,18 @@ MAKE-INSTANCE. Primarily, it is being made available to enable type-checking."))
                   (symbol-call :ext '#:external-process-pid process)
                   (not-implemented-error 'process-info-pid))
       #+clozure (ccl:external-process-id process)
+      #+dotcl (dotcl:process-pid process)
       #+ecl (ext:external-process-pid process)
       #+(or cmucl scl) (ext:process-pid process)
       #+lispworks7+ (sys:pipe-pid process)
       #+(and lispworks (not lispworks7+)) process
       #+mkcl (mkcl:process-id process)
       #+sbcl (sb-ext:process-pid process)
-      #-(or abcl allegro clasp clozure cmucl ecl mkcl lispworks sbcl scl)
+      #-(or abcl allegro clasp clozure cmucl dotcl ecl mkcl lispworks sbcl scl)
       (not-implemented-error 'process-info-pid)))
 
   (defun %process-status (process-info)
-    #-(or allegro clozure cmucl ecl lispworks mkcl sbcl scl)
+    #-(or allegro clozure cmucl dotcl ecl lispworks mkcl sbcl scl)
     (not-implemented-error '%process-status)
     (if-let (exit-code (slot-value process-info 'exit-code))
       (return-from %process-status
@@ -296,6 +297,9 @@ MAKE-INSTANCE. Primarily, it is being made available to enable type-checking."))
                         (symbol-call :ext '#:external-process-status process)
                         (not-implemented-error '%process-status))
             #+clozure (ccl:external-process-status process)
+            #+dotcl (if (dotcl:process-alive-p process)
+                        :running
+                        (values :exited (dotcl:process-exit-code process)))
             #+cmucl (let ((status (ext:process-status process)))
                       (if (member status '(:exited :signaled :stopped))
                           ;; ext:process-exit-code can also be called
@@ -349,8 +353,9 @@ MAKE-INSTANCE. Primarily, it is being made available to enable type-checking."))
     (unless (slot-value process-info 'exit-code)
       #+abcl (sys:process-alive-p (slot-value process-info 'process))
       #+(or cmucl scl) (ext:process-alive-p (slot-value process-info 'process))
+      #+dotcl (dotcl:process-alive-p (slot-value process-info 'process))
       #+sbcl (sb-ext:process-alive-p (slot-value process-info 'process))
-      #-(or abcl cmucl sbcl scl) (find (%process-status process-info)
+      #-(or abcl cmucl dotcl sbcl scl) (find (%process-status process-info)
                                        '(:running :stopped :continued :resumed))))
 
   (defun wait-process (process-info)
@@ -368,7 +373,7 @@ might otherwise be irrevocably lost."
         (values exit-code signal-code)
         exit-code)
       (let ((process (slot-value process-info 'process)))
-        #-(or abcl allegro clasp clozure cmucl ecl lispworks mkcl sbcl scl)
+        #-(or abcl allegro clasp clozure cmucl dotcl ecl lispworks mkcl sbcl scl)
         (not-implemented-error 'wait-process)
         (when process
           ;; 1- wait
@@ -395,6 +400,9 @@ might otherwise be irrevocably lost."
                             (if (eq status :signaled)
                                 (values nil code)
                                 code))
+                ;; dotcl:process-wait blocks until exit and returns the exit
+                ;; code directly; signals are surfaced as a plain code.
+                #+dotcl (dotcl:process-wait process)
                 #+(or cmucl scl) (let ((status (ext:process-status process))
                                        (code (ext:process-exit-code process)))
                                    (if (eq status :signaled)
@@ -460,10 +468,11 @@ race conditions."
     ;; On ECL, this will only work on versions later than 2016-09-06,
     ;; but we still want to compile on earlier versions, so we use symbol-call
     #+(or clasp ecl) (symbol-call :ext :terminate-process (slot-value process-info 'process) urgent)
+    #+dotcl (dotcl:process-kill (slot-value process-info 'process))
     #+lispworks7+ (sys:pipe-kill-process (slot-value process-info 'process))
     #+mkcl (mk-ext:terminate-process (slot-value process-info 'process)
                                      :force urgent)
-    #-(or abcl clasp ecl lispworks7+ mkcl)
+    #-(or abcl clasp dotcl ecl lispworks7+ mkcl)
     (os-cond
      ((os-unix-p) (%posix-send-signal process-info (if urgent 9 15)))
      ((os-windows-p) (if-let (pid (process-info-pid process-info))
@@ -547,7 +556,7 @@ stream. Additionally, the implementations that support streams may have
 differing behavior on how those streams are filled with data. If data is not
 periodically read from the child process and sent to the stream, the child
 could block because its output buffers are full."
-    #-(or abcl allegro clasp clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
+    #-(or abcl allegro clasp clozure cmucl dotcl ecl (and lispworks os-unix) mkcl sbcl scl)
     (progn command keys input output error-output directory element-type external-format
            if-input-does-not-exist if-output-exists if-error-output-exists ;; ignore
            (not-implemented-error 'launch-program))
@@ -574,7 +583,7 @@ could block because its output buffers are full."
                      (list input output error-output)))
       (parameter-error "~S: Streams passed as I/O parameters need to be (synonymous with) file streams on this lisp"
                        'launch-program))
-    #+(or abcl allegro clasp clozure cmucl ecl (and lispworks os-unix) mkcl sbcl scl)
+    #+(or abcl allegro clasp clozure cmucl dotcl ecl (and lispworks os-unix) mkcl sbcl scl)
     (nest
      (progn ;; see comments for these functions
        (%handle-if-does-not-exist input if-input-does-not-exist)
@@ -590,9 +599,20 @@ could block because its output buffers are full."
            #+(and allegro os-windows) (interactive (%interactivep input output error-output))
            (command
             (etypecase command
-              #+os-unix (string `("/bin/sh" "-c" ,command))
-              #+os-unix (list command)
-              #+os-windows
+              ;; ABCL and dotcl ship a single cross-OS FASL, so the shell wrapper
+              ;; is chosen at run time (see OS-COND), not via read-time #+os-*.
+              #+(or abcl dotcl)
+              (string (os-cond
+                       ((os-windows-p)
+                        #+abcl (parameter-error
+                                "~S doesn't support string commands on Windows on this Lisp"
+                                'launch-program command)
+                        #+dotcl (list "cmd" "/c" command))
+                       (t (list "/bin/sh" "-c" command))))
+              #+(or abcl dotcl) (list command)
+              #+(and os-unix (not (or abcl dotcl))) (string `("/bin/sh" "-c" ,command))
+              #+(and os-unix (not (or abcl dotcl))) (list command)
+              #+(and os-windows (not (or abcl dotcl)))
               (string
                ;; NB: On other Windows implementations, this is utterly bogus
                ;; except in the most trivial cases where no quoting is needed.
@@ -615,11 +635,11 @@ could block because its output buffers are full."
                ;; On ECL, commit 2040629 https://gitlab.com/embeddable-common-lisp/ecl/issues/304
                ;; On SBCL, we assume the patch from fcae0fd (to be part of SBCL 1.3.13)
                #+(or clasp clozure ecl sbcl) (cons "cmd" (strcat "/c " command)))
-              #+os-windows
+              #+(and os-windows (not (or abcl dotcl)))
               (list
                #+allegro (escape-windows-command command)
                #-allegro command)))))
-     #+(or abcl (and allegro os-unix) clasp clozure cmucl ecl mkcl sbcl)
+     #+(or abcl (and allegro os-unix) clasp clozure cmucl dotcl ecl mkcl sbcl)
      (let ((program (car command))
            #-allegro (arguments (cdr command))))
      #+(and (or clasp ecl sbcl) os-windows)
@@ -627,9 +647,10 @@ could block because its output buffers are full."
          (if (listp arguments)
              (values arguments t)
              (values (list arguments) nil)))
-     #-(or allegro mkcl sbcl) (with-current-directory (directory))
+     ;; dotcl has no CHDIR; it gets :directory via launch-process (WorkingDirectory) below.
+     #-(or allegro dotcl mkcl sbcl) (with-current-directory (directory))
      (multiple-value-bind
-       #+(or abcl clozure cmucl sbcl scl) (process)
+       #+(or abcl clozure cmucl dotcl sbcl scl) (process)
        #+allegro (in-or-io out-or-err err-or-pid pid-or-nil)
        #+(or clasp ecl) (stream code process)
        #+lispworks (io-or-pid err-or-nil #-lispworks7+ pid-or-nil)
@@ -644,11 +665,11 @@ could block because its output buffers are full."
                        (not-implemented-error 'launch-program))
            #+clozure 'ccl:run-program
            #+(or cmucl ecl scl) 'ext:run-program
-
+           #+dotcl 'dotcl:launch-process
            #+lispworks ,@'('system:run-shell-command `("/usr/bin/env" ,@command)) ; full path needed
            #+mkcl 'mk-ext:run-program
            #+sbcl 'sb-ext:run-program
-           #+(or abcl clasp clozure cmucl ecl mkcl sbcl) ,@'(program arguments)
+           #+(or abcl clasp clozure cmucl dotcl ecl mkcl sbcl) ,@'(program arguments)
            #+(and (or clasp ecl sbcl) os-windows) ,@'(:escape-arguments escape-arguments)
            :input input :if-input-does-not-exist :error
            :output output :if-output-exists :append
@@ -679,7 +700,7 @@ could block because its output buffers are full."
             (3 (prop 'bidir-stream in-or-io)))
           (when (eq error-output :stream)
             (prop 'error-output-stream out-or-err))))
-       #+(or abcl clozure cmucl sbcl scl)
+       #+(or abcl clozure cmucl dotcl sbcl scl)
        (progn
          (prop 'process process)
          (when (eq input :stream)
@@ -688,6 +709,7 @@ could block because its output buffers are full."
             #+abcl (symbol-call :sys :process-input)
             #+clozure (ccl:external-process-input-stream)
             #+(or cmucl scl) (ext:process-input)
+            #+dotcl (dotcl:process-input)
             #+sbcl (sb-ext:process-input)
             process))
          (when (eq output :stream)
@@ -696,6 +718,7 @@ could block because its output buffers are full."
             #+abcl (symbol-call :sys :process-output)
             #+clozure (ccl:external-process-output-stream)
             #+(or cmucl scl) (ext:process-output)
+            #+dotcl (dotcl:process-output)
             #+sbcl (sb-ext:process-output)
             process))
          (when (eq error-output :stream)
@@ -704,6 +727,7 @@ could block because its output buffers are full."
             #+abcl (symbol-call :sys :process-error)
             #+clozure (ccl:external-process-error-stream)
             #+(or cmucl scl) (ext:process-error)
+            #+dotcl (dotcl:process-error)
             #+sbcl (sb-ext:process-error)
             process)))
        #+(or clasp ecl mkcl)
