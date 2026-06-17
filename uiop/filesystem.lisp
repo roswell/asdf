@@ -564,6 +564,7 @@ NILs."
             #+sbcl (if-let (it (find-symbol* :sbcl-homedir-pathname :sb-int nil))
                      (funcall it)
                      (getenv-pathname "SBCL_HOME" :ensure-directory t))
+            #+dotcl (dotcl:dotcl-homedir-pathname)
             #+scl (ignore-errors (pathname-parent-directory-pathname (truename #p"file://modules/")))
             #+xcl ext:*xcl-home*))
       (if (and dir truename)
