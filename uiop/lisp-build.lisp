@@ -846,8 +846,9 @@ it will filter them appropriately."
 (with-upgradability ()
   (defun combine-fasls (inputs output)
     "Combine a list of FASLs INPUTS into a single FASL OUTPUT"
-    #-(or abcl allegro clisp clozure cmucl lispworks sbcl scl xcl)
+    #-(or abcl allegro clisp clozure cmucl dotcl lispworks sbcl scl xcl)
     (not-implemented-error 'combine-fasls "~%inputs: ~S~%output: ~S" inputs output)
+    #+dotcl (dotcl:combine-fasls inputs output)
     #+abcl (funcall 'sys::concatenate-fasls inputs output) ; requires ABCL 1.2.0
     #+(or allegro clisp cmucl sbcl scl xcl) (concatenate-files inputs output)
     #+clozure (ccl:fasl-concatenate output inputs :if-exists :supersede)

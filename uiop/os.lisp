@@ -80,8 +80,10 @@ except on ABCL where it might change between FASL compilation and runtime."
 that is neither Unix, nor Windows, nor Genera, nor even old MacOS.~%Now you port it.")))))
 
   (defmacro os-cond (&rest clauses)
-    #+abcl `(cond ,@clauses)
-    #-abcl (loop :for (test . body) :in clauses :when (eval test) :return `(progn ,@body)))
+    ;; ABCL and dotcl ship a single FASL whose OS can differ from compile time,
+    ;; so evaluate the test at run time rather than folding it at macroexpansion.
+    #+(or abcl dotcl) `(cond ,@clauses)
+    #-(or abcl dotcl) (loop :for (test . body) :in clauses :when (eval test) :return `(progn ,@body)))
 
   (detect-os))
 
@@ -116,7 +118,8 @@ use getenvp to return NIL in such a case."
                 (ccl:%get-cstring value))))
     #+mkcl (#.(or (find-symbol* 'getenv :si nil) (find-symbol* 'getenv :mk-ext nil)) x)
     #+sbcl (sb-ext:posix-getenv x)
-    #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl genera lispworks mcl mezzano mkcl sbcl scl xcl)
+    #+dotcl (dotcl:getenv x)
+    #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl genera lispworks mcl mezzano mkcl sbcl scl xcl dotcl)
     (not-implemented-error 'getenv))
 
   (defsetf getenv (x) (val)
@@ -133,7 +136,8 @@ use getenvp to return NIL in such a case."
          #+lispworks `(setf (lispworks:environment-variable ,x) ,val)
          #+mkcl `(mkcl:setenv ,x ,val)
          #+sbcl `(progn (require :sb-posix) (symbol-call :sb-posix :setenv ,x ,val 1))
-         #-(or allegro clasp clisp clozure cmucl ecl lispworks mkcl sbcl)
+         #+dotcl `(dotcl:setenv ,x ,val)
+         #-(or allegro clasp clisp clozure cmucl ecl lispworks mkcl sbcl dotcl)
          '(not-implemented-error '(setf getenv))
          ;; VAL is NIL, unset the variable
          #+allegro `(symbol-call :excl.osi :unsetenv ,x)
@@ -145,7 +149,8 @@ use getenvp to return NIL in such a case."
          #+lispworks `(setf (lispworks:environment-variable ,x) ,val) ; according to their docs, this should unset the variable
          #+mkcl `(mkcl:setenv ,x ,val) ; like other ECL-family implementations, don't see UNSETENV
          #+sbcl `(progn (require :sb-posix) (symbol-call :sb-posix :unsetenv ,x))
-         #-(or allegro clisp clozure cmucl ecl lispworks mkcl sbcl)
+         #+dotcl `(dotcl:unsetenv ,x)
+         #-(or allegro clisp clozure cmucl ecl lispworks mkcl sbcl dotcl)
          '(not-implemented-error 'unsetenv))
         `(if ,val
              #+allegro (setf (sys:getenv ,x) ,val)
@@ -157,7 +162,8 @@ use getenvp to return NIL in such a case."
              #+lispworks (setf (lispworks:environment-variable ,x) ,val)
              #+mkcl (mkcl:setenv ,x ,val)
              #+sbcl (progn (require :sb-posix) (symbol-call :sb-posix :setenv ,x ,val 1))
-             #-(or allegro clasp clisp clozure cmucl ecl lispworks mkcl sbcl)
+             #+dotcl (dotcl:setenv ,x ,val)
+             #-(or allegro clasp clisp clozure cmucl ecl lispworks mkcl sbcl dotcl)
              '(not-implemented-error '(setf getenv))
              ;; VAL is NIL, unset the variable
              #+allegro (symbol-call :excl.osi :unsetenv ,x)
@@ -169,7 +175,8 @@ use getenvp to return NIL in such a case."
              #+lispworks (setf (lispworks:environment-variable ,x) ,val) ; according to their docs, this should unset the variable
              #+mkcl (mkcl:setenv ,x ,val) ; like other ECL-family implementations, don't see UNSETENV
              #+sbcl (progn (require :sb-posix) (symbol-call :sb-posix :unsetenv ,x))
-             #-(or allegro clisp clozure cmucl ecl lispworks mkcl sbcl)
+             #+dotcl (dotcl:unsetenv ,x)
+             #-(or allegro clisp clozure cmucl ecl lispworks mkcl sbcl dotcl)
              '(not-implemented-error 'unsetenv))))
 
   (defun getenvp (x)
@@ -306,7 +313,7 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
 (with-upgradability ()
   (defun hostname ()
     "return the hostname of the current host"
-    #+(or abcl clasp clozure cmucl ecl genera lispworks mcl mezzano mkcl sbcl scl xcl) (machine-instance)
+    #+(or abcl clasp clozure cmucl ecl genera lispworks mcl mezzano mkcl sbcl scl xcl dotcl) (machine-instance)
     #+cormanlisp "localhost" ;; is there a better way? Does it matter?
     #+allegro (symbol-call :excl.osi :gethostname)
     #+clisp (first (split-string (machine-instance) :separator " "))
@@ -339,6 +346,7 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
         #+mkcl (mk-ext:getcwd)
         #+sbcl (sb-ext:parse-native-namestring (sb-unix:posix-getcwd/))
         #+xcl (extensions:current-directory)
+        #+dotcl (dotcl:getcwd)
         (not-implemented-error 'getcwd)))
 
   (defun chdir (x)
@@ -357,7 +365,8 @@ suitable for use as a directory name to segregate Lisp FASLs, C dynamic librarie
       #+lispworks (hcl:change-directory x)
       #+mkcl (mk-ext:chdir x)
       #+sbcl (progn (require :sb-posix) (symbol-call :sb-posix :chdir (sb-ext:native-namestring x)))
-      #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl genera lispworks mkcl sbcl scl xcl)
+      #+dotcl (dotcl:chdir x)
+      #-(or abcl allegro clasp clisp clozure cmucl cormanlisp ecl gcl genera lispworks mkcl sbcl scl xcl dotcl)
       (not-implemented-error 'chdir))))
 
 

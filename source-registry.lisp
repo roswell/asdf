@@ -197,7 +197,7 @@ after having found a .asd file? True by default.")
 
   (defun wrapping-source-registry ()
     `(:source-registry
-      #+(or clasp ecl sbcl) (:tree ,(resolve-symlinks* (lisp-implementation-directory)))
+      #+(or clasp ecl sbcl dotcl) (:tree ,(resolve-symlinks* (lisp-implementation-directory)))
       :inherit-configuration
       #+mkcl (:tree ,(translate-logical-pathname "SYS:"))
       #+cmucl (:tree #p"modules:")
